@@ -11,8 +11,8 @@ export class FarmsApiService extends BaseApiService {
       return this.get<Farm[]>('/payroll/farms');
     } else if (role === 'stock') {
       return this.get<Farm[]>('/stock/farms');
-    } else if (role === 'storekeeper') {
-      return this.get<Farm[]>('/storekeeper/farms');
+    } else if (role === 'farm_clerk') {
+      return this.get<Farm[]>('/farm-clerk/farms');
     } else if (role === 'supervisor') {
       return this.get<Farm[]>('/supervisor/farms');
     } else {

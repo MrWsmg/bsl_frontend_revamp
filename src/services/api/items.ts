@@ -28,7 +28,7 @@ export class ItemsApiService extends BaseApiService {
    * Get pending item requests
    */
   async getPendingItemRequests(): Promise<ItemRequest[]> {
-    return this.get<ItemRequest[]>('/storekeeper/pending-requests');
+    return this.get<ItemRequest[]>('/farm-clerk/pending-requests');
   }
 
   /**
@@ -56,7 +56,7 @@ export class ItemsApiService extends BaseApiService {
    * Issue item request
    */
   async issueItemRequest(requestId: number): Promise<ItemRequest> {
-    return this.post<ItemRequest>(`/storekeeper/issue-request/${requestId}`);
+    return this.post<ItemRequest>(`/farm-clerk/issue-request/${requestId}`);
   }
 
   /**
@@ -75,14 +75,14 @@ export class ItemsApiService extends BaseApiService {
    * Get inventory items
    */
   async getInventoryItems(params?: Record<string, any>): Promise<InventoryItem[]> {
-    return this.get<InventoryItem[]>('/storekeeper/inventory', params);
+    return this.get<InventoryItem[]>('/farm-clerk/inventory', params);
   }
 
   /**
    * Create inventory item
    */
   async createInventoryItem(data: { farm_id: number; item_name: string; quantity: number; unit: string }): Promise<InventoryItem> {
-    return this.post<InventoryItem>('/storekeeper/inventory', data);
+    return this.post<InventoryItem>('/farm-clerk/inventory', data);
   }
 
   /**

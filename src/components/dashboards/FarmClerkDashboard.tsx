@@ -1,6 +1,6 @@
 "use client";
 
-// Storekeeper Dashboard - shadcn patterns
+// Farm Clerk Dashboard - shadcn patterns
 import React, { useState, useCallback, useMemo } from 'react';
 import { Package, ClipboardList, Truck, BarChart3, DollarSign, TrendingUp, LayoutDashboard, Boxes, ArrowLeftRight } from 'lucide-react';
 import { useApi } from '../../hooks';
@@ -23,7 +23,7 @@ interface User {
   is_active: boolean;
 }
 
-interface StorekeeperDashboardProps {
+interface FarmClerkDashboardProps {
   user: User;
   onLogout: () => void;
 }
@@ -51,7 +51,7 @@ const sidebarItems = [
   { id: 'expenses', label: 'Expenses', icon: DollarSign },
 ];
 
-const StorekeeperDashboard: React.FC<StorekeeperDashboardProps> = ({ user, onLogout }) => {
+const FarmClerkDashboard: React.FC<FarmClerkDashboardProps> = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set(['overview']));
 
@@ -372,7 +372,7 @@ const StorekeeperDashboard: React.FC<StorekeeperDashboardProps> = ({ user, onLog
       movements: 'Stock Movements',
       expenses: 'Expenses',
     };
-    return titles[activeTab] || 'Storekeeper Dashboard';
+    return titles[activeTab] || 'Farm Clerk Dashboard';
   };
 
   return (
@@ -409,4 +409,4 @@ const StorekeeperDashboard: React.FC<StorekeeperDashboardProps> = ({ user, onLog
   );
 };
 
-export { StorekeeperDashboard };
+export { FarmClerkDashboard };

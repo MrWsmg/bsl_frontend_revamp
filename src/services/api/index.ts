@@ -511,7 +511,7 @@ export class ApiService extends BaseApiService {
     return this.stock.getStockWeeklySummary();
   }
 
-  async getStorekeeperWeeklySummary() {
+  async getFarmClerkWeeklySummary() {
     return this.transfers.getTransferRecords();
   }
 

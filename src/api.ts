@@ -221,8 +221,8 @@ class ApiServiceImpl implements ApiService {
       return this.request('/payroll/farms');
     } else if (role === 'stock') {
       return this.request('/stock/farms');
-    } else if (role === 'storekeeper') {
-      return this.request('/storekeeper/farms');
+    } else if (role === 'farm_clerk') {
+      return this.request('/farm-clerk/farms');
     } else if (role === 'supervisor') {
       return this.request('/farms');
     } else if (role === 'worker') {
@@ -270,11 +270,11 @@ class ApiServiceImpl implements ApiService {
   // Inventory Items
   async getInventoryItems(params: Record<string, any> = {}): Promise<any[]> {
     const queryString = new URLSearchParams(params).toString();
-    return this.request(`/storekeeper/inventory?${queryString}`);
+    return this.request(`/farm-clerk/inventory?${queryString}`);
   }
 
   async createInventoryItem(data: any): Promise<any> {
-    return this.request('/storekeeper/inventory', {
+    return this.request('/farm-clerk/inventory', {
       method: 'POST',
       body: data,
     });
@@ -283,11 +283,11 @@ class ApiServiceImpl implements ApiService {
   // Expense Records
   async getExpenseRecords(params: Record<string, any> = {}): Promise<any[]> {
     const queryString = new URLSearchParams(params).toString();
-    return this.request(`/storekeeper/expenses?${queryString}`);
+    return this.request(`/farm-clerk/expenses?${queryString}`);
   }
 
   async createExpenseRecord(data: any): Promise<any> {
-    return this.request('/storekeeper/expenses', {
+    return this.request('/farm-clerk/expenses', {
       method: 'POST',
       body: data,
     });
@@ -296,18 +296,18 @@ class ApiServiceImpl implements ApiService {
   // Transfer Records
   async getTransferRecords(params: Record<string, any> = {}): Promise<any[]> {
     const queryString = new URLSearchParams(params).toString();
-    return this.request(`/storekeeper/transfers?${queryString}`);
+    return this.request(`/farm-clerk/transfers?${queryString}`);
   }
 
   async createTransferRecord(data: any): Promise<any> {
-    return this.request('/storekeeper/transfers', {
+    return this.request('/farm-clerk/transfers', {
       method: 'POST',
       body: data,
     });
   }
 
   async updateTransferStatus(transferId: number, status: string): Promise<any> {
-    return this.request(`/storekeeper/transfers/${transferId}/status`, {
+    return this.request(`/farm-clerk/transfers/${transferId}/status`, {
       method: 'PUT',
       body: JSON.stringify({ status }),
     });
@@ -455,8 +455,8 @@ class ApiServiceImpl implements ApiService {
     return this.request('/stock/weekly-summary');
   }
 
-  async getStorekeeperWeeklySummary(): Promise<any> {
-    return this.request('/storekeeper/weekly-summary');
+  async getFarmClerkWeeklySummary(): Promise<any> {
+    return this.request('/farm-clerk/weekly-summary');
   }
 
   // Picking-specific endpoints
@@ -577,23 +577,23 @@ class ApiServiceImpl implements ApiService {
   }
 
   async getPendingItemRequests(): Promise<any[]> {
-    return this.request('/storekeeper/pending-requests');
+    return this.request('/farm-clerk/pending-requests');
   }
 
   async approveItemRequest(requestId: number): Promise<any> {
-    return this.request(`/storekeeper/approve-request/${requestId}`, {
+    return this.request(`/farm-clerk/approve-request/${requestId}`, {
       method: 'POST',
     });
   }
 
   async rejectItemRequest(requestId: number): Promise<any> {
-    return this.request(`/storekeeper/reject-request/${requestId}`, {
+    return this.request(`/farm-clerk/reject-request/${requestId}`, {
       method: 'POST',
     });
   }
 
   async issueItemRequest(requestId: number): Promise<any> {
-    return this.request(`/storekeeper/issue-request/${requestId}`, {
+    return this.request(`/farm-clerk/issue-request/${requestId}`, {
       method: 'POST',
     });
   }
@@ -607,7 +607,7 @@ class ApiServiceImpl implements ApiService {
 
   async getStockMovements(params: Record<string, any> = {}): Promise<any[]> {
     const queryString = new URLSearchParams(params).toString();
-    return this.request(`/storekeeper/stock-movements?${queryString}`);
+    return this.request(`/farm-clerk/stock-movements?${queryString}`);
   }
 
   async getPriceListData(): Promise<any[]> {

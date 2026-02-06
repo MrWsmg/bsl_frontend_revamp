@@ -49,7 +49,7 @@ export class StockApiService extends BaseApiService {
    * Get stock movements
    */
   async getStockMovements(params?: ActivityFilters): Promise<any[]> {
-    return this.get<any[]>('/storekeeper/stock-movements', params);
+    return this.get<any[]>('/farm-clerk/stock-movements', params);
   }
 
   /**

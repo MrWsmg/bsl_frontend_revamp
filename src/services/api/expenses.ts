@@ -7,14 +7,14 @@ export class ExpensesApiService extends BaseApiService {
    * Get expense records
    */
   async getExpenseRecords(params?: ActivityFilters): Promise<ExpenseRecord[]> {
-    return this.get<ExpenseRecord[]>('/storekeeper/expenses', params);
+    return this.get<ExpenseRecord[]>('/farm-clerk/expenses', params);
   }
 
   /**
    * Create expense record
    */
   async createExpenseRecord(data: Partial<ExpenseRecord>): Promise<ExpenseRecord> {
-    return this.post<ExpenseRecord>('/storekeeper/expenses', data);
+    return this.post<ExpenseRecord>('/farm-clerk/expenses', data);
   }
 
   /**

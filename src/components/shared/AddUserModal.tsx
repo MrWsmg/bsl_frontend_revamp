@@ -745,7 +745,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onUserAdde
                 <option value="financial_controller">Financial Controller</option>
                 <option value="payroll_master">Payroll Master</option>
                 <option value="stock">Stock</option>
-                <option value="storekeeper">Storekeeper</option>
+                <option value="farm_clerk">Farm Clerk</option>
                 <option value="supervisor">Supervisor</option>
                 <option value="worker">Worker</option>
               </select>

@@ -5,7 +5,7 @@ import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { AdminDashboard } from "@/components/dashboards/AdminDashboard";
 import { PayrollDashboard } from "@/components/dashboards/PayrollDashboard";
 import { StockDashboard } from "@/components/dashboards/StockDashboard";
-import { StorekeeperDashboard } from "@/components/dashboards/StorekeeperDashboard";
+import { FarmClerkDashboard } from "@/components/dashboards/FarmClerkDashboard";
 import { SupervisorDashboard } from "@/components/dashboards/SupervisorDashboard";
 import { WorkerDashboard } from "@/components/dashboards/WorkerDashboard";
 import { ManagerDashboard } from "@/components/dashboards/ManagerDashboard";
@@ -22,7 +22,7 @@ const DashboardComponents: Record<string, React.ComponentType<any>> = {
   [USER_ROLES.ADMIN]: AdminDashboard,
   [USER_ROLES.PAYROLL]: PayrollDashboard,
   [USER_ROLES.STOCK]: StockDashboard,
-  [USER_ROLES.STOREKEEPER]: StorekeeperDashboard,
+  [USER_ROLES.FARM_CLERK]: FarmClerkDashboard,
   [USER_ROLES.SUPERVISOR]: SupervisorDashboard,
   [USER_ROLES.WORKER]: WorkerDashboard,
   [USER_ROLES.MANAGER]: ManagerDashboard,
