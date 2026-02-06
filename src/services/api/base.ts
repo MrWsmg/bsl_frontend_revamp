@@ -67,7 +67,7 @@ export class BaseApiService {
    * Make HTTP request with error handling and retry logic
    */
   protected async request<T>(
-    endpoint: string, 
+    endpoint: string,
     options: RequestOptions = {}
   ): Promise<T> {
     const { retryCount = 0, headers: customHeaders, body, ...requestOptions } = options;
