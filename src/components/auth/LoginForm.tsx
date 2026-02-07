@@ -1,10 +1,12 @@
 "use client";
 
-// Login form component - shadcn/ui patterns
-import React, { useState } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '@/hooks';
 import { cn } from '@/lib/utils';
+import { loginSchema, type LoginFormData } from '@/lib/schemas';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -14,21 +16,26 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Field, FieldLabel, FieldError } from '@/components/ui/field';
 import { Loader2, AlertCircle, Leaf } from 'lucide-react';
 
 export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) {
   const router = useRouter();
   const { login, loading, error, clearError } = useAuth();
-  const [credentials, setCredentials] = useState({ username: '', password: '' });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const form = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      username: '',
+      password: '',
+    },
+  });
+
+  const onSubmit = async (data: LoginFormData) => {
     clearError();
     try {
-      await login(credentials);
-      // Redirect to dashboard after successful login
+      await login(data);
       router.push('/dashboard');
     } catch (err) {
       // Error handled by hook
@@ -50,7 +57,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) 
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={form.handleSubmit(onSubmit)}>
                 <div className="flex flex-col gap-6">
                   {error && (
                     <Alert variant="destructive">
@@ -58,32 +65,47 @@ export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) 
                       <AlertDescription>{error}</AlertDescription>
                     </Alert>
                   )}
-                  <div className="grid gap-2">
-                    <Label htmlFor="username">Username</Label>
-                    <Input
-                      id="username"
-                      type="text"
-                      placeholder="Enter your username"
-                      value={credentials.username}
-                      onChange={(e) =>
-                        setCredentials({ ...credentials, username: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="Enter your password"
-                      value={credentials.password}
-                      onChange={(e) =>
-                        setCredentials({ ...credentials, password: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
+
+                  <Controller
+                    name="username"
+                    control={form.control}
+                    render={({ field, fieldState }) => (
+                      <Field data-invalid={fieldState.invalid}>
+                        <FieldLabel htmlFor={field.name}>Username</FieldLabel>
+                        <Input
+                          {...field}
+                          id={field.name}
+                          type="text"
+                          placeholder="Enter your username"
+                          aria-invalid={fieldState.invalid}
+                        />
+                        {fieldState.invalid && (
+                          <FieldError errors={[fieldState.error]} />
+                        )}
+                      </Field>
+                    )}
+                  />
+
+                  <Controller
+                    name="password"
+                    control={form.control}
+                    render={({ field, fieldState }) => (
+                      <Field data-invalid={fieldState.invalid}>
+                        <FieldLabel htmlFor={field.name}>Password</FieldLabel>
+                        <Input
+                          {...field}
+                          id={field.name}
+                          type="password"
+                          placeholder="Enter your password"
+                          aria-invalid={fieldState.invalid}
+                        />
+                        {fieldState.invalid && (
+                          <FieldError errors={[fieldState.error]} />
+                        )}
+                      </Field>
+                    )}
+                  />
+
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading ? (
                       <>
@@ -107,5 +129,4 @@ export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) 
   );
 }
 
-// Keep named export for backward compatibility
 export { LoginForm as default };
