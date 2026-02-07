@@ -1,15 +1,17 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Package, Save, X } from 'lucide-react';
+import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Plus, Package, Save, X } from 'lucide-react';
 import { toast } from 'sonner';
 import apiService from '../services/api';
 import { Farm, Block } from '../types';
+import { simrRequestSchema, type SimrRequestFormData } from '@/lib/schemas';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardDescription } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -24,15 +26,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-
-interface SimrItem {
-  item_name: string;
-  quantity_requested: number;
-  unit: string;
-  price_list_id?: number;
-  accounting_code?: string;
-  specifications?: string;
-}
+import { Field, FieldLabel, FieldError } from '@/components/ui/field';
 
 interface SimrRequestFormProps {
   farms: Farm[];
@@ -63,33 +57,42 @@ export default function SimrRequestForm({ farms, onSuccess }: SimrRequestFormPro
   const [loading, setLoading] = useState(false);
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [priceList, setPriceList] = useState<any[]>([]);
-  
-  const [formData, setFormData] = useState({
-    farm_id: '',
-    block_id: '',
-    purpose: '',
-    priority: 'normal',
-  });
-  
-  const [items, setItems] = useState<SimrItem[]>([
-    {
-      item_name: '',
-      quantity_requested: 0,
-      unit: '',
-      price_list_id: undefined,
-      accounting_code: '',
-      specifications: '',
+
+  const form = useForm<SimrRequestFormData>({
+    resolver: zodResolver(simrRequestSchema),
+    defaultValues: {
+      farm_id: '',
+      block_id: '',
+      purpose: '',
+      priority: 'normal',
+      items: [
+        {
+          item_name: '',
+          quantity_requested: 0,
+          unit: '',
+          price_list_id: undefined,
+          accounting_code: '',
+          specifications: '',
+        },
+      ],
     },
-  ]);
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: 'items',
+  });
+
+  const watchedFarmId = form.watch('farm_id');
 
   // Load blocks when farm is selected
   useEffect(() => {
-    if (formData.farm_id) {
-      loadBlocks(parseInt(formData.farm_id));
+    if (watchedFarmId) {
+      loadBlocks(parseInt(watchedFarmId));
     } else {
       setBlocks([]);
     }
-  }, [formData.farm_id]);
+  }, [watchedFarmId]);
 
   // Load price list data
   useEffect(() => {
@@ -116,63 +119,30 @@ export default function SimrRequestForm({ farms, onSuccess }: SimrRequestFormPro
     }
   };
 
-  const handleFormChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleItemChange = (index: number, field: string, value: any) => {
-    const newItems = [...items];
-    newItems[index] = { ...newItems[index], [field]: value };
-    setItems(newItems);
-  };
-
   const addItem = () => {
-    setItems([
-      ...items,
-      {
-        item_name: '',
-        quantity_requested: 0,
-        unit: '',
-        price_list_id: undefined,
-        accounting_code: '',
-        specifications: '',
-      },
-    ]);
+    append({
+      item_name: '',
+      quantity_requested: 0,
+      unit: '',
+      price_list_id: undefined,
+      accounting_code: '',
+      specifications: '',
+    });
   };
 
-  const removeItem = (index: number) => {
-    if (items.length > 1) {
-      setItems(items.filter((_, i) => i !== index));
-    }
-  };
-
-  const handleSubmit = async () => {
-    // Validation
-    if (!formData.farm_id) {
-      toast.error('Please select a farm');
-      return;
-    }
-    if (!formData.purpose.trim()) {
-      toast.error('Please enter a purpose');
-      return;
-    }
-    if (items.some(item => !item.item_name || !item.unit || item.quantity_requested <= 0)) {
-      toast.error('Please fill in all required item fields');
-      return;
-    }
-
+  const onSubmit = async (data: SimrRequestFormData) => {
     setLoading(true);
     const loadingToast = toast.loading('Creating SIMR request...');
 
     try {
       const payload = {
-        farm_id: parseInt(formData.farm_id),
-        block_id: formData.block_id ? parseInt(formData.block_id) : undefined,
-        purpose: formData.purpose,
-        priority: formData.priority,
-        items: items.map(item => ({
+        farm_id: parseInt(data.farm_id),
+        block_id: data.block_id ? parseInt(data.block_id) : undefined,
+        purpose: data.purpose,
+        priority: data.priority,
+        items: data.items.map(item => ({
           item_name: item.item_name,
-          quantity_requested: item.quantity_requested,
+          quantity_requested: Number(item.quantity_requested),
           unit: item.unit,
           price_list_id: item.price_list_id,
           accounting_code: item.accounting_code || undefined,
@@ -196,29 +166,7 @@ export default function SimrRequestForm({ farms, onSuccess }: SimrRequestFormPro
 
   const handleClose = () => {
     setOpen(false);
-    setFormData({
-      farm_id: '',
-      block_id: '',
-      purpose: '',
-      priority: 'normal',
-    });
-    setItems([
-      {
-        item_name: '',
-        quantity_requested: 0,
-        unit: '',
-        price_list_id: undefined,
-        accounting_code: '',
-        specifications: '',
-      },
-    ]);
-  };
-
-  const getFilteredPriceList = (itemName: string) => {
-    if (!itemName) return priceList;
-    return priceList.filter(item => 
-      item.item_name?.toLowerCase().includes(itemName.toLowerCase())
-    );
+    form.reset();
   };
 
   return (
@@ -237,101 +185,128 @@ export default function SimrRequestForm({ farms, onSuccess }: SimrRequestFormPro
             </CardDescription>
           </DialogHeader>
 
-          <div className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Farm and Block Selection */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="farm_id">Farm *</Label>
-                <Select
-                  value={formData.farm_id}
-                  onValueChange={(value) => handleFormChange('farm_id', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select farm" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {farms.map((farm) => (
-                      <SelectItem key={farm.id} value={farm.id.toString()}>
-                        {farm.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <Controller
+                name="farm_id"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel>Farm *</FieldLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger aria-invalid={fieldState.invalid}>
+                        <SelectValue placeholder="Select farm" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {farms.map((farm) => (
+                          <SelectItem key={farm.id} value={farm.id.toString()}>
+                            {farm.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                  </Field>
+                )}
+              />
 
-              <div className="space-y-2">
-                <Label htmlFor="block_id">Block (Optional)</Label>
-                <Select
-                  value={formData.block_id}
-                  onValueChange={(value) => handleFormChange('block_id', value)}
-                  disabled={!formData.farm_id || blocks.length === 0}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select block" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {blocks.map((block) => (
-                      <SelectItem key={block.id} value={block.id.toString()}>
-                        {block.name || `Block ${block.id}`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <Controller
+                name="block_id"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel>Block (Optional)</FieldLabel>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={!watchedFarmId || blocks.length === 0}
+                    >
+                      <SelectTrigger aria-invalid={fieldState.invalid}>
+                        <SelectValue placeholder="Select block" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {blocks.map((block) => (
+                          <SelectItem key={block.id} value={block.id.toString()}>
+                            {block.name || `Block ${block.id}`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                  </Field>
+                )}
+              />
             </div>
 
             {/* Purpose and Priority */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="purpose">Purpose *</Label>
-                <Textarea
-                  id="purpose"
-                  placeholder="Reason for this request"
-                  value={formData.purpose}
-                  onChange={(e) => handleFormChange('purpose', e.target.value)}
-                />
-              </div>
+              <Controller
+                name="purpose"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel>Purpose *</FieldLabel>
+                    <Textarea
+                      {...field}
+                      placeholder="Reason for this request"
+                      aria-invalid={fieldState.invalid}
+                    />
+                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                  </Field>
+                )}
+              />
 
-              <div className="space-y-2">
-                <Label htmlFor="priority">Priority</Label>
-                <Select
-                  value={formData.priority}
-                  onValueChange={(value) => handleFormChange('priority', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PRIORITY_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <Controller
+                name="priority"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel>Priority</FieldLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger aria-invalid={fieldState.invalid}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PRIORITY_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                  </Field>
+                )}
+              />
             </div>
 
             {/* Items Section */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label className="text-base">Requested Items *</Label>
+                <FieldLabel className="text-base">Requested Items *</FieldLabel>
                 <Button type="button" variant="outline" size="sm" onClick={addItem} className="gap-1">
                   <Plus className="w-3 h-3" />
                   Add Item
                 </Button>
               </div>
 
-              {items.map((item, index) => (
-                <Card key={index} className="relative">
+              {form.formState.errors.items?.root && (
+                <div className="text-red-500 text-sm">
+                  {form.formState.errors.items.root.message}
+                </div>
+              )}
+
+              {fields.map((item, index) => (
+                <Card key={item.id} className="relative">
                   <CardContent className="p-4">
-                    {items.length > 1 && (
+                    {fields.length > 1 && (
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
                         className="absolute top-2 right-2 text-muted-foreground hover:text-destructive"
-                        onClick={() => removeItem(index)}
+                        onClick={() => remove(index)}
                       >
                         <X className="w-4 h-4" />
                       </Button>
@@ -339,77 +314,105 @@ export default function SimrRequestForm({ farms, onSuccess }: SimrRequestFormPro
 
                     <div className="grid grid-cols-12 gap-3">
                       {/* Item Name */}
-                      <div className="col-span-4 space-y-2">
-                        <Label className="text-xs">Item Name *</Label>
-                        <Select
-                          value={item.item_name}
-                          onValueChange={(value) => handleItemChange(index, 'item_name', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select item" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {priceList.map((priceItem) => (
-                              <SelectItem key={priceItem.id} value={priceItem.item_name}>
-                                {priceItem.item_name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      <div className="col-span-4">
+                        <Controller
+                          name={`items.${index}.item_name`}
+                          control={form.control}
+                          render={({ field, fieldState }) => (
+                            <Field data-invalid={fieldState.invalid}>
+                              <FieldLabel className="text-xs">Item Name *</FieldLabel>
+                              <Select value={field.value} onValueChange={field.onChange}>
+                                <SelectTrigger aria-invalid={fieldState.invalid}>
+                                  <SelectValue placeholder="Select item" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {priceList.map((priceItem) => (
+                                    <SelectItem key={priceItem.id} value={priceItem.item_name}>
+                                      {priceItem.item_name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                            </Field>
+                          )}
+                        />
                       </div>
 
                       {/* Quantity */}
-                      <div className="col-span-3 space-y-2">
-                        <Label className="text-xs">Quantity *</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          placeholder="Amount"
-                          value={item.quantity_requested || ''}
-                          onChange={(e) =>
-                            handleItemChange(index, 'quantity_requested', parseFloat(e.target.value) || 0)
-                          }
+                      <div className="col-span-3">
+                        <Controller
+                          name={`items.${index}.quantity_requested`}
+                          control={form.control}
+                          render={({ field, fieldState }) => (
+                            <Field data-invalid={fieldState.invalid}>
+                              <FieldLabel className="text-xs">Quantity *</FieldLabel>
+                              <Input
+                                {...field}
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                placeholder="Amount"
+                                onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
+                                aria-invalid={fieldState.invalid}
+                              />
+                              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                            </Field>
+                          )}
                         />
                       </div>
 
                       {/* Unit */}
-                      <div className="col-span-2 space-y-2">
-                        <Label className="text-xs">Unit *</Label>
-                        <Select
-                          value={item.unit}
-                          onValueChange={(value) => handleItemChange(index, 'unit', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Unit" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {UNIT_OPTIONS.map((unit) => (
-                              <SelectItem key={unit} value={unit}>
-                                {unit}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      <div className="col-span-2">
+                        <Controller
+                          name={`items.${index}.unit`}
+                          control={form.control}
+                          render={({ field, fieldState }) => (
+                            <Field data-invalid={fieldState.invalid}>
+                              <FieldLabel className="text-xs">Unit *</FieldLabel>
+                              <Select value={field.value} onValueChange={field.onChange}>
+                                <SelectTrigger aria-invalid={fieldState.invalid}>
+                                  <SelectValue placeholder="Unit" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {UNIT_OPTIONS.map((unit) => (
+                                    <SelectItem key={unit} value={unit}>
+                                      {unit}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                            </Field>
+                          )}
+                        />
                       </div>
 
                       {/* Accounting Code */}
-                      <div className="col-span-3 space-y-2">
-                        <Label className="text-xs">Accounting Code</Label>
-                        <Input
-                          placeholder="e.g., 5101"
-                          value={item.accounting_code || ''}
-                          onChange={(e) => handleItemChange(index, 'accounting_code', e.target.value)}
+                      <div className="col-span-3">
+                        <Controller
+                          name={`items.${index}.accounting_code`}
+                          control={form.control}
+                          render={({ field }) => (
+                            <Field>
+                              <FieldLabel className="text-xs">Accounting Code</FieldLabel>
+                              <Input {...field} placeholder="e.g., 5101" />
+                            </Field>
+                          )}
                         />
                       </div>
 
                       {/* Specifications */}
-                      <div className="col-span-12 space-y-2">
-                        <Label className="text-xs">Specifications (Optional)</Label>
-                        <Input
-                          placeholder="Additional specifications or notes"
-                          value={item.specifications || ''}
-                          onChange={(e) => handleItemChange(index, 'specifications', e.target.value)}
+                      <div className="col-span-12">
+                        <Controller
+                          name={`items.${index}.specifications`}
+                          control={form.control}
+                          render={({ field }) => (
+                            <Field>
+                              <FieldLabel className="text-xs">Specifications (Optional)</FieldLabel>
+                              <Input {...field} placeholder="Additional specifications or notes" />
+                            </Field>
+                          )}
                         />
                       </div>
                     </div>
@@ -417,17 +420,17 @@ export default function SimrRequestForm({ farms, onSuccess }: SimrRequestFormPro
                 </Card>
               ))}
             </div>
-          </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={handleClose} disabled={loading}>
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit} disabled={loading} className="gap-1">
-              <Save className="w-4 h-4" />
-              {loading ? 'Creating...' : 'Create SIMR Request'}
-            </Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button variant="outline" onClick={handleClose} disabled={loading} type="button">
+                Cancel
+              </Button>
+              <Button type="submit" disabled={loading} className="gap-1">
+                <Save className="w-4 h-4" />
+                {loading ? 'Creating...' : 'Create SIMR Request'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </>
