@@ -1,8 +1,24 @@
 "use client";
 
-import { useState } from 'react';
-import { CheckCircle, XCircle, Hand, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState, Fragment } from 'react';
+import { CheckCircle, XCircle, Hand, Image as ImageIcon, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { AttendanceRecord } from '../../types';
+import { Button } from '@/components/ui/button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 
 interface AttendanceRecordsTableProps {
   records: AttendanceRecord[];
@@ -37,17 +53,20 @@ export function AttendanceRecordsTable({
       verified: {
         icon: CheckCircle,
         text: 'Verified',
-        className: 'bg-green-100 text-green-800 border-green-200'
+        variant: 'default' as const,
+        className: 'bg-green-100 text-green-800 border-green-200 hover:bg-green-100'
       },
       failed: {
         icon: XCircle,
         text: 'Failed',
-        className: 'bg-yellow-100 text-yellow-800 border-yellow-200'
+        variant: 'secondary' as const,
+        className: 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100'
       },
       manual: {
         icon: Hand,
         text: 'Manual',
-        className: 'bg-gray-100 text-gray-800 border-gray-200'
+        variant: 'outline' as const,
+        className: 'bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-100'
       }
     };
 
@@ -57,12 +76,10 @@ export function AttendanceRecordsTable({
     const Icon = badge.icon;
 
     return (
-      <span
-        className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${badge.className}`}
-      >
-        <Icon className="w-3 h-3" />
+      <Badge variant={badge.variant} className={badge.className}>
+        <Icon className="w-3 h-3 mr-1" />
         {badge.text}
-      </span>
+      </Badge>
     );
   };
 
@@ -77,25 +94,27 @@ export function AttendanceRecordsTable({
     };
 
     return (
-      <div className="space-y-1">
-        <div className="flex items-center gap-2">
-          <span className={`text-xs font-semibold px-2 py-0.5 rounded ${getColor(confidence)}`}>
+      <figure className="space-y-1 m-0">
+        <figcaption className="flex items-center gap-2">
+          <data value={confidence} className={`text-xs font-semibold px-2 py-0.5 rounded ${getColor(confidence)}`}>
             {confidence.toFixed(1)}%
-          </span>
-        </div>
-        <div className="w-full bg-gray-200 rounded-full h-1.5">
-          <div
-            className={`h-1.5 rounded-full ${
-              confidence >= 90
-                ? 'bg-green-600'
-                : confidence >= 80
-                ? 'bg-yellow-600'
-                : 'bg-red-600'
-            }`}
-            style={{ width: `${confidence}%` }}
-          />
-        </div>
-      </div>
+          </data>
+        </figcaption>
+        <meter
+          value={confidence}
+          min={0}
+          max={100}
+          low={80}
+          high={90}
+          optimum={95}
+          className="w-full h-1.5"
+          style={{
+            appearance: 'none',
+            background: '#e5e7eb',
+            borderRadius: '9999px',
+          }}
+        />
+      </figure>
     );
   };
 
@@ -104,207 +123,198 @@ export function AttendanceRecordsTable({
     const date = new Date(dateString);
     return {
       date: date.toLocaleDateString(),
-      time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      iso: date.toISOString()
     };
+  };
+
+  // Get status badge variant
+  const getStatusBadge = (status: string) => {
+    const variants: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline', className: string }> = {
+      present: { variant: 'default', className: 'bg-green-100 text-green-800 hover:bg-green-100' },
+      absent: { variant: 'destructive', className: 'bg-red-100 text-red-800 hover:bg-red-100' },
+      leave: { variant: 'secondary', className: 'bg-blue-100 text-blue-800 hover:bg-blue-100' },
+      sick: { variant: 'secondary', className: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100' }
+    };
+    return variants[status] || { variant: 'outline' as const, className: '' };
   };
 
   if (records.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow-md p-8 text-center">
+      <output className="block bg-white rounded-lg shadow-md p-8 text-center">
         <p className="text-gray-500">No attendance records found</p>
-      </div>
+      </output>
     );
   }
 
   return (
     <>
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Worker
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Farm
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                {showVerificationDetails && (
-                  <>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Verification
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Confidence
-                    </th>
-                  </>
-                )}
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Details
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {records.map((record) => {
-                const { date, time } = formatDateTime(record.date);
-                const isExpanded = expandedRows.has(record.id);
+      <section className="bg-white rounded-lg shadow-md overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Worker</TableHead>
+              <TableHead>Farm</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Status</TableHead>
+              {showVerificationDetails && (
+                <>
+                  <TableHead>Verification</TableHead>
+                  <TableHead>Confidence</TableHead>
+                </>
+              )}
+              <TableHead>Details</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {records.map((record) => {
+              const { date, time, iso } = formatDateTime(record.date);
+              const isExpanded = expandedRows.has(record.id);
+              const statusBadge = getStatusBadge(record.status);
 
-                return (
-                  <>
-                    <tr key={record.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <div>
-                          <p className="font-medium text-gray-900">{record.worker_name}</p>
-                          <p className="text-xs text-gray-500">ID: {record.worker_id}</p>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        {record.farm_name || `Farm ${record.farm_id}`}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="text-sm">
-                          <p className="text-gray-900">{date}</p>
-                          {record.check_in_time && (
-                            <p className="text-xs text-gray-500">{time}</p>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                            record.status === 'present'
-                              ? 'bg-green-100 text-green-800'
-                              : record.status === 'absent'
-                              ? 'bg-red-100 text-red-800'
-                              : record.status === 'leave'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-yellow-100 text-yellow-800'
-                          }`}
-                        >
-                          {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
-                        </span>
-                      </td>
-                      {showVerificationDetails && (
-                        <>
-                          <td className="px-4 py-3">{renderVerificationBadge(record)}</td>
-                          <td className="px-4 py-3">
-                            {renderConfidenceScore(record.face_verification_confidence)}
-                          </td>
-                        </>
-                      )}
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={() => toggleRowExpansion(record.id)}
-                          className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm"
-                        >
-                          {isExpanded ? (
-                            <>
-                              <ChevronUp className="w-4 h-4" /> Hide
-                            </>
-                          ) : (
-                            <>
-                              <ChevronDown className="w-4 h-4" /> View
-                            </>
-                          )}
-                        </button>
-                      </td>
-                    </tr>
-
-                    {/* Expanded row details */}
-                    {isExpanded && (
-                      <tr>
-                        <td colSpan={showVerificationDetails ? 7 : 5} className="px-4 py-4 bg-gray-50">
-                          <div className="space-y-3">
-                            {/* Check-in/out times */}
-                            <div className="grid grid-cols-2 gap-4">
-                              {record.check_in_time && (
-                                <div>
-                                  <p className="text-xs font-medium text-gray-500">Check-in Time</p>
-                                  <p className="text-sm text-gray-900 mt-1">
-                                    {new Date(record.check_in_time).toLocaleTimeString()}
-                                  </p>
-                                </div>
-                              )}
-                              {record.check_out_time && (
-                                <div>
-                                  <p className="text-xs font-medium text-gray-500">Check-out Time</p>
-                                  <p className="text-sm text-gray-900 mt-1">
-                                    {new Date(record.check_out_time).toLocaleTimeString()}
-                                  </p>
-                                </div>
-                              )}
-                              {record.hours_worked !== undefined && record.hours_worked !== null && (
-                                <div>
-                                  <p className="text-xs font-medium text-gray-500">Hours Worked</p>
-                                  <p className="text-sm text-gray-900 mt-1">
-                                    {record.hours_worked.toFixed(2)} hours
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Verification photo */}
-                            {record.verification_photo_url && (
-                              <div>
-                                <p className="text-xs font-medium text-gray-500 mb-2">
-                                  Verification Photo
-                                </p>
-                                <button
-                                  onClick={() => setSelectedPhoto(record.verification_photo_url!)}
-                                  className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                                >
-                                  <ImageIcon className="w-4 h-4 text-gray-600" />
-                                  <span className="text-sm text-gray-700">View Photo</span>
-                                </button>
-                              </div>
-                            )}
-
-                            {/* Notes */}
-                            {record.notes && (
-                              <div>
-                                <p className="text-xs font-medium text-gray-500">Notes</p>
-                                <p className="text-sm text-gray-900 mt-1">{record.notes}</p>
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
+              return (
+                <Fragment key={record.id}>
+                  <TableRow className="hover:bg-gray-50">
+                    <TableCell>
+                      <address className="not-italic">
+                        <strong className="block font-medium text-gray-900">{record.worker_name}</strong>
+                        <small className="text-xs text-gray-500">ID: {record.worker_id}</small>
+                      </address>
+                    </TableCell>
+                    <TableCell className="text-sm text-gray-900">
+                      {record.farm_name || `Farm ${record.farm_id}`}
+                    </TableCell>
+                    <TableCell>
+                      <time dateTime={iso} className="text-sm">
+                        <span className="block text-gray-900">{date}</span>
+                        {record.check_in_time && (
+                          <small className="text-xs text-gray-500">{time}</small>
+                        )}
+                      </time>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={statusBadge.variant} className={statusBadge.className}>
+                        {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
+                      </Badge>
+                    </TableCell>
+                    {showVerificationDetails && (
+                      <>
+                        <TableCell>{renderVerificationBadge(record)}</TableCell>
+                        <TableCell>
+                          {renderConfidenceScore(record.face_verification_confidence)}
+                        </TableCell>
+                      </>
                     )}
-                  </>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleRowExpansion(record.id)}
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        {isExpanded ? (
+                          <>
+                            <ChevronUp className="w-4 h-4 mr-1" /> Hide
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="w-4 h-4 mr-1" /> View
+                          </>
+                        )}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+
+                  {/* Expanded row details */}
+                  {isExpanded && (
+                    <TableRow>
+                      <TableCell colSpan={showVerificationDetails ? 7 : 5} className="bg-gray-50">
+                        <dl className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          {record.check_in_time && (
+                            <article>
+                              <dt className="text-xs font-medium text-gray-500">Check-in Time</dt>
+                              <dd className="text-sm text-gray-900 mt-1">
+                                <time dateTime={record.check_in_time}>
+                                  {new Date(record.check_in_time).toLocaleTimeString()}
+                                </time>
+                              </dd>
+                            </article>
+                          )}
+                          {record.check_out_time && (
+                            <article>
+                              <dt className="text-xs font-medium text-gray-500">Check-out Time</dt>
+                              <dd className="text-sm text-gray-900 mt-1">
+                                <time dateTime={record.check_out_time}>
+                                  {new Date(record.check_out_time).toLocaleTimeString()}
+                                </time>
+                              </dd>
+                            </article>
+                          )}
+                          {record.hours_worked !== undefined && record.hours_worked !== null && (
+                            <article>
+                              <dt className="text-xs font-medium text-gray-500">Hours Worked</dt>
+                              <dd className="text-sm text-gray-900 mt-1">
+                                <data value={record.hours_worked}>
+                                  {record.hours_worked.toFixed(2)} hours
+                                </data>
+                              </dd>
+                            </article>
+                          )}
+
+                          {/* Verification photo */}
+                          {record.verification_photo_url && (
+                            <article>
+                              <dt className="text-xs font-medium text-gray-500 mb-2">
+                                Verification Photo
+                              </dt>
+                              <dd>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setSelectedPhoto(record.verification_photo_url!)}
+                                >
+                                  <ImageIcon className="w-4 h-4 mr-2" />
+                                  View Photo
+                                </Button>
+                              </dd>
+                            </article>
+                          )}
+
+                          {/* Notes */}
+                          {record.notes && (
+                            <article className="col-span-2">
+                              <dt className="text-xs font-medium text-gray-500">Notes</dt>
+                              <dd className="text-sm text-gray-900 mt-1">{record.notes}</dd>
+                            </article>
+                          )}
+                        </dl>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </Fragment>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </section>
 
       {/* Photo Modal */}
-      {selectedPhoto && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
-          onClick={() => setSelectedPhoto(null)}
-        >
-          <div className="relative max-w-4xl max-h-[90vh]">
-            <button
-              onClick={() => setSelectedPhoto(null)}
-              className="absolute -top-10 right-0 text-white hover:text-gray-300 text-sm"
-            >
-              Close
-            </button>
-            <img
-              src={selectedPhoto}
-              alt="Verification"
-              className="max-w-full max-h-[85vh] rounded-lg"
-            />
-          </div>
-        </div>
-      )}
+      <Dialog open={!!selectedPhoto} onOpenChange={(open) => !open && setSelectedPhoto(null)}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Verification Photo</DialogTitle>
+          </DialogHeader>
+          <figure className="m-0">
+            {selectedPhoto && (
+              <img
+                src={selectedPhoto}
+                alt="Verification"
+                className="max-w-full max-h-[70vh] rounded-lg mx-auto"
+              />
+            )}
+          </figure>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

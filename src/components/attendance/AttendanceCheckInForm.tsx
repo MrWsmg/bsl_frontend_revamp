@@ -1,11 +1,24 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { UserCheck, Users, Camera, AlertCircle, CheckCircle } from 'lucide-react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { UserCheck, Users, Camera, AlertCircle } from 'lucide-react';
 import { Worker, Farm } from '../../types';
 import apiService from '../../services/api';
 import { toast } from 'sonner';
 import { FaceVerificationCapture } from './FaceVerificationCapture';
+import { attendanceCheckInSchema, type AttendanceCheckInFormData } from '@/lib/schemas';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Field, FieldLabel, FieldError } from '@/components/ui/field';
 
 interface AttendanceCheckInFormProps {
   workers: Worker[];
@@ -19,7 +32,6 @@ export function AttendanceCheckInForm({
   onCheckInSuccess
 }: AttendanceCheckInFormProps) {
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
-  const [selectedFarm, setSelectedFarm] = useState<Farm | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showCamera, setShowCamera] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -29,12 +41,22 @@ export function AttendanceCheckInForm({
     message?: string;
   }>({ status: null });
 
+  const form = useForm<AttendanceCheckInFormData>({
+    resolver: zodResolver(attendanceCheckInSchema),
+    defaultValues: {
+      farm_id: '',
+      worker_id: '',
+    },
+  });
+
+  const watchedFarmId = form.watch('farm_id');
+
   // Auto-select farm if only one
   useEffect(() => {
-    if (farms.length === 1) {
-      setSelectedFarm(farms[0]);
+    if (farms.length === 1 && farms[0].id != null) {
+      form.setValue('farm_id', String(farms[0].id));
     }
-  }, [farms]);
+  }, [farms, form]);
 
   // Filter workers
   const filteredWorkers = workers.filter((worker) => {
@@ -49,6 +71,7 @@ export function AttendanceCheckInForm({
   // Handle worker selection
   const handleWorkerSelect = (worker: Worker) => {
     setSelectedWorker(worker);
+    form.setValue('worker_id', worker.id.toString());
     setSearchQuery('');
     setShowCamera(false);
     setVerificationResult({ status: null });
@@ -56,7 +79,7 @@ export function AttendanceCheckInForm({
 
   // Handle photo capture
   const handlePhotoCapture = async (file: File) => {
-    if (!selectedWorker || !selectedFarm) {
+    if (!selectedWorker || !watchedFarmId) {
       toast.error('Please select worker and farm');
       return;
     }
@@ -67,7 +90,7 @@ export function AttendanceCheckInForm({
     try {
       const result = await apiService.attendance.checkInWithFaceVerification({
         worker_id: selectedWorker.id,
-        farm_id: selectedFarm.id,
+        farm_id: parseInt(watchedFarmId),
         file,
         status: 'present'
       });
@@ -94,6 +117,7 @@ export function AttendanceCheckInForm({
         // Reset form after success
         setTimeout(() => {
           setSelectedWorker(null);
+          form.reset();
           setShowCamera(false);
           setVerificationResult({ status: null });
           onCheckInSuccess?.();
@@ -118,7 +142,7 @@ export function AttendanceCheckInForm({
 
   // Handle manual check-in
   const handleManualCheckIn = async () => {
-    if (!selectedWorker || !selectedFarm) {
+    if (!selectedWorker || !watchedFarmId) {
       toast.error('Please select worker and farm');
       return;
     }
@@ -127,12 +151,13 @@ export function AttendanceCheckInForm({
       setIsProcessing(true);
       await apiService.attendance.manualCheckIn({
         worker_id: selectedWorker.id,
-        farm_id: selectedFarm.id,
+        farm_id: parseInt(watchedFarmId),
         status: 'present'
       });
 
       toast.success('Manual check-in successful!');
       setSelectedWorker(null);
+      form.reset();
       setShowCamera(false);
       onCheckInSuccess?.();
     } catch (error: any) {
@@ -148,161 +173,178 @@ export function AttendanceCheckInForm({
     }
   };
 
+  const handleClearWorker = () => {
+    setSelectedWorker(null);
+    form.setValue('worker_id', '');
+    setShowCamera(false);
+    setVerificationResult({ status: null });
+  };
+
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+    <article className="bg-white rounded-lg shadow-md p-6">
+      <header className="flex items-center gap-3 mb-6">
+        <figure className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center m-0">
           <UserCheck className="w-6 h-6 text-white" />
-        </div>
-        <div>
+        </figure>
+        <hgroup>
           <h2 className="text-xl font-semibold text-gray-900">Attendance Check-In</h2>
           <p className="text-sm text-gray-600">Record worker attendance with face verification</p>
-        </div>
-      </div>
+        </hgroup>
+      </header>
 
-      <div className="space-y-6">
+      <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
         {/* Farm Selection */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Select Farm
-          </label>
-          <select
-            value={selectedFarm?.id || ''}
-            onChange={(e) => {
-              const farm = farms.find((f) => f.id === Number(e.target.value));
-              setSelectedFarm(farm || null);
-            }}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="">Choose a farm...</option>
-            {farms.map((farm, index) => (
-              <option key={farm.id ?? `farm-${index}`} value={farm.id}>
-                {farm.name} - {farm.location}
-              </option>
-            ))}
-          </select>
-        </div>
+        <Controller
+          name="farm_id"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel>Select Farm</FieldLabel>
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger aria-invalid={fieldState.invalid}>
+                  <SelectValue placeholder="Choose a farm..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {farms.filter(farm => farm.id != null).map((farm) => (
+                    <SelectItem key={farm.id} value={String(farm.id)}>
+                      {farm.name} - {farm.location}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
+        />
 
         {/* Worker Selection */}
         {!selectedWorker ? (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Worker
-            </label>
-            <div className="relative">
-              <input
+          <fieldset>
+            <legend className="block text-sm font-medium text-gray-700 mb-2">Select Worker</legend>
+            <search className="relative">
+              <Input
                 type="text"
                 placeholder="Search by name or ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-3 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="pl-10"
               />
               <Users className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" />
-            </div>
+            </search>
 
             {searchQuery && (
-              <div className="mt-2 border border-gray-300 rounded-lg max-h-64 overflow-y-auto">
+              <ul className="mt-2 border border-gray-300 rounded-lg max-h-64 overflow-y-auto list-none m-0 p-0">
                 {filteredWorkers.length === 0 ? (
-                  <div className="p-4 text-center text-gray-500 text-sm">
+                  <li className="p-4 text-center text-gray-500 text-sm">
                     No workers found
-                  </div>
+                  </li>
                 ) : (
                   filteredWorkers.map((worker) => (
-                    <button
-                      key={worker.id}
-                      onClick={() => handleWorkerSelect(worker)}
-                      className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors border-b last:border-b-0 text-left"
-                    >
-                      <div
-                        className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${
-                          worker.face_id ? 'bg-green-500' : 'bg-gray-400'
-                        }`}
+                    <li key={worker.id}>
+                      <button
+                        type="button"
+                        onClick={() => handleWorkerSelect(worker)}
+                        className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors border-b last:border-b-0 text-left"
                       >
-                        {worker.name?.charAt(0) || 'W'}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-900">
-                          {worker.full_name || worker.name}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          ID: {worker.id} • {worker.worker_type}
-                          {worker.face_id ? ' • Face Registered ✓' : ' • No Face Registered'}
-                        </p>
-                      </div>
-                    </button>
+                        <figure
+                          className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold m-0 ${
+                            worker.face_id ? 'bg-green-500' : 'bg-gray-400'
+                          }`}
+                        >
+                          {worker.name?.charAt(0) || 'W'}
+                        </figure>
+                        <span className="flex-1">
+                          <strong className="block font-medium text-gray-900">
+                            {worker.full_name || worker.name}
+                          </strong>
+                          <small className="text-xs text-gray-500">
+                            ID: {worker.id} • {worker.worker_type}
+                            {worker.face_id ? ' • Face Registered' : ' • No Face Registered'}
+                          </small>
+                        </span>
+                      </button>
+                    </li>
                   ))
                 )}
-              </div>
+              </ul>
             )}
-          </div>
+            {form.formState.errors.worker_id && !searchQuery && (
+              <output className="block text-sm text-red-500 mt-1">{form.formState.errors.worker_id.message}</output>
+            )}
+          </fieldset>
         ) : (
           <>
             {/* Selected Worker Card */}
-            <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+            <article className="border border-gray-300 rounded-lg p-4 bg-gray-50">
+              <header className="flex items-center justify-between mb-4">
+                <figure className="flex items-center gap-3 m-0">
+                  <span className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
                     {selectedWorker.name?.charAt(0) || 'W'}
-                  </div>
-                  <div>
+                  </span>
+                  <figcaption>
                     <h3 className="font-semibold text-gray-900">
                       {selectedWorker.full_name || selectedWorker.name}
                     </h3>
                     <p className="text-sm text-gray-600">
                       ID: {selectedWorker.id} • {selectedWorker.worker_type}
                     </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    setSelectedWorker(null);
-                    setShowCamera(false);
-                    setVerificationResult({ status: null });
-                  }}
-                  className="text-gray-500 hover:text-gray-700"
+                  </figcaption>
+                </figure>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearWorker}
                   disabled={isProcessing}
                 >
                   Change
-                </button>
-              </div>
+                </Button>
+              </header>
 
               {!selectedWorker.face_id && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded p-3 flex items-start gap-2">
+                <aside className="bg-yellow-50 border border-yellow-200 rounded p-3 flex items-start gap-2">
                   <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-yellow-800">
-                    <p className="font-medium">No face registered for this worker</p>
-                    <p className="text-xs mt-1">
+                  <section className="text-sm text-yellow-800">
+                    <strong className="font-medium block">No face registered for this worker</strong>
+                    <small className="text-xs mt-1 block">
                       Check-in will be recorded as manual. Upload a worker photo to enable face verification.
-                    </p>
-                  </div>
-                </div>
+                    </small>
+                  </section>
+                </aside>
               )}
-            </div>
+            </article>
 
             {/* Face Verification or Manual Check-in */}
             {!showCamera ? (
-              <div className="space-y-3">
-                {selectedFarm && (
-                  <div className="text-center space-y-3">
-                    <button
-                      onClick={() => setShowCamera(true)}
-                      disabled={!selectedFarm}
-                      className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-lg font-medium"
-                    >
-                      <Camera className="w-6 h-6" />
-                      Start Face Verification
-                    </button>
-
-                    <button
-                      onClick={handleManualCheckIn}
-                      disabled={isProcessing}
-                      className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
-                    >
-                      Manual Check-In (No Photo)
-                    </button>
-                  </div>
+              <menu className="space-y-3 list-none m-0 p-0">
+                {watchedFarmId && (
+                  <>
+                    <li>
+                      <Button
+                        type="button"
+                        onClick={() => setShowCamera(true)}
+                        disabled={!watchedFarmId}
+                        className="w-full gap-2"
+                        size="lg"
+                      >
+                        <Camera className="w-6 h-6" />
+                        Start Face Verification
+                      </Button>
+                    </li>
+                    <li>
+                      <Button
+                        type="button"
+                        onClick={handleManualCheckIn}
+                        disabled={isProcessing}
+                        variant="secondary"
+                        className="w-full"
+                      >
+                        Manual Check-In (No Photo)
+                      </Button>
+                    </li>
+                  </>
                 )}
-              </div>
+              </menu>
             ) : (
               <FaceVerificationCapture
                 worker={selectedWorker}
@@ -314,7 +356,7 @@ export function AttendanceCheckInForm({
             )}
           </>
         )}
-      </div>
-    </div>
+      </form>
+    </article>
   );
 }
