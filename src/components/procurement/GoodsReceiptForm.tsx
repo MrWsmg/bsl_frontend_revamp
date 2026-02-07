@@ -1,11 +1,25 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Package, CheckCircle, XCircle } from 'lucide-react';
+import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Package } from 'lucide-react';
 import apiService from '../../services/api';
-import { PurchaseOrder, GoodsReceiptItem } from '../../types';
-import { ITEM_CONDITION, INSPECTION_STATUS } from '../../constants';
+import { PurchaseOrder } from '../../types';
+import { ITEM_CONDITION } from '../../constants';
 import { toast } from 'sonner';
+import { goodsReceiptSchema, type GoodsReceiptFormData } from '@/lib/schemas';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Field, FieldLabel, FieldError } from '@/components/ui/field';
 
 interface GoodsReceiptFormProps {
   onSuccess: () => void;
@@ -19,13 +33,24 @@ export const GoodsReceiptForm: React.FC<GoodsReceiptFormProps> = ({
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    purchase_order_id: '',
-    delivery_note_number: '',
-    carrier_name: '',
-    vehicle_number: '',
+
+  const form = useForm<GoodsReceiptFormData>({
+    resolver: zodResolver(goodsReceiptSchema),
+    defaultValues: {
+      purchase_order_id: '',
+      delivery_note_number: '',
+      carrier_name: '',
+      vehicle_number: '',
+      items: [],
+    },
   });
-  const [items, setItems] = useState<Partial<GoodsReceiptItem>[]>([]);
+
+  const { fields, replace } = useFieldArray({
+    control: form.control,
+    name: 'items',
+  });
+
+  const watchedItems = form.watch('items');
 
   useEffect(() => {
     loadPurchaseOrders();
@@ -33,7 +58,6 @@ export const GoodsReceiptForm: React.FC<GoodsReceiptFormProps> = ({
 
   const loadPurchaseOrders = async () => {
     try {
-      // Load only confirmed POs that are awaiting delivery
       const data = await apiService.procurement.getPurchaseOrders({
         status: 'confirmed',
       });
@@ -45,7 +69,7 @@ export const GoodsReceiptForm: React.FC<GoodsReceiptFormProps> = ({
   };
 
   const handlePOChange = async (poId: string) => {
-    setFormData({ ...formData, purchase_order_id: poId });
+    form.setValue('purchase_order_id', poId);
 
     if (poId) {
       try {
@@ -54,14 +78,13 @@ export const GoodsReceiptForm: React.FC<GoodsReceiptFormProps> = ({
 
         // Pre-populate items from PO
         if (po.items) {
-          setItems(
-            po.items.map(item => ({
-              purchase_order_item_id: item.id!,
-              quantity_received: item.quantity_ordered,
-              condition: 'good',
-              rejection_reason: '',
-            }))
-          );
+          const newItems = po.items.map(item => ({
+            purchase_order_item_id: item.id!,
+            quantity_received: item.quantity_ordered,
+            condition: 'good' as const,
+            rejection_reason: '',
+          }));
+          replace(newItems);
         }
       } catch (error) {
         console.error('Error loading PO details:', error);
@@ -69,34 +92,21 @@ export const GoodsReceiptForm: React.FC<GoodsReceiptFormProps> = ({
       }
     } else {
       setSelectedPO(null);
-      setItems([]);
+      replace([]);
     }
   };
 
-  const updateItem = (index: number, field: string, value: any) => {
-    const newItems = [...items];
-    newItems[index] = { ...newItems[index], [field]: value };
-    setItems(newItems);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.purchase_order_id) {
-      toast.error('Please select a purchase order');
-      return;
-    }
-
+  const onSubmit = async (data: GoodsReceiptFormData) => {
     setLoading(true);
     try {
       const requestData = {
-        purchase_order_id: parseInt(formData.purchase_order_id),
-        delivery_note_number: formData.delivery_note_number || undefined,
-        carrier_name: formData.carrier_name || undefined,
-        vehicle_number: formData.vehicle_number || undefined,
-        items: items.map(item => ({
-          purchase_order_item_id: item.purchase_order_item_id!,
-          quantity_received: parseFloat(String(item.quantity_received)),
+        purchase_order_id: parseInt(data.purchase_order_id),
+        delivery_note_number: data.delivery_note_number || undefined,
+        carrier_name: data.carrier_name || undefined,
+        vehicle_number: data.vehicle_number || undefined,
+        items: data.items.map(item => ({
+          purchase_order_item_id: item.purchase_order_item_id,
+          quantity_received: Number(item.quantity_received),
           condition: item.condition || 'good',
           rejection_reason: item.rejection_reason || undefined,
         })),
@@ -123,74 +133,84 @@ export const GoodsReceiptForm: React.FC<GoodsReceiptFormProps> = ({
         <Package className="w-8 h-8 text-blue-500" />
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         {/* Delivery Information */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Purchase Order <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={formData.purchase_order_id}
-              onChange={(e) => handlePOChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            >
-              <option value="">Select purchase order</option>
-              {purchaseOrders.map((po) => (
-                <option key={po.id} value={po.id}>
-                  {po.po_number} - {po.supplier?.name} ({po.total_amount.toLocaleString()} TZS)
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Note Number</label>
-            <input
-              type="text"
-              value={formData.delivery_note_number}
-              onChange={(e) => setFormData({ ...formData, delivery_note_number: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              placeholder="DN-2025-XXXX"
+            <Controller
+              name="purchase_order_id"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel>
+                    Purchase Order <span className="text-red-500">*</span>
+                  </FieldLabel>
+                  <Select value={field.value} onValueChange={handlePOChange}>
+                    <SelectTrigger aria-invalid={fieldState.invalid}>
+                      <SelectValue placeholder="Select purchase order" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {purchaseOrders.map((po) => (
+                        <SelectItem key={po.id} value={String(po.id)}>
+                          {po.po_number} - {po.supplier?.name} ({po.total_amount.toLocaleString()} TZS)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
+              )}
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Carrier Name</label>
-            <input
-              type="text"
-              value={formData.carrier_name}
-              onChange={(e) => setFormData({ ...formData, carrier_name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              placeholder="Transport company"
-            />
-          </div>
+          <Controller
+            name="delivery_note_number"
+            control={form.control}
+            render={({ field }) => (
+              <Field>
+                <FieldLabel>Delivery Note Number</FieldLabel>
+                <Input {...field} placeholder="DN-2025-XXXX" />
+              </Field>
+            )}
+          />
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle Number</label>
-            <input
-              type="text"
-              value={formData.vehicle_number}
-              onChange={(e) => setFormData({ ...formData, vehicle_number: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              placeholder="T 123 ABC"
-            />
-          </div>
+          <Controller
+            name="carrier_name"
+            control={form.control}
+            render={({ field }) => (
+              <Field>
+                <FieldLabel>Carrier Name</FieldLabel>
+                <Input {...field} placeholder="Transport company" />
+              </Field>
+            )}
+          />
+
+          <Controller
+            name="vehicle_number"
+            control={form.control}
+            render={({ field }) => (
+              <Field>
+                <FieldLabel>Vehicle Number</FieldLabel>
+                <Input {...field} placeholder="T 123 ABC" />
+              </Field>
+            )}
+          />
         </div>
 
         {/* Items Section */}
-        {selectedPO && items.length > 0 && (
+        {selectedPO && fields.length > 0 && (
           <div className="border-t pt-4">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Received Items</h3>
 
             <div className="space-y-4">
-              {items.map((item, index) => {
+              {fields.map((item, index) => {
                 const poItem = selectedPO.items?.[index];
                 if (!poItem) return null;
 
+                const currentCondition = watchedItems?.[index]?.condition;
+
                 return (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                  <div key={item.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="md:col-span-3">
                         <h4 className="font-medium text-gray-800">{poItem.item_name}</h4>
@@ -199,47 +219,65 @@ export const GoodsReceiptForm: React.FC<GoodsReceiptFormProps> = ({
                         </p>
                       </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Quantity Received <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={item.quantity_received}
-                          onChange={(e) => updateItem(index, 'quantity_received', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                          required
-                        />
-                      </div>
+                      <Controller
+                        name={`items.${index}.quantity_received`}
+                        control={form.control}
+                        render={({ field, fieldState }) => (
+                          <Field data-invalid={fieldState.invalid}>
+                            <FieldLabel>
+                              Quantity Received <span className="text-red-500">*</span>
+                            </FieldLabel>
+                            <Input
+                              {...field}
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
+                              aria-invalid={fieldState.invalid}
+                            />
+                            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                          </Field>
+                        )}
+                      />
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Condition <span className="text-red-500">*</span>
-                        </label>
-                        <select
-                          value={item.condition}
-                          onChange={(e) => updateItem(index, 'condition', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                          required
-                        >
-                          <option value={ITEM_CONDITION.GOOD}>Good</option>
-                          <option value={ITEM_CONDITION.DAMAGED}>Damaged</option>
-                          <option value={ITEM_CONDITION.WRONG_ITEM}>Wrong Item</option>
-                        </select>
-                      </div>
+                      <Controller
+                        name={`items.${index}.condition`}
+                        control={form.control}
+                        render={({ field, fieldState }) => (
+                          <Field data-invalid={fieldState.invalid}>
+                            <FieldLabel>
+                              Condition <span className="text-red-500">*</span>
+                            </FieldLabel>
+                            <Select value={field.value} onValueChange={field.onChange}>
+                              <SelectTrigger aria-invalid={fieldState.invalid}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value={ITEM_CONDITION.GOOD}>Good</SelectItem>
+                                <SelectItem value={ITEM_CONDITION.DAMAGED}>Damaged</SelectItem>
+                                <SelectItem value={ITEM_CONDITION.WRONG_ITEM}>Wrong Item</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                          </Field>
+                        )}
+                      />
 
-                      {item.condition !== 'good' && (
+                      {currentCondition !== 'good' && (
                         <div className="md:col-span-3">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Rejection Reason
-                          </label>
-                          <textarea
-                            value={item.rejection_reason}
-                            onChange={(e) => updateItem(index, 'rejection_reason', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                            rows={2}
-                            placeholder="Describe the issue..."
+                          <Controller
+                            name={`items.${index}.rejection_reason`}
+                            control={form.control}
+                            render={({ field }) => (
+                              <Field>
+                                <FieldLabel>Rejection Reason</FieldLabel>
+                                <Textarea
+                                  {...field}
+                                  rows={2}
+                                  placeholder="Describe the issue..."
+                                />
+                              </Field>
+                            )}
                           />
                         </div>
                       )}
@@ -253,24 +291,14 @@ export const GoodsReceiptForm: React.FC<GoodsReceiptFormProps> = ({
 
         {/* Action Buttons */}
         <div className="flex justify-end space-x-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-            disabled={loading}
-          >
+          <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
             Cancel
-          </button>
-          <button
-            type="submit"
-            className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50"
-            disabled={loading || !selectedPO}
-          >
+          </Button>
+          <Button type="submit" disabled={loading || !selectedPO}>
             {loading ? 'Creating...' : 'Create Goods Receipt Note'}
-          </button>
+          </Button>
         </div>
       </form>
     </div>
   );
 };
-
