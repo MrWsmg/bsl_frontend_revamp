@@ -1,10 +1,19 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { X, Upload, Camera, User, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Upload, Camera, User, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { Worker } from '../../types';
 import apiService from '../../services/api';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 interface WorkerPhotoUploadModalProps {
   isOpen: boolean;
@@ -132,108 +141,95 @@ export function WorkerPhotoUploadModal({
     );
   });
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900">Upload Worker Photo</h2>
-            <p className="text-sm text-gray-600 mt-1">
-              Register worker faces for attendance verification
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-            disabled={isUploading}
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Upload Worker Photo</DialogTitle>
+          <p className="text-sm text-muted-foreground">
+            Register worker faces for attendance verification
+          </p>
+        </DialogHeader>
 
-        {/* Content */}
-        <div className="p-6 space-y-6">
+        <form onSubmit={(e) => { e.preventDefault(); handleUpload(); }} className="space-y-6">
           {/* Worker Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <fieldset>
+            <legend className="block text-sm font-medium text-gray-700 mb-2">
               Select Worker
-            </label>
-            <input
+            </legend>
+            <Input
               type="text"
               placeholder="Search by name or ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-2"
+              className="mb-2"
             />
-            <div className="border border-gray-300 rounded-lg max-h-48 overflow-y-auto">
+            <ul className="border border-gray-200 rounded-lg max-h-48 overflow-y-auto list-none m-0 p-0">
               {filteredWorkers.length === 0 ? (
-                <div className="p-4 text-center text-gray-500 text-sm">
+                <li className="p-4 text-center text-gray-500 text-sm">
                   No workers found
-                </div>
+                </li>
               ) : (
                 filteredWorkers.map((worker) => (
-                  <button
-                    key={worker.id}
-                    onClick={() => setSelectedWorker(worker)}
-                    className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors border-b last:border-b-0 ${
-                      selectedWorker?.id === worker.id ? 'bg-blue-50' : ''
-                    }`}
-                  >
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold ${
-                        worker.face_id ? 'bg-green-500' : 'bg-gray-400'
+                  <li key={worker.id}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedWorker(worker)}
+                      className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors border-b last:border-b-0 ${
+                        selectedWorker?.id === worker.id ? 'bg-blue-50' : ''
                       }`}
                     >
-                      {worker.face_id ? (
-                        <CheckCircle className="w-5 h-5" />
-                      ) : (
-                        <User className="w-5 h-5" />
-                      )}
-                    </div>
-                    <div className="text-left flex-1">
-                      <p className="font-medium text-gray-900">
-                        {worker.full_name || worker.name}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        ID: {worker.id} • {worker.worker_type}
-                        {worker.face_id && ' • Face Registered'}
-                      </p>
-                    </div>
-                  </button>
+                      <figure
+                        className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold m-0 ${
+                          worker.face_id ? 'bg-green-500' : 'bg-gray-400'
+                        }`}
+                      >
+                        {worker.face_id ? (
+                          <CheckCircle className="w-5 h-5" />
+                        ) : (
+                          <User className="w-5 h-5" />
+                        )}
+                      </figure>
+                      <span className="text-left flex-1">
+                        <strong className="block font-medium text-gray-900">
+                          {worker.full_name || worker.name}
+                        </strong>
+                        <small className="text-xs text-gray-500">
+                          ID: {worker.id} • {worker.worker_type}
+                          {worker.face_id && ' • Face Registered'}
+                        </small>
+                      </span>
+                    </button>
+                  </li>
                 ))
               )}
-            </div>
-          </div>
+            </ul>
+          </fieldset>
 
           {/* Photo Upload */}
           {selectedWorker && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <fieldset>
+              <legend className="block text-sm font-medium text-gray-700 mb-2">
                 Upload Photo
-              </label>
+              </legend>
 
               {!previewUrl ? (
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8">
-                  <div className="text-center space-y-4">
+                <section className="border-2 border-dashed border-gray-300 rounded-lg p-8">
+                  <article className="text-center space-y-4">
                     <Camera className="w-16 h-16 text-gray-400 mx-auto" />
-                    <div>
-                      <p className="text-sm text-gray-600 mb-2">
-                        Click to upload or drag and drop
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        PNG, JPG, WEBP up to 10MB
-                      </p>
-                    </div>
-                    <button
+                    <p className="text-sm text-gray-600 mb-2">
+                      Click to upload or drag and drop
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      PNG, JPG, WEBP up to 10MB
+                    </p>
+                    <Button
+                      type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
                     >
-                      <Upload className="w-4 h-4" />
+                      <Upload className="w-4 h-4 mr-2" />
                       Choose File
-                    </button>
+                    </Button>
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -241,26 +237,29 @@ export function WorkerPhotoUploadModal({
                       onChange={handleFileInputChange}
                       className="hidden"
                     />
-                  </div>
-                </div>
+                  </article>
+                </section>
               ) : (
-                <div className="space-y-4">
-                  <div className="relative border border-gray-300 rounded-lg overflow-hidden">
+                <section className="space-y-4">
+                  <figure className="relative border border-gray-200 rounded-lg overflow-hidden m-0">
                     <img
                       src={previewUrl}
                       alt="Preview"
                       className="w-full h-64 object-contain bg-gray-50"
                     />
                     {uploadSuccess && (
-                      <div className="absolute inset-0 bg-green-500 bg-opacity-90 flex items-center justify-center">
-                        <div className="text-white text-center">
+                      <figcaption className="absolute inset-0 bg-green-500 bg-opacity-90 flex items-center justify-center">
+                        <span className="text-white text-center">
                           <CheckCircle className="w-16 h-16 mx-auto mb-2" />
-                          <p className="font-semibold">Upload Successful!</p>
-                        </div>
-                      </div>
+                          <strong className="font-semibold">Upload Successful!</strong>
+                        </span>
+                      </figcaption>
                     )}
-                  </div>
-                  <button
+                  </figure>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => {
                       if (previewUrl) {
                         URL.revokeObjectURL(previewUrl);
@@ -268,64 +267,62 @@ export function WorkerPhotoUploadModal({
                       setPreviewUrl(null);
                       setSelectedFile(null);
                     }}
-                    className="text-sm text-gray-600 hover:text-gray-900"
                     disabled={isUploading}
                   >
                     Choose different photo
-                  </button>
-                </div>
+                  </Button>
+                </section>
               )}
 
               {/* Photo Guidelines */}
-              <div className="mt-4 bg-blue-50 rounded-lg p-4">
-                <div className="flex gap-2">
+              <aside className="mt-4 bg-blue-50 rounded-lg p-4">
+                <header className="flex gap-2">
                   <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <div>
+                  <article>
                     <h4 className="font-medium text-blue-900 text-sm mb-2">
                       Photo Requirements:
                     </h4>
-                    <ul className="text-xs text-blue-700 space-y-1">
+                    <ul className="text-xs text-blue-700 space-y-1 list-none m-0 p-0">
                       <li>• Clear, front-facing photo of the worker</li>
                       <li>• Good lighting with no shadows on face</li>
                       <li>• No hats, sunglasses, or face coverings</li>
                       <li>• Only one person in the photo</li>
                       <li>• High resolution for better accuracy</li>
                     </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
+                  </article>
+                </header>
+              </aside>
+            </fieldset>
           )}
-        </div>
 
-        {/* Footer */}
-        <div className="flex gap-3 justify-end p-6 border-t bg-gray-50">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            disabled={isUploading}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleUpload}
-            disabled={!selectedWorker || !selectedFile || isUploading || uploadSuccess}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {isUploading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Uploading...
-              </>
-            ) : (
-              <>
-                <Upload className="w-4 h-4" />
-                Upload Photo
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isUploading}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={!selectedWorker || !selectedFile || isUploading || uploadSuccess}
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload Photo
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
