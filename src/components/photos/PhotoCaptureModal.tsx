@@ -1,11 +1,19 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Camera, UploadCloud, X, Loader2, RefreshCw } from 'lucide-react';
+import { Camera, UploadCloud, Loader2, RefreshCw } from 'lucide-react';
 import { toast } from '../ui/sonner';
 import apiService from '../../services/api';
 import { PhotoInfo, User } from '../../types';
 import { USER_ROLES } from '../../constants';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 type PanelKey = 'self' | 'user' | 'worker';
 type UploadKind = 'photo' | 'id';
@@ -272,10 +280,6 @@ const PhotoCaptureModal: React.FC<PhotoCaptureModalProps> = ({ isOpen, onClose, 
     };
   }, [cleanupPreviews]);
 
-  if (!isOpen) {
-    return null;
-  }
-
   const renderUploadCard = (panel: PanelKey, kind: UploadKind, title: string) => {
     const state = panelState[panel];
     const selectedPreview = kind === 'photo' ? state.selectedPhotoPreview : state.selectedIdPreview;
@@ -314,33 +318,36 @@ const PhotoCaptureModal: React.FC<PhotoCaptureModalProps> = ({ isOpen, onClose, 
             event.target.value = '';
           }}
         />
-        <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3 space-y-2 sm:space-y-0">
-          <button
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onClick={() => triggerFileInput(inputKey)}
-            className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
           >
             <Camera className="w-4 h-4 mr-2" />
             Capture / Upload
-          </button>
+          </Button>
           {(kind === 'photo' ? state.selectedPhotoFile : state.selectedIdFile) && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => handleFileChange(panel, kind, null)}
-              className="text-sm text-gray-600 hover:text-gray-800"
             >
               Clear selection
-            </button>
+            </Button>
           )}
-          <button
+          <Button
             type="button"
+            size="sm"
             onClick={() => handleUpload(panel, kind)}
             disabled={
               uploading ||
               !(kind === 'photo' ? state.selectedPhotoFile : state.selectedIdFile) ||
               !hasEntityId
             }
-            className="inline-flex items-center justify-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-green-500 hover:bg-green-600"
           >
             {uploading ? (
               <>
@@ -353,7 +360,7 @@ const PhotoCaptureModal: React.FC<PhotoCaptureModalProps> = ({ isOpen, onClose, 
                 Upload
               </>
             )}
-          </button>
+          </Button>
         </div>
         <p className="text-xs text-gray-500">
           When you tap "Capture / Upload", your device can open its native or Bluetooth camera, or let you pick an existing
@@ -375,25 +382,22 @@ const PhotoCaptureModal: React.FC<PhotoCaptureModalProps> = ({ isOpen, onClose, 
             <label className="block text-sm font-medium text-gray-700">
               {idLabel}
             </label>
-            <div className="flex flex-col sm:flex-row sm:items-end sm:space-x-4 space-y-3 sm:space-y-0">
-              <input
+            <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+              <Input
                 type="number"
                 value={state.inputId}
                 onChange={(e) => handleIdInputChange(panel, e.target.value)}
                 placeholder={`Enter ${idLabel.toLowerCase()}`}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 min={1}
+                className="flex-1"
               />
-              <div className="flex space-x-2">
-                <button
-                  type="button"
-                  onClick={() => handleLoadTarget(panel)}
-                  className="inline-flex items-center justify-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-md transition-colors"
-                >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Load photos
-                </button>
-              </div>
+              <Button
+                type="button"
+                onClick={() => handleLoadTarget(panel)}
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Load photos
+              </Button>
             </div>
             <p className="text-xs text-gray-500">
               Provide the {idLabel.toLowerCase()} to load existing images or upload new ones.
@@ -410,66 +414,49 @@ const PhotoCaptureModal: React.FC<PhotoCaptureModalProps> = ({ isOpen, onClose, 
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-800">Capture & Upload Photos</h2>
-            <p className="text-sm text-gray-500">
-              Capture fresh images or upload existing files for your profile, users, and workers.
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Capture & Upload Photos</DialogTitle>
+          <p className="text-sm text-muted-foreground">
+            Capture fresh images or upload existing files for your profile, users, and workers.
+          </p>
+        </DialogHeader>
 
-        <div className="px-6 pt-4 border-b border-gray-200">
+        <div className="border-b border-gray-200 pb-4">
           <div className="flex flex-wrap gap-3">
-            <button
+            <Button
               type="button"
+              variant={activeTab === 'self' ? 'default' : 'outline'}
+              size="sm"
               onClick={() => setActiveTab('self')}
-              className={`px-4 py-2 rounded-md text-sm font-medium ${
-                activeTab === 'self'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
             >
               My Profile
-            </button>
+            </Button>
             {canManageUsers && (
-              <button
+              <Button
                 type="button"
+                variant={activeTab === 'user' ? 'default' : 'outline'}
+                size="sm"
                 onClick={() => setActiveTab('user')}
-                className={`px-4 py-2 rounded-md text-sm font-medium ${
-                  activeTab === 'user'
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
               >
                 Manage Users
-              </button>
+              </Button>
             )}
             {canManageWorkers && (
-              <button
+              <Button
                 type="button"
+                variant={activeTab === 'worker' ? 'default' : 'outline'}
+                size="sm"
                 onClick={() => setActiveTab('worker')}
-                className={`px-4 py-2 rounded-md text-sm font-medium ${
-                  activeTab === 'worker'
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
               >
                 Manage Workers
-              </button>
+              </Button>
             )}
           </div>
         </div>
 
-        <div className="p-6 overflow-y-auto">
+        <div className="pt-4">
           {activeTab === 'self' && renderPanel('self')}
           {activeTab === 'user' && canManageUsers && renderPanel('user')}
           {activeTab === 'worker' && canManageWorkers && renderPanel('worker')}
@@ -480,8 +467,8 @@ const PhotoCaptureModal: React.FC<PhotoCaptureModalProps> = ({ isOpen, onClose, 
             <p className="text-sm text-red-500">You do not have permission to manage worker photos.</p>
           )}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
