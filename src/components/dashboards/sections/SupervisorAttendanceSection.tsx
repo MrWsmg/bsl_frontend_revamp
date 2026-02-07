@@ -1,13 +1,29 @@
 "use client";
 
 import { useState, useCallback } from 'react';
-import { UserCheck, Upload, RefreshCw, Filter } from 'lucide-react';
+import { Upload, RefreshCw, Filter } from 'lucide-react';
 import { AttendanceCheckInForm } from '../../attendance/AttendanceCheckInForm';
 import { WorkerPhotoUploadModal } from '../../attendance/WorkerPhotoUploadModal';
 import { AttendanceRecordsTable } from '../../attendance/AttendanceRecordsTable';
 import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 
 interface SupervisorAttendanceSectionProps {
   showCheckIn?: boolean;
@@ -58,30 +74,30 @@ export function SupervisorAttendanceSection({
 
   if (loadingWorkers || loadingFarms) {
     return (
-      <div className="flex justify-center items-center py-12">
+      <section className="flex justify-center items-center py-12">
         <LoadingSpinner size="lg" />
-      </div>
+      </section>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <section className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <hgroup>
           <h2 className="text-2xl font-bold text-gray-900">Attendance Management</h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Record attendance with face verification
           </p>
-        </div>
-        <button
+        </hgroup>
+        <Button
           onClick={() => setShowPhotoUploadModal(true)}
-          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 whitespace-nowrap"
+          className="bg-purple-600 hover:bg-purple-700"
         >
-          <Upload className="w-5 h-5" />
+          <Upload className="w-5 h-5 mr-2" />
           Register Worker Faces
-        </button>
-      </div>
+        </Button>
+      </header>
 
       {/* Check-in Form */}
       {showCheckIn && (
@@ -94,96 +110,108 @@ export function SupervisorAttendanceSection({
 
       {/* Attendance Records */}
       {showRecords && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-            <h3 className="text-lg font-semibold text-gray-900">Attendance Records</h3>
-            <button
+        <Card>
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <CardTitle>Attendance Records</CardTitle>
+            <Button
+              variant="secondary"
               onClick={() => refetchAttendance()}
               disabled={loadingAttendance}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 flex items-center gap-2"
             >
-              <RefreshCw className={`w-4 h-4 ${loadingAttendance ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 mr-2 ${loadingAttendance ? 'animate-spin' : ''}`} />
               Refresh
-            </button>
-          </div>
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Filters */}
+            <fieldset className="bg-muted/50 rounded-lg p-4">
+              <legend className="flex items-center gap-2 mb-4 font-medium text-gray-900">
+                <Filter className="w-5 h-5 text-gray-600" />
+                Filters
+              </legend>
+              <form className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <fieldset>
+                  <label htmlFor="farm-filter" className="block text-sm font-medium text-gray-700 mb-1">
+                    Farm
+                  </label>
+                  <Select
+                    value={filters.farm_id || undefined}
+                    onValueChange={(value) => setFilters({ ...filters, farm_id: value === 'all' ? '' : value })}
+                  >
+                    <SelectTrigger id="farm-filter">
+                      <SelectValue placeholder="All Farms" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Farms</SelectItem>
+                      {farms?.filter((farm: any) => farm.id != null).map((farm: any) => (
+                        <SelectItem key={farm.id} value={String(farm.id)}>
+                          {farm.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </fieldset>
 
-          {/* Filters */}
-          <div className="mb-6 bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Filter className="w-5 h-5 text-gray-600" />
-              <h4 className="font-medium text-gray-900">Filters</h4>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Farm
-                </label>
-                <select
-                  value={filters.farm_id}
-                  onChange={(e) => setFilters({ ...filters, farm_id: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">All Farms</option>
-                  {farms?.map((farm: any, index: number) => (
-                    <option key={farm.id ?? `farm-${index}`} value={farm.id}>
-                      {farm.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  value={filters.start_date}
-                  onChange={(e) => setFilters({ ...filters, start_date: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  End Date
-                </label>
-                <input
-                  type="date"
-                  value={filters.end_date}
-                  onChange={(e) => setFilters({ ...filters, end_date: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Status
-                </label>
-                <select
-                  value={filters.status}
-                  onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">All Statuses</option>
-                  <option value="present">Present</option>
-                  <option value="absent">Absent</option>
-                  <option value="leave">Leave</option>
-                  <option value="sick">Sick</option>
-                </select>
-              </div>
-            </div>
-          </div>
+                <fieldset>
+                  <label htmlFor="start-date-filter" className="block text-sm font-medium text-gray-700 mb-1">
+                    Start Date
+                  </label>
+                  <Input
+                    id="start-date-filter"
+                    type="date"
+                    value={filters.start_date}
+                    onChange={(e) => setFilters({ ...filters, start_date: e.target.value })}
+                  />
+                </fieldset>
 
-          {/* Records Table */}
-          {loadingAttendance ? (
-            <div className="flex justify-center py-8">
-              <LoadingSpinner />
-            </div>
-          ) : (
-            <AttendanceRecordsTable
-              records={attendanceRecords || []}
-              showVerificationDetails={true}
-            />
-          )}
-        </div>
+                <fieldset>
+                  <label htmlFor="end-date-filter" className="block text-sm font-medium text-gray-700 mb-1">
+                    End Date
+                  </label>
+                  <Input
+                    id="end-date-filter"
+                    type="date"
+                    value={filters.end_date}
+                    onChange={(e) => setFilters({ ...filters, end_date: e.target.value })}
+                  />
+                </fieldset>
+
+                <fieldset>
+                  <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700 mb-1">
+                    Status
+                  </label>
+                  <Select
+                    value={filters.status || undefined}
+                    onValueChange={(value) => setFilters({ ...filters, status: value === 'all' ? '' : value })}
+                  >
+                    <SelectTrigger id="status-filter">
+                      <SelectValue placeholder="All Statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="present">Present</SelectItem>
+                      <SelectItem value="absent">Absent</SelectItem>
+                      <SelectItem value="leave">Leave</SelectItem>
+                      <SelectItem value="sick">Sick</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </fieldset>
+              </form>
+            </fieldset>
+
+            {/* Records Table */}
+            {loadingAttendance ? (
+              <output className="flex justify-center py-8">
+                <LoadingSpinner />
+              </output>
+            ) : (
+              <AttendanceRecordsTable
+                records={attendanceRecords || []}
+                showVerificationDetails={true}
+              />
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {/* Worker Photo Upload Modal */}
@@ -193,6 +221,6 @@ export function SupervisorAttendanceSection({
         workers={workers || []}
         onPhotoUploaded={handlePhotoUploaded}
       />
-    </div>
+    </section>
   );
 }

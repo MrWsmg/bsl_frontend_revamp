@@ -2,39 +2,32 @@
 
 // Supervisor Item Requests Section - Request and manage SIMR (Smart Internal Material Request)
 import React, { useState, useCallback, useEffect } from 'react';
+import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
-import { Plus, Package, CheckCircle, XCircle, Clock, User, Wheat, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
-import { toast } from '../../ui/sonner';
-
-interface SimrItemFormData {
-  item_name: string;
-  quantity_requested: number;
-  unit: string;
-  price_list_id?: number;
-  accounting_code?: string;
-  specifications?: string;
-}
-
-interface SimrRequestFormData {
-  farm_id?: number;
-  block_id?: number;
-  purpose: string;
-  priority: string;
-  items: SimrItemFormData[];
-}
-
-// Helper to generate unique ID from item name
-const generateItemId = (name: string): number => {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    const char = name.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return Math.abs(hash);
-};
+import { Plus, Package, CheckCircle, XCircle, User, Wheat, Calendar, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { toast } from 'sonner';
+import { simrRequestSchema, type SimrRequestFormData } from '@/lib/schemas';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Field, FieldLabel, FieldError } from '@/components/ui/field';
+import { Card, CardContent } from '@/components/ui/card';
 
 const UNIT_OPTIONS = [
   { value: 'piece', label: 'Piece(s)' },
@@ -57,29 +50,40 @@ export const SupervisorItemRequestsSection: React.FC = () => {
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'my_requests' | 'all_requests'>('my_requests');
   const [expandedRequests, setExpandedRequests] = useState<Set<number>>(new Set());
-  
-  const [formData, setFormData] = useState<SimrRequestFormData>({
-    farm_id: undefined,
-    block_id: undefined,
-    purpose: '',
-    priority: 'normal',
-    items: [{
-      item_name: '',
-      quantity_requested: 1,
-      unit: 'piece',
-    }],
-  });
-
   const [blocks, setBlocks] = useState<any[]>([]);
   const [loadingBlocks, setLoadingBlocks] = useState(false);
+
+  const form = useForm<SimrRequestFormData>({
+    resolver: zodResolver(simrRequestSchema),
+    defaultValues: {
+      farm_id: '',
+      block_id: '',
+      purpose: '',
+      priority: 'normal',
+      items: [{
+        item_name: '',
+        quantity_requested: 1,
+        unit: 'piece',
+        accounting_code: '',
+        specifications: '',
+      }],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: 'items',
+  });
+
+  const watchedFarmId = form.watch('farm_id');
 
   // Fetch blocks when farm is selected
   useEffect(() => {
     const fetchBlocks = async () => {
-      if (formData.farm_id) {
+      if (watchedFarmId) {
         setLoadingBlocks(true);
         try {
-          const data = await apiService.getBlocksForFarm(formData.farm_id);
+          const data = await apiService.getBlocksForFarm(parseInt(watchedFarmId));
           setBlocks(data);
         } catch (error) {
           console.error('Error fetching blocks:', error);
@@ -89,12 +93,12 @@ export const SupervisorItemRequestsSection: React.FC = () => {
         }
       } else {
         setBlocks([]);
-        setFormData(prev => ({ ...prev, block_id: undefined }));
+        form.setValue('block_id', '');
       }
     };
-    
+
     fetchBlocks();
-  }, [formData.farm_id]);
+  }, [watchedFarmId, form]);
 
   // Fetch data
   const getMyRequests = useCallback(() => apiService.getSimrRequests(), []);
@@ -105,71 +109,38 @@ export const SupervisorItemRequestsSection: React.FC = () => {
   const { data: myRequests, loading: loadingMyRequests, refetch: refetchMyRequests } = useApi(getMyRequests);
   const { data: allRequests, loading: loadingAllRequests, refetch: refetchAllRequests } = useApi(getAllRequests);
   const { data: farms } = useApi(getFarms);
-  const { data: priceListItems, loading: loadingItems, error: itemsError } = useApi(getPriceList);
+  const { data: priceListItems } = useApi(getPriceList);
 
   const handleAddItem = () => {
-    setFormData(prev => ({
-      ...prev,
-      items: [...prev.items, {
-        item_name: '',
-        quantity_requested: 1,
-        unit: 'piece',
-      }],
-    }));
+    append({
+      item_name: '',
+      quantity_requested: 1,
+      unit: 'piece',
+      accounting_code: '',
+      specifications: '',
+    });
   };
 
-  const handleRemoveItem = (index: number) => {
-    if (formData.items.length > 1) {
-      setFormData(prev => ({
-        ...prev,
-        items: prev.items.filter((_, i) => i !== index),
-      }));
-    }
-  };
-
-  const handleItemChange = (index: number, field: string, value: any) => {
-    const newItems = [...formData.items];
-    newItems[index] = { ...newItems[index], [field]: value };
-    setFormData(prev => ({ ...prev, items: newItems }));
-  };
-
-  const handleSubmitRequest = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.farm_id) {
-      toast.error('Please select a farm');
-      return;
-    }
-
-    if (!formData.purpose.trim()) {
-      toast.error('Please enter a purpose for the request');
-      return;
-    }
-
-    const invalidItems = formData.items.filter(item => !item.item_name || item.quantity_requested <= 0 || !item.unit);
-    if (invalidItems.length > 0) {
-      toast.error('Please fill in all required item fields');
-      return;
-    }
-
+  const handleSubmitRequest = async (data: SimrRequestFormData) => {
     try {
       await apiService.createSimrRequest({
-        farm_id: formData.farm_id,
-        block_id: formData.block_id || undefined,
-        purpose: formData.purpose.trim(),
-        priority: formData.priority,
-        items: formData.items.map(item => ({
+        farm_id: parseInt(data.farm_id),
+        block_id: data.block_id ? parseInt(data.block_id) : undefined,
+        purpose: data.purpose.trim(),
+        priority: data.priority,
+        items: data.items.map(item => ({
           item_name: item.item_name,
-          quantity_requested: item.quantity_requested,
+          quantity_requested: Number(item.quantity_requested),
           unit: item.unit,
           accounting_code: item.accounting_code || undefined,
           specifications: item.specifications || undefined,
         })),
       });
-      
+
       toast.success('SIMR request submitted successfully');
       setShowRequestModal(false);
-      resetForm();
+      form.reset();
+      setBlocks([]);
       refetchMyRequests();
       refetchAllRequests();
     } catch (error: any) {
@@ -190,18 +161,9 @@ export const SupervisorItemRequestsSection: React.FC = () => {
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      farm_id: undefined,
-      block_id: undefined,
-      purpose: '',
-      priority: 'normal',
-      items: [{
-        item_name: '',
-        quantity_requested: 1,
-        unit: 'piece',
-      }],
-    });
+  const handleCloseModal = () => {
+    setShowRequestModal(false);
+    form.reset();
     setBlocks([]);
   };
 
@@ -268,34 +230,39 @@ export const SupervisorItemRequestsSection: React.FC = () => {
             <h2 className="text-2xl font-bold text-gray-900">SIMR Requests</h2>
             <p className="text-sm text-gray-600 mt-1">Request and manage items from the store</p>
           </div>
-          <button
-            onClick={() => setShowRequestModal(true)}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-          >
+          <Button onClick={() => setShowRequestModal(true)} className="gap-2">
             <Plus className="w-4 h-4" />
             New SIMR Request
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg shadow-md p-4">
-          <p className="text-sm text-gray-600">Total Requests</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{stats.total}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-md p-4">
-          <p className="text-sm text-gray-600">Pending FM</p>
-          <p className="text-2xl font-bold text-yellow-600 mt-1">{stats.pending}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-md p-4">
-          <p className="text-sm text-gray-600">Approved</p>
-          <p className="text-2xl font-bold text-blue-600 mt-1">{stats.approved}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow-md p-4">
-          <p className="text-sm text-gray-600">Collected</p>
-          <p className="text-2xl font-bold text-green-600 mt-1">{stats.collected}</p>
-        </div>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-gray-600">Total Requests</p>
+            <p className="text-2xl font-bold text-gray-900 mt-1">{stats.total}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-gray-600">Pending FM</p>
+            <p className="text-2xl font-bold text-yellow-600 mt-1">{stats.pending}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-gray-600">Approved</p>
+            <p className="text-2xl font-bold text-blue-600 mt-1">{stats.approved}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm text-gray-600">Collected</p>
+            <p className="text-2xl font-bold text-green-600 mt-1">{stats.collected}</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Tabs */}
@@ -374,7 +341,7 @@ export const SupervisorItemRequestsSection: React.FC = () => {
                             )}
                           </div>
                         </div>
-                        
+
                         {/* Items Summary */}
                         {simrReq ? (
                           <div>
@@ -414,7 +381,7 @@ export const SupervisorItemRequestsSection: React.FC = () => {
                             Quantity: <span className="font-medium">{request.quantity} {request.unit || 'units'}</span>
                           </p>
                         )}
-                        
+
                         <div className="flex flex-wrap gap-4 mt-3 text-xs text-gray-500">
                           {request.requester_name && (
                             <span className="flex items-center gap-1">
@@ -445,20 +412,24 @@ export const SupervisorItemRequestsSection: React.FC = () => {
                       {/* Actions - only for collected items */}
                       {activeTab === 'my_requests' && request.status === 'collected' && (
                         <div className="flex gap-2">
-                          <button
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => handleConfirmReceipt(request.id, 'received')}
-                            className="flex items-center gap-2 bg-green-50 hover:bg-green-100 text-green-700 px-4 py-2 rounded-md text-sm"
+                            className="gap-2 text-green-700 border-green-300 hover:bg-green-50"
                           >
                             <CheckCircle className="w-4 h-4" />
                             Confirm Received
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => handleConfirmReceipt(request.id, 'not_received')}
-                            className="flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-700 px-4 py-2 rounded-md text-sm"
+                            className="gap-2 text-red-700 border-red-300 hover:bg-red-50"
                           >
                             <XCircle className="w-4 h-4" />
                             Not Received
-                          </button>
+                          </Button>
                         </div>
                       )}
                     </div>
@@ -471,258 +442,266 @@ export const SupervisorItemRequestsSection: React.FC = () => {
       </div>
 
       {/* Request Item Modal */}
-      {showRequestModal && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowRequestModal(false);
-              resetForm();
-            }
-          }}
-        >
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Create SIMR Request</h2>
-              
-              <form onSubmit={handleSubmitRequest} className="space-y-6">
-                {/* Farm and Block Selection */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Farm */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Farm *</label>
-                    <select
-                      required
-                      value={formData.farm_id || 0}
-                      onChange={(e) => setFormData(prev => ({ ...prev, farm_id: Number(e.target.value) || undefined }))}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      <Dialog open={showRequestModal} onOpenChange={setShowRequestModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create SIMR Request</DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={form.handleSubmit(handleSubmitRequest)} className="space-y-6">
+            {/* Farm and Block Selection */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Controller
+                name="farm_id"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel>Farm *</FieldLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger aria-invalid={fieldState.invalid}>
+                        <SelectValue placeholder="Select Farm" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {farms?.filter((farm: any) => farm.id != null).map((farm: any) => (
+                          <SelectItem key={farm.id || farm.farm_id} value={String(farm.id || farm.farm_id)}>
+                            {farm.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                  </Field>
+                )}
+              />
+
+              <Controller
+                name="block_id"
+                control={form.control}
+                render={({ field }) => (
+                  <Field>
+                    <FieldLabel>Block (Optional)</FieldLabel>
+                    <Select
+                      value={field.value || ''}
+                      onValueChange={field.onChange}
+                      disabled={!watchedFarmId || loadingBlocks}
                     >
-                      <option value={0}>-- Select Farm --</option>
-                      {farms?.map((farm: any) => (
-                        <option key={farm.id || farm.farm_id} value={farm.id || farm.farm_id}>
-                          {farm.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Block */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Block (Optional)</label>
-                    <select
-                      value={formData.block_id || 0}
-                      onChange={(e) => setFormData(prev => ({ ...prev, block_id: Number(e.target.value) || undefined }))}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      disabled={!formData.farm_id || loadingBlocks}
-                    >
-                      <option value={0}>-- Select Block --</option>
-                      {loadingBlocks ? (
-                        <option value="">Loading blocks...</option>
-                      ) : blocks.length > 0 ? (
-                        blocks.map((block: any) => (
-                          <option key={block.id} value={block.id}>
-                            {block.name || `Block ${block.id}`}
-                          </option>
-                        ))
-                      ) : (
-                        <option value="" disabled>No blocks available</option>
-                      )}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Purpose and Priority */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Purpose */}
-                  <div className="md:col-span-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Purpose *</label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.purpose}
-                      onChange={(e) => setFormData(prev => ({ ...prev, purpose: e.target.value }))}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Reason for this request"
-                    />
-                  </div>
-
-                  {/* Priority */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-                    <select
-                      value={formData.priority}
-                      onChange={(e) => setFormData(prev => ({ ...prev, priority: e.target.value }))}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      {PRIORITY_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Items Section */}
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <label className="block text-sm font-medium text-gray-700">Items *</label>
-                    <button
-                      type="button"
-                      onClick={handleAddItem}
-                      className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Add Item
-                    </button>
-                  </div>
-
-                  <div className="space-y-4">
-                    {formData.items.map((item, index) => (
-                      <div key={index} className="border border-gray-200 rounded-lg p-4 relative">
-                        {formData.items.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveItem(index)}
-                            className="absolute top-2 right-2 text-gray-400 hover:text-red-500"
-                          >
-                            <XCircle className="w-5 h-5" />
-                          </button>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Block" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {loadingBlocks ? (
+                          <SelectItem value="loading" disabled>Loading blocks...</SelectItem>
+                        ) : blocks.length > 0 ? (
+                          blocks.map((block: any) => (
+                            <SelectItem key={block.id} value={String(block.id)}>
+                              {block.name || `Block ${block.id}`}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="empty" disabled>No blocks available</SelectItem>
                         )}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                )}
+              />
+            </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                          {/* Item Name */}
-                          <div className="md:col-span-2">
-                            <label className="block text-xs font-medium text-gray-600 mb-1">Item Name *</label>
-                            {priceListItems && priceListItems.length > 0 ? (
-                              <select
-                                required
-                                value={item.item_name || ''}
-                                onChange={(e) => {
-                                  const selectedItemName = e.target.value;
-                                  const selectedItem = priceListItems.find((p: any) => p.name === selectedItemName);
-                                  
-                                  // Map unit from price list format
-                                  let unit = item.unit || 'piece';
-                                  if (selectedItem?.unit) {
-                                    const unitLower = selectedItem.unit.toLowerCase();
-                                    if (unitLower.includes('kg') && !unitLower.includes('ltr')) unit = 'kg';
-                                    else if (unitLower.includes('ltr') || unitLower.includes('liter')) unit = 'liter';
-                                    else if (unitLower.includes('bag')) unit = 'bag';
-                                    else if (unitLower.includes('box')) unit = 'box';
-                                    else if (unitLower.includes('pack')) unit = 'pack';
-                                  }
-                                  
-                                  // Update both item name and unit
-                                  handleItemChange(index, 'item_name', selectedItemName);
-                                  if (unit !== item.unit) {
-                                    handleItemChange(index, 'unit', unit);
-                                  }
-                                }}
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              >
-                                <option value="">-- Select Item --</option>
-                                {priceListItems.map((p: any, idx: number) => (
-                                  <option key={`${p.category}-${p.name}-${idx}`} value={String(p.name)}>
-                                    {String(p.name)} ({String(p.unit || 'N/A')})
-                                  </option>
-                                ))}
-                              </select>
-                            ) : (
-                              <input
-                                type="text"
-                                required
-                                value={item.item_name || ''}
-                                onChange={(e) => handleItemChange(index, 'item_name', e.target.value)}
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                placeholder="Enter item name"
-                              />
+            {/* Purpose and Priority */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Controller
+                name="purpose"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel>Purpose *</FieldLabel>
+                    <Input
+                      {...field}
+                      placeholder="Reason for this request"
+                      aria-invalid={fieldState.invalid}
+                    />
+                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                  </Field>
+                )}
+              />
+
+              <Controller
+                name="priority"
+                control={form.control}
+                render={({ field }) => (
+                  <Field>
+                    <FieldLabel>Priority</FieldLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PRIORITY_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                )}
+              />
+            </div>
+
+            {/* Items Section */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <FieldLabel className="text-base">Items *</FieldLabel>
+                <Button type="button" variant="outline" size="sm" onClick={handleAddItem} className="gap-1">
+                  <Plus className="w-4 h-4" />
+                  Add Item
+                </Button>
+              </div>
+
+              {form.formState.errors.items?.root && (
+                <div className="text-red-500 text-sm mb-4">
+                  {form.formState.errors.items.root.message}
+                </div>
+              )}
+
+              <div className="space-y-4">
+                {fields.map((item, index) => (
+                  <Card key={item.id} className="relative">
+                    <CardContent className="p-4">
+                      {fields.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-2 right-2 text-muted-foreground hover:text-destructive"
+                          onClick={() => remove(index)}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      )}
+
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                        {/* Item Name */}
+                        <div className="md:col-span-2">
+                          <Controller
+                            name={`items.${index}.item_name`}
+                            control={form.control}
+                            render={({ field, fieldState }) => (
+                              <Field data-invalid={fieldState.invalid}>
+                                <FieldLabel className="text-xs">Item Name *</FieldLabel>
+                                {priceListItems && priceListItems.length > 0 ? (
+                                  <Select value={field.value} onValueChange={field.onChange}>
+                                    <SelectTrigger aria-invalid={fieldState.invalid}>
+                                      <SelectValue placeholder="Select Item" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {priceListItems.map((p: any, idx: number) => (
+                                        <SelectItem key={`${p.category}-${p.name}-${idx}`} value={String(p.name)}>
+                                          {String(p.name)} ({String(p.unit || 'N/A')})
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                ) : (
+                                  <Input
+                                    {...field}
+                                    placeholder="Enter item name"
+                                    aria-invalid={fieldState.invalid}
+                                  />
+                                )}
+                                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                              </Field>
                             )}
-                          </div>
+                          />
+                        </div>
 
-                          {/* Quantity */}
-                          <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1">Quantity *</label>
-                            <input
-                              type="number"
-                              required
-                              min="0.01"
-                              step="0.01"
-                              value={item.quantity_requested || ''}
-                              onChange={(e) => handleItemChange(index, 'quantity_requested', parseFloat(e.target.value) || 0)}
-                              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            />
-                          </div>
+                        {/* Quantity */}
+                        <Controller
+                          name={`items.${index}.quantity_requested`}
+                          control={form.control}
+                          render={({ field, fieldState }) => (
+                            <Field data-invalid={fieldState.invalid}>
+                              <FieldLabel className="text-xs">Quantity *</FieldLabel>
+                              <Input
+                                {...field}
+                                type="number"
+                                min="0.01"
+                                step="0.01"
+                                onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
+                                aria-invalid={fieldState.invalid}
+                              />
+                              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                            </Field>
+                          )}
+                        />
 
-                          {/* Unit */}
-                          <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1">Unit *</label>
-                            <select
-                              required
-                              value={item.unit}
-                              onChange={(e) => handleItemChange(index, 'unit', e.target.value)}
-                              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            >
-                              {UNIT_OPTIONS.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
+                        {/* Unit */}
+                        <Controller
+                          name={`items.${index}.unit`}
+                          control={form.control}
+                          render={({ field, fieldState }) => (
+                            <Field data-invalid={fieldState.invalid}>
+                              <FieldLabel className="text-xs">Unit *</FieldLabel>
+                              <Select value={field.value} onValueChange={field.onChange}>
+                                <SelectTrigger aria-invalid={fieldState.invalid}>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {UNIT_OPTIONS.map((option) => (
+                                    <SelectItem key={option.value} value={option.value}>
+                                      {option.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                            </Field>
+                          )}
+                        />
 
-                          {/* Accounting Code */}
-                          <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1">Accounting Code</label>
-                            <input
-                              type="text"
-                              value={item.accounting_code || ''}
-                              onChange={(e) => handleItemChange(index, 'accounting_code', e.target.value)}
-                              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              placeholder="e.g., 5101"
-                            />
-                          </div>
+                        {/* Accounting Code */}
+                        <Controller
+                          name={`items.${index}.accounting_code`}
+                          control={form.control}
+                          render={({ field }) => (
+                            <Field>
+                              <FieldLabel className="text-xs">Accounting Code</FieldLabel>
+                              <Input {...field} placeholder="e.g., 5101" />
+                            </Field>
+                          )}
+                        />
 
-                          {/* Specifications */}
-                          <div className="md:col-span-3">
-                            <label className="block text-xs font-medium text-gray-600 mb-1">Specifications</label>
-                            <input
-                              type="text"
-                              value={item.specifications || ''}
-                              onChange={(e) => handleItemChange(index, 'specifications', e.target.value)}
-                              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              placeholder="Additional details"
-                            />
-                          </div>
+                        {/* Specifications */}
+                        <div className="md:col-span-3">
+                          <Controller
+                            name={`items.${index}.specifications`}
+                            control={form.control}
+                            render={({ field }) => (
+                              <Field>
+                                <FieldLabel className="text-xs">Specifications</FieldLabel>
+                                <Input {...field} placeholder="Additional details" />
+                              </Field>
+                            )}
+                          />
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowRequestModal(false);
-                      resetForm();
-                    }}
-                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md"
-                  >
-                    Submit SIMR Request
-                  </button>
-                </div>
-              </form>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={handleCloseModal}>
+                Cancel
+              </Button>
+              <Button type="submit">
+                Submit SIMR Request
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
