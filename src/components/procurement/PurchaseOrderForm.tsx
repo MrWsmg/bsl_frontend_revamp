@@ -1,10 +1,24 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Trash2, FileText } from 'lucide-react';
 import apiService from '../../services/api';
-import { Supplier, PurchaseRequest, PurchaseOrderItem } from '../../types';
+import { Supplier, PurchaseRequest } from '../../types';
 import { toast } from 'sonner';
+import { purchaseOrderSchema, type PurchaseOrderFormData } from '@/lib/schemas';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Field, FieldLabel, FieldError } from '@/components/ui/field';
 
 interface PurchaseOrderFormProps {
   purchaseRequest?: PurchaseRequest;
@@ -19,18 +33,54 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
 }) => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    supplier_id: '',
-    delivery_date: '',
-    payment_terms: 'Net 30 days after delivery',
-    shipping_address: '',
+
+  // Prepare default items from purchase request if available
+  const getDefaultItems = () => {
+    if (purchaseRequest?.items && purchaseRequest.items.length > 0) {
+      return purchaseRequest.items.map(item => ({
+        item_name: item.item_name,
+        description: item.description || '',
+        quantity_ordered: item.quantity,
+        unit: item.unit,
+        unit_price: item.estimated_unit_price,
+        specifications: item.specifications || '',
+      }));
+    }
+    return [
+      {
+        item_name: '',
+        description: '',
+        quantity_ordered: 0,
+        unit: 'kg',
+        unit_price: 0,
+        specifications: '',
+      },
+    ];
+  };
+
+  const form = useForm<PurchaseOrderFormData>({
+    resolver: zodResolver(purchaseOrderSchema),
+    defaultValues: {
+      supplier_id: '',
+      delivery_date: '',
+      payment_terms: 'Net 30 days after delivery',
+      shipping_address: purchaseRequest?.farm
+        ? `${purchaseRequest.farm.name}, ${purchaseRequest.farm.location}`
+        : '',
+      items: getDefaultItems(),
+    },
   });
-  const [items, setItems] = useState<Partial<PurchaseOrderItem>[]>([]);
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: 'items',
+  });
+
+  const watchedItems = form.watch('items');
 
   useEffect(() => {
     loadSuppliers();
-    initializeForm();
-  }, [purchaseRequest]);
+  }, []);
 
   const loadSuppliers = async () => {
     try {
@@ -42,67 +92,20 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
     }
   };
 
-  const initializeForm = () => {
-    if (purchaseRequest?.items && purchaseRequest.items.length > 0) {
-      // Pre-populate items from PR
-      setItems(
-        purchaseRequest.items.map(item => ({
-          item_name: item.item_name,
-          description: item.description,
-          quantity_ordered: item.quantity,
-          unit: item.unit,
-          unit_price: item.estimated_unit_price,
-          specifications: item.specifications,
-        }))
-      );
-      // Set farm's default shipping address if available
-      if (purchaseRequest.farm) {
-        setFormData(prev => ({
-          ...prev,
-          shipping_address: `${purchaseRequest.farm!.name}, ${purchaseRequest.farm!.location}`,
-        }));
-      }
-    } else {
-      setItems([
-        {
-          item_name: '',
-          description: '',
-          quantity_ordered: 0,
-          unit: 'kg',
-          unit_price: 0,
-          specifications: '',
-        },
-      ]);
-    }
-  };
-
   const addItem = () => {
-    setItems([
-      ...items,
-      {
-        item_name: '',
-        description: '',
-        quantity_ordered: 0,
-        unit: 'kg',
-        unit_price: 0,
-        specifications: '',
-      },
-    ]);
-  };
-
-  const removeItem = (index: number) => {
-    setItems(items.filter((_, i) => i !== index));
-  };
-
-  const updateItem = (index: number, field: string, value: any) => {
-    const newItems = [...items];
-    newItems[index] = { ...newItems[index], [field]: value };
-    setItems(newItems);
+    append({
+      item_name: '',
+      description: '',
+      quantity_ordered: 0,
+      unit: 'kg',
+      unit_price: 0,
+      specifications: '',
+    });
   };
 
   const calculateSubtotal = () => {
-    return items.reduce((total, item) => {
-      return total + (item.quantity_ordered || 0) * (item.unit_price || 0);
+    return (watchedItems || []).reduce((total, item) => {
+      return total + (Number(item?.quantity_ordered) || 0) * (Number(item?.unit_price) || 0);
     }, 0);
   };
 
@@ -110,42 +113,19 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
     return subtotal * 0.18; // 18% VAT
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.supplier_id) {
-      toast.error('Please select a supplier');
-      return;
-    }
-    if (!formData.shipping_address) {
-      toast.error('Please enter shipping address');
-      return;
-    }
-    if (items.length === 0) {
-      toast.error('Please add at least one item');
-      return;
-    }
-
-    // Validate items
-    for (const item of items) {
-      if (!item.item_name || !item.quantity_ordered || !item.unit || !item.unit_price) {
-        toast.error('Please fill all required fields for all items');
-        return;
-      }
-    }
-
+  const onSubmit = async (data: PurchaseOrderFormData) => {
     setLoading(true);
     try {
       const requestData = {
         purchase_request_id: purchaseRequest?.id,
-        supplier_id: parseInt(formData.supplier_id),
-        delivery_date: formData.delivery_date || undefined,
-        payment_terms: formData.payment_terms,
-        shipping_address: formData.shipping_address,
-        items: items.map(item => ({
+        supplier_id: parseInt(data.supplier_id),
+        delivery_date: data.delivery_date || undefined,
+        payment_terms: data.payment_terms,
+        shipping_address: data.shipping_address,
+        items: data.items.map(item => ({
           ...item,
-          quantity_ordered: parseFloat(String(item.quantity_ordered)),
-          unit_price: parseFloat(String(item.unit_price)),
+          quantity_ordered: Number(item.quantity_ordered),
+          unit_price: Number(item.unit_price),
         })),
       };
 
@@ -178,65 +158,88 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
         <FileText className="w-8 h-8 text-blue-500" />
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         {/* Supplier & Delivery Information */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Supplier <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={formData.supplier_id}
-              onChange={(e) => setFormData({ ...formData, supplier_id: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            >
-              <option value="">Select supplier</option>
-              {suppliers.map((supplier) => (
-                <option key={supplier.id} value={supplier.id}>
-                  {supplier.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Controller
+            name="supplier_id"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel>
+                  Supplier <span className="text-red-500">*</span>
+                </FieldLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger aria-invalid={fieldState.invalid}>
+                    <SelectValue placeholder="Select supplier" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {suppliers.map((supplier) => (
+                      <SelectItem key={supplier.id} value={String(supplier.id)}>
+                        {supplier.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              </Field>
+            )}
+          />
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Expected Delivery Date
-            </label>
-            <input
-              type="date"
-              value={formData.delivery_date}
-              onChange={(e) => setFormData({ ...formData, delivery_date: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          <Controller
+            name="delivery_date"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel>Expected Delivery Date</FieldLabel>
+                <Input
+                  {...field}
+                  type="date"
+                  aria-invalid={fieldState.invalid}
+                />
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              </Field>
+            )}
+          />
+
+          <div className="md:col-span-2">
+            <Controller
+              name="payment_terms"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel>
+                    Payment Terms <span className="text-red-500">*</span>
+                  </FieldLabel>
+                  <Input
+                    {...field}
+                    placeholder="e.g., Net 30 days after delivery"
+                    aria-invalid={fieldState.invalid}
+                  />
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
+              )}
             />
           </div>
 
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Payment Terms <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.payment_terms}
-              onChange={(e) => setFormData({ ...formData, payment_terms: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="e.g., Net 30 days after delivery"
-              required
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Shipping Address <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              value={formData.shipping_address}
-              onChange={(e) => setFormData({ ...formData, shipping_address: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              rows={2}
-              placeholder="Complete delivery address..."
-              required
+            <Controller
+              name="shipping_address"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel>
+                    Shipping Address <span className="text-red-500">*</span>
+                  </FieldLabel>
+                  <Textarea
+                    {...field}
+                    rows={2}
+                    placeholder="Complete delivery address..."
+                    aria-invalid={fieldState.invalid}
+                  />
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
+              )}
             />
           </div>
         </div>
@@ -245,114 +248,150 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
         <div className="border-t pt-4">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold text-gray-800">Order Items</h3>
-            <button
-              type="button"
-              onClick={addItem}
-              className="flex items-center px-3 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
-            >
+            <Button type="button" onClick={addItem} variant="default" size="sm">
               <Plus className="w-4 h-4 mr-2" />
               Add Item
-            </button>
+            </Button>
           </div>
 
+          {form.formState.errors.items?.root && (
+            <div className="text-red-500 text-sm mb-4">
+              {form.formState.errors.items.root.message}
+            </div>
+          )}
+
           <div className="space-y-4">
-            {items.map((item, index) => (
-              <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+            {fields.map((item, index) => (
+              <div key={item.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                 <div className="flex justify-between items-start mb-3">
                   <h4 className="font-medium text-gray-700">Item {index + 1}</h4>
-                  {items.length > 1 && (
-                    <button
+                  {fields.length > 1 && (
+                    <Button
                       type="button"
-                      onClick={() => removeItem(index)}
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => remove(index)}
                       className="text-red-500 hover:text-red-700"
                     >
                       <Trash2 className="w-4 h-4" />
-                    </button>
+                    </Button>
                   )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Item Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={item.item_name}
-                      onChange={(e) => updateItem(index, 'item_name', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                      required
+                    <Controller
+                      name={`items.${index}.item_name`}
+                      control={form.control}
+                      render={({ field, fieldState }) => (
+                        <Field data-invalid={fieldState.invalid}>
+                          <FieldLabel>
+                            Item Name <span className="text-red-500">*</span>
+                          </FieldLabel>
+                          <Input
+                            {...field}
+                            aria-invalid={fieldState.invalid}
+                          />
+                          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                        </Field>
+                      )}
                     />
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <input
-                      type="text"
-                      value={item.description}
-                      onChange={(e) => updateItem(index, 'description', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    <Controller
+                      name={`items.${index}.description`}
+                      control={form.control}
+                      render={({ field }) => (
+                        <Field>
+                          <FieldLabel>Description</FieldLabel>
+                          <Input {...field} />
+                        </Field>
+                      )}
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Quantity <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={item.quantity_ordered}
-                      onChange={(e) => updateItem(index, 'quantity_ordered', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                      required
-                    />
-                  </div>
+                  <Controller
+                    name={`items.${index}.quantity_ordered`}
+                    control={form.control}
+                    render={({ field, fieldState }) => (
+                      <Field data-invalid={fieldState.invalid}>
+                        <FieldLabel>
+                          Quantity <span className="text-red-500">*</span>
+                        </FieldLabel>
+                        <Input
+                          {...field}
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
+                          aria-invalid={fieldState.invalid}
+                        />
+                        {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                      </Field>
+                    )}
+                  />
+
+                  <Controller
+                    name={`items.${index}.unit`}
+                    control={form.control}
+                    render={({ field, fieldState }) => (
+                      <Field data-invalid={fieldState.invalid}>
+                        <FieldLabel>
+                          Unit <span className="text-red-500">*</span>
+                        </FieldLabel>
+                        <Input
+                          {...field}
+                          aria-invalid={fieldState.invalid}
+                        />
+                        {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                      </Field>
+                    )}
+                  />
+
+                  <Controller
+                    name={`items.${index}.unit_price`}
+                    control={form.control}
+                    render={({ field, fieldState }) => (
+                      <Field data-invalid={fieldState.invalid}>
+                        <FieldLabel>
+                          Unit Price (TZS) <span className="text-red-500">*</span>
+                        </FieldLabel>
+                        <Input
+                          {...field}
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
+                          aria-invalid={fieldState.invalid}
+                        />
+                        {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                      </Field>
+                    )}
+                  />
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Unit <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={item.unit}
-                      onChange={(e) => updateItem(index, 'unit', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Unit Price (TZS) <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={item.unit_price}
-                      onChange={(e) => updateItem(index, 'unit_price', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Line Total</label>
-                    <input
-                      type="text"
-                      value={((item.quantity_ordered || 0) * (item.unit_price || 0)).toLocaleString()}
+                    <FieldLabel>Line Total</FieldLabel>
+                    <Input
+                      value={(
+                        (Number(watchedItems?.[index]?.quantity_ordered) || 0) *
+                        (Number(watchedItems?.[index]?.unit_price) || 0)
+                      ).toLocaleString()}
                       readOnly
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
+                      className="bg-gray-100"
                     />
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Specifications</label>
-                    <textarea
-                      value={item.specifications}
-                      onChange={(e) => updateItem(index, 'specifications', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                      rows={2}
+                    <Controller
+                      name={`items.${index}.specifications`}
+                      control={form.control}
+                      render={({ field }) => (
+                        <Field>
+                          <FieldLabel>Specifications</FieldLabel>
+                          <Textarea {...field} rows={2} />
+                        </Field>
+                      )}
                     />
                   </div>
                 </div>
@@ -381,24 +420,14 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
 
         {/* Action Buttons */}
         <div className="flex justify-end space-x-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-            disabled={loading}
-          >
+          <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
             Cancel
-          </button>
-          <button
-            type="submit"
-            className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50"
-            disabled={loading}
-          >
+          </Button>
+          <Button type="submit" disabled={loading}>
             {loading ? 'Creating...' : 'Create Purchase Order'}
-          </button>
+          </Button>
         </div>
       </form>
     </div>
   );
 };
-
