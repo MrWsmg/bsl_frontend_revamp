@@ -38,6 +38,13 @@ interface ApiService {
   getPendingPayrollRecords(params?: Record<string, any>): Promise<any[]>;
   // Store Management
   requestItem(data: any): Promise<any>;
+  createSimrRequest(data: any): Promise<any>;
+  getSimrRequests(): Promise<any[]>;
+  getAllSimrRequests(): Promise<any[]>;
+  getPendingSimrRequests(): Promise<any[]>;
+  approveSimrRequest(requestId: number, notes?: string): Promise<any>;
+  rejectSimrRequest(requestId: number, reason: string): Promise<any>;
+  collectSimrRequest(requestId: number): Promise<any>;
   getSupervisorItemRequests(): Promise<any[]>;
   getAllItemRequests(): Promise<any[]>;
   getPendingItemRequests(): Promise<any[]>;
@@ -565,6 +572,45 @@ class ApiServiceImpl implements ApiService {
     return this.request('/supervisor/request-item', {
       method: 'POST',
       body: data,
+    });
+  }
+
+  async createSimrRequest(data: any): Promise<any> {
+    return this.request('/supervisor/request-item', {
+      method: 'POST',
+      body: data,
+    });
+  }
+
+  async getSimrRequests(): Promise<any[]> {
+    return this.request('/supervisor/item-requests');
+  }
+
+  async getAllSimrRequests(): Promise<any[]> {
+    return this.request('/supervisor/all-item-requests');
+  }
+
+  async getPendingSimrRequests(): Promise<any[]> {
+    return this.request('/supervisor/pending-simr-requests');
+  }
+
+  async approveSimrRequest(requestId: number, notes?: string): Promise<any> {
+    return this.request(`/supervisor/approve-simr/${requestId}`, {
+      method: 'POST',
+      body: JSON.stringify({ notes }),
+    });
+  }
+
+  async rejectSimrRequest(requestId: number, reason: string): Promise<any> {
+    return this.request(`/supervisor/reject-simr/${requestId}`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  }
+
+  async collectSimrRequest(requestId: number): Promise<any> {
+    return this.request(`/supervisor/collect-simr/${requestId}`, {
+      method: 'POST',
     });
   }
 

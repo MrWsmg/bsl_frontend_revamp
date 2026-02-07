@@ -231,6 +231,34 @@ export class ApiService extends BaseApiService {
     return this.items.requestItem(data);
   }
 
+  async createSimrRequest(data: any) {
+    return this.items.createSimrRequest(data);
+  }
+
+  async getSimrRequests() {
+    return this.items.getSimrRequests();
+  }
+
+  async getAllSimrRequests() {
+    return this.items.getAllSimrRequests();
+  }
+
+  async getPendingSimrRequests() {
+    return this.items.getPendingSimrRequests();
+  }
+
+  async approveSimrRequest(requestId: number, notes?: string) {
+    return this.items.approveSimrRequest(requestId, notes);
+  }
+
+  async rejectSimrRequest(requestId: number, reason: string) {
+    return this.items.rejectSimrRequest(requestId, reason);
+  }
+
+  async collectSimrRequest(requestId: number) {
+    return this.items.collectSimrRequest(requestId);
+  }
+
   async getSupervisorItemRequests() {
     return this.items.getSupervisorItemRequests();
   }

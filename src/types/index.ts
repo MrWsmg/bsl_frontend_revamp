@@ -29,6 +29,14 @@ export interface Farm {
   total_area: number;
 }
 
+export interface Block {
+  id: number;
+  farm_id: number;
+  name: string;
+  area?: number;
+  crops?: string;
+}
+
 export interface Worker {
   id: number;
   name: string;
@@ -120,6 +128,51 @@ export interface ItemRequest {
   received_status?: string;
   created_at: string;
   farm?: Farm;
+}
+
+// SIMR (Supervisor Item Material Request) Types
+export type SIMRStatus = 'pending_fm' | 'approved' | 'rejected' | 'collected';
+
+export interface SimrItem {
+  id?: number;
+  simr_id?: number;
+  item_name: string;
+  quantity_requested: number;
+  unit: string;
+  price_list_id?: number;
+  accounting_code?: string;
+  specifications?: string;
+}
+
+export interface SimrRequest {
+  id: number;
+  simr_number: string;
+  farm_id: number;
+  block_id?: number;
+  purpose: string;
+  priority: string;
+  status: SIMRStatus;
+  requested_by: number;
+  requester_name?: string;
+  fm_approved_by?: number;
+  fm_approved_at?: string;
+  fm_approval_notes?: string;
+  fm_rejected_reason?: string;
+  collected_by?: number;
+  collected_at?: string;
+  items: SimrItem[];
+  created_at: string;
+  updated_at: string;
+  farm?: Farm;
+}
+
+// SIMR Request payload for creating new requests
+export interface SimrRequestPayload {
+  farm_id: number;
+  block_id?: number;
+  purpose: string;
+  priority?: string;
+  items: SimrItem[];
 }
 
 export interface InventoryItem {
