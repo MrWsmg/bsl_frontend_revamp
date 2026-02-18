@@ -2,7 +2,23 @@
 
 // Farm Clerk Dashboard - shadcn patterns
 import React, { useState, useCallback, useMemo } from 'react';
-import { Package, ClipboardList, Truck, BarChart3, DollarSign, TrendingUp, LayoutDashboard, Boxes, ArrowLeftRight } from 'lucide-react';
+import {
+  Package,
+  ClipboardList,
+  Truck,
+  BarChart3,
+  DollarSign,
+  TrendingUp,
+  LayoutDashboard,
+  Boxes,
+  ArrowLeftRight,
+  Users,
+  UserCheck,
+  FileText,
+  Clock,
+  PackageCheck,
+  Settings,
+} from 'lucide-react';
 import { useApi } from '../../hooks';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorBoundary } from '../common/ErrorBoundary';
@@ -13,6 +29,11 @@ import ItemRequests from '../ItemRequests';
 import { Layout } from '../layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+
+// New feature components
+import { DailyStock, YtdStock } from '../stock';
+import { AttendanceCheckIn, AttendanceRecords, AttendanceReport } from '../attendance';
+import { PendingIssuances, DispatchPhotoUpload } from '../issuance';
 
 interface User {
   id: number;
@@ -35,14 +56,35 @@ const sidebarItems = [
     label: 'Stock',
     icon: Boxes,
     children: [
-      { id: 'inventory', label: 'Inventory', icon: Package },
-      { id: 'movements', label: 'Movements', icon: TrendingUp },
+      { id: 'daily-stock', label: 'Daily Stock', icon: Package },
+      { id: 'ytd-stock', label: 'YTD Stock', icon: TrendingUp },
+      { id: 'inventory', label: 'Inventory', icon: ClipboardList },
+      { id: 'movements', label: 'Movements', icon: ArrowLeftRight },
+    ],
+  },
+  {
+    id: 'attendance',
+    label: 'Attendance',
+    icon: Users,
+    children: [
+      { id: 'check-in', label: 'Check In', icon: UserCheck },
+      { id: 'records', label: 'Records', icon: FileText },
+      { id: 'report', label: 'Report', icon: BarChart3 },
+    ],
+  },
+  {
+    id: 'issuance',
+    label: 'Issuance',
+    icon: PackageCheck,
+    children: [
+      { id: 'pending-issuance', label: 'Pending', icon: Clock },
+      { id: 'dispatch', label: 'Dispatch', icon: Truck },
     ],
   },
   {
     id: 'operations',
     label: 'Operations',
-    icon: ArrowLeftRight,
+    icon: Settings,
     children: [
       { id: 'requests', label: 'Requests', icon: ClipboardList },
       { id: 'transfers', label: 'Transfers', icon: Truck },
@@ -239,21 +281,22 @@ const FarmClerkDashboard: React.FC<FarmClerkDashboardProps> = ({ user, onLogout 
     );
   };
 
+  // Stock visibility tabs
+  const renderDailyStock = () => (
+    <div className="space-y-6">
+      <DailyStock farms={farms || []} />
+    </div>
+  );
+
+  const renderYtdStock = () => (
+    <div className="space-y-6">
+      <YtdStock farms={farms || []} />
+    </div>
+  );
+
   const renderInventory = () => (
     <div className="space-y-6">
       <StoreInventory farms={farms || []} />
-    </div>
-  );
-
-  const renderRequests = () => (
-    <div className="space-y-6">
-      <ItemRequests farms={farms || []} />
-    </div>
-  );
-
-  const renderTransfers = () => (
-    <div className="space-y-6">
-      <InventoryTransfers farms={farms || []} />
     </div>
   );
 
@@ -308,6 +351,51 @@ const FarmClerkDashboard: React.FC<FarmClerkDashboardProps> = ({ user, onLogout 
           )}
         </CardContent>
       </Card>
+    </div>
+  );
+
+  // Attendance tabs
+  const renderCheckIn = () => (
+    <div className="space-y-6">
+      <AttendanceCheckIn farms={farms || []} />
+    </div>
+  );
+
+  const renderAttendanceRecords = () => (
+    <div className="space-y-6">
+      <AttendanceRecords farms={farms || []} />
+    </div>
+  );
+
+  const renderAttendanceReport = () => (
+    <div className="space-y-6">
+      <AttendanceReport farms={farms || []} />
+    </div>
+  );
+
+  // Issuance tabs
+  const renderPendingIssuance = () => (
+    <div className="space-y-6">
+      <PendingIssuances farms={farms || []} isSupervisor={false} />
+    </div>
+  );
+
+  const renderDispatch = () => (
+    <div className="space-y-6">
+      <DispatchPhotoUpload />
+    </div>
+  );
+
+  // Operations tabs
+  const renderRequests = () => (
+    <div className="space-y-6">
+      <ItemRequests farms={farms || []} />
+    </div>
+  );
+
+  const renderTransfers = () => (
+    <div className="space-y-6">
+      <InventoryTransfers farms={farms || []} />
     </div>
   );
 
@@ -366,10 +454,17 @@ const FarmClerkDashboard: React.FC<FarmClerkDashboardProps> = ({ user, onLogout 
   const getTitle = () => {
     const titles: Record<string, string> = {
       overview: 'Overview',
+      'daily-stock': 'Daily Stock',
+      'ytd-stock': 'YTD Stock',
       inventory: 'Inventory',
+      movements: 'Stock Movements',
+      'check-in': 'Check In',
+      records: 'Attendance Records',
+      report: 'Attendance Report',
+      'pending-issuance': 'Pending Issuances',
+      dispatch: 'Dispatch',
       requests: 'Item Requests',
       transfers: 'Transfers',
-      movements: 'Stock Movements',
       expenses: 'Expenses',
     };
     return titles[activeTab] || 'Farm Clerk Dashboard';
@@ -389,18 +484,49 @@ const FarmClerkDashboard: React.FC<FarmClerkDashboardProps> = ({ user, onLogout 
         <div className={activeTab === 'overview' ? '' : 'hidden'}>
           {mountedTabs.has('overview') && renderOverview()}
         </div>
+
+        {/* Stock visibility tabs */}
+        <div className={activeTab === 'daily-stock' ? '' : 'hidden'}>
+          {mountedTabs.has('daily-stock') && renderDailyStock()}
+        </div>
+        <div className={activeTab === 'ytd-stock' ? '' : 'hidden'}>
+          {mountedTabs.has('ytd-stock') && renderYtdStock()}
+        </div>
         <div className={activeTab === 'inventory' ? '' : 'hidden'}>
           {mountedTabs.has('inventory') && renderInventory()}
         </div>
+        <div className={activeTab === 'movements' ? '' : 'hidden'}>
+          {mountedTabs.has('movements') && renderMovements()}
+        </div>
+
+        {/* Attendance tabs */}
+        <div className={activeTab === 'check-in' ? '' : 'hidden'}>
+          {mountedTabs.has('check-in') && renderCheckIn()}
+        </div>
+        <div className={activeTab === 'records' ? '' : 'hidden'}>
+          {mountedTabs.has('records') && renderAttendanceRecords()}
+        </div>
+        <div className={activeTab === 'report' ? '' : 'hidden'}>
+          {mountedTabs.has('report') && renderAttendanceReport()}
+        </div>
+
+        {/* Issuance tabs */}
+        <div className={activeTab === 'pending-issuance' ? '' : 'hidden'}>
+          {mountedTabs.has('pending-issuance') && renderPendingIssuance()}
+        </div>
+        <div className={activeTab === 'dispatch' ? '' : 'hidden'}>
+          {mountedTabs.has('dispatch') && renderDispatch()}
+        </div>
+
+        {/* Operations tabs */}
         <div className={activeTab === 'requests' ? '' : 'hidden'}>
           {mountedTabs.has('requests') && renderRequests()}
         </div>
         <div className={activeTab === 'transfers' ? '' : 'hidden'}>
           {mountedTabs.has('transfers') && renderTransfers()}
         </div>
-        <div className={activeTab === 'movements' ? '' : 'hidden'}>
-          {mountedTabs.has('movements') && renderMovements()}
-        </div>
+
+        {/* Expenses */}
         <div className={activeTab === 'expenses' ? '' : 'hidden'}>
           {mountedTabs.has('expenses') && renderExpenses()}
         </div>

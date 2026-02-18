@@ -113,6 +113,24 @@ interface ApiService {
   getAnalyticalExpensesData(): Promise<any[]>;
   getAnalyticalActivities(): Promise<any[]>;
   getAnalyticalFarms(): Promise<any[]>;
+  // Attendance endpoints
+  createAttendance(data: any): Promise<any>;
+  getAttendanceRecords(params?: Record<string, any>): Promise<any[]>;
+  updateAttendance(attendanceId: number, data: any): Promise<any>;
+  deleteAttendance(attendanceId: number): Promise<void>;
+  getAttendanceReport(farmId: number, date: string): Promise<any>;
+  checkInWithFace(formData: FormData): Promise<any>;
+  getWorker(workerId: number): Promise<any>;
+  // Issuance endpoints
+  getPendingIssuances(): Promise<any[]>;
+  prepareIssuance(requestId: number): Promise<void>;
+  confirmIssuance(requestId: number): Promise<void>;
+  uploadDispatchPhoto(requestId: number, file: File): Promise<{ photo_url: string }>;
+  // Stock visibility endpoints
+  getDailyStock(farmId?: number): Promise<any>;
+  getYtdStock(farmId?: number): Promise<any>;
+  getFarmStock(farmId?: number): Promise<any>;
+  itemLookup(query: string): Promise<any[]>;
 }
 
 class ApiServiceImpl implements ApiService {
@@ -912,6 +930,110 @@ class ApiServiceImpl implements ApiService {
 
   async getAnalyticalFarms(): Promise<any[]> {
     return this.request('/farms/overview');
+  }
+
+  // Attendance endpoints
+  async createAttendance(data: any): Promise<any> {
+    return this.request('/farm-clerk/attendance', {
+      method: 'POST',
+      body: data,
+    });
+  }
+
+  async getAttendanceRecords(params: Record<string, any> = {}): Promise<any[]> {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/farm-clerk/attendance?${queryString}`);
+  }
+
+  async updateAttendance(attendanceId: number, data: any): Promise<any> {
+    return this.request(`/farm-clerk/attendance/${attendanceId}`, {
+      method: 'PUT',
+      body: data,
+    });
+  }
+
+  async deleteAttendance(attendanceId: number): Promise<void> {
+    return this.request(`/farm-clerk/attendance/${attendanceId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getAttendanceReport(farmId: number, date: string): Promise<any> {
+    const params = new URLSearchParams({ farm_id: farmId.toString(), date });
+    return this.request(`/farm-clerk/attendance/report?${params}`);
+  }
+
+  async checkInWithFace(formData: FormData): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/farm-clerk/attendance/checkin`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Check-in failed: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  async getWorker(workerId: number): Promise<any> {
+    return this.request(`/workers/${workerId}`);
+  }
+
+  // Issuance endpoints
+  async getPendingIssuances(): Promise<any[]> {
+    return this.request('/farm-clerk/issuances/pending');
+  }
+
+  async prepareIssuance(requestId: number): Promise<void> {
+    return this.request(`/farm-clerk/issuances/${requestId}/prepare`, {
+      method: 'POST',
+    });
+  }
+
+  async confirmIssuance(requestId: number): Promise<void> {
+    return this.request(`/farm-clerk/issuances/${requestId}/confirm`, {
+      method: 'POST',
+    });
+  }
+
+  async uploadDispatchPhoto(requestId: number, file: File): Promise<{ photo_url: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_BASE_URL}/farm-clerk/issuances/${requestId}/dispatch-photo`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Upload failed: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  // Stock visibility endpoints
+  async getDailyStock(farmId?: number): Promise<any> {
+    const params = farmId ? `?farm_id=${farmId}` : '';
+    return this.request(`/farm-clerk/stock/daily${params}`);
+  }
+
+  async getYtdStock(farmId?: number): Promise<any> {
+    const params = farmId ? `?farm_id=${farmId}` : '';
+    return this.request(`/farm-clerk/stock/ytd${params}`);
+  }
+
+  async getFarmStock(farmId?: number): Promise<any> {
+    const params = farmId ? `?farm_id=${farmId}` : '';
+    return this.request(`/farm-clerk/stock/farm${params}`);
+  }
+
+  async itemLookup(query: string): Promise<any[]> {
+    const params = new URLSearchParams({ q: query });
+    return this.request(`/farm-clerk/items/lookup?${params}`);
   }
 }
 
