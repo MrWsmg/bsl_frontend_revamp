@@ -12,6 +12,8 @@ import { ManagerDashboard } from "@/components/dashboards/ManagerDashboard";
 import { AccountManagerDashboard } from "@/components/dashboards/AccountManagerDashboard";
 import { FinancialControllerDashboard } from "@/components/dashboards/FinancialControllerDashboard";
 import { PayrollMasterDashboard } from "@/components/dashboards/PayrollMasterDashboard";
+import { FactorySupervisorDashboard } from "@/components/dashboards/FactorySupervisorDashboard";
+import { PickingDashboard } from "@/components/dashboards/PickingDashboard";
 import { Toaster } from "@/components/ui/sonner";
 import { USER_ROLES } from "@/constants";
 import { useRouter } from "next/navigation";
@@ -29,6 +31,8 @@ const DashboardComponents: Record<string, React.ComponentType<any>> = {
   [USER_ROLES.ACCOUNT_MANAGER]: AccountManagerDashboard,
   [USER_ROLES.FINANCIAL_CONTROLLER]: FinancialControllerDashboard,
   [USER_ROLES.PAYROLL_MASTER]: PayrollMasterDashboard,
+  [USER_ROLES.FACTORY_SUPERVISOR]: FactorySupervisorDashboard,
+  [USER_ROLES.SCALE_SUPERVISOR]: PickingDashboard,
 };
 
 export default function DashboardPage() {
