@@ -1,564 +1,739 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Plus, BarChart3, TrendingUp, Calendar, Users } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Scale, Users, TrendingUp, DollarSign, Play, Square,
+  Plus, RefreshCw, Trophy, Calendar, MessageSquare,
+} from 'lucide-react';
 import apiService from '../../services/api';
+import { User } from '../../types';
 
-// shadcn/ui components
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-
-interface User {
-  id: number;
-  username: string;
-  full_name: string;
-  role: string;
-  assigned_farms: string;
-  is_active: boolean;
-}
+import { Textarea } from '@/components/ui/textarea';
 
 interface PickingDashboardProps {
   user: User;
   onLogout: () => void;
-  onBack: () => void;
+  onBack?: () => void;
 }
 
-// Stat Card Block
-interface StatCardProps {
-  title: string;
-  value: string | number;
-  icon: React.ReactNode;
-  iconBgClass?: string;
-  valueClass?: string;
-}
-
-const StatCard = ({ title, value, icon, iconBgClass = "bg-muted", valueClass = "text-foreground" }: StatCardProps) => (
-  <Card>
-    <CardContent className="p-6">
-      <div className="flex items-center">
-        <div className={`p-3 rounded-full ${iconBgClass}`}>
-          {icon}
-        </div>
-        <div className="ml-4">
-          <h3 className="text-lg font-semibold text-muted-foreground">{title}</h3>
-          <p className={`text-3xl font-bold ${valueClass}`}>{value}</p>
-        </div>
-      </div>
-    </CardContent>
-  </Card>
-);
-
-// Worker Type Card Block
-interface WorkerTypeCardProps {
-  type: string;
-  stats: { count: number; quantity: number; amount: number };
-}
-
-const WorkerTypeCard = ({ type, stats }: WorkerTypeCardProps) => (
-  <Card className="bg-muted/50">
-    <CardContent className="p-6">
-      <div className="flex justify-between items-center mb-4">
-        <Badge variant={type === 'permanent' ? 'default' : 'secondary'}>
-          {type.charAt(0).toUpperCase() + type.slice(1)} Workers
-        </Badge>
-        <span className="text-sm text-muted-foreground">{stats.count} records</span>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="text-center">
-          <p className="text-2xl font-bold">{stats.quantity.toLocaleString()}</p>
-          <p className="text-sm text-muted-foreground">Total Workers</p>
-        </div>
-        <div className="text-center">
-          <p className="text-2xl font-bold text-success">{stats.amount.toLocaleString()}</p>
-          <p className="text-sm text-muted-foreground">Total Amount</p>
-        </div>
-      </div>
-      <div className="mt-4 pt-4 border-t">
-        <div className="text-center">
-          <p className="text-lg font-semibold text-primary">
-            {stats.quantity > 0 ? (stats.amount / stats.quantity).toLocaleString(undefined, {maximumFractionDigits: 0}) : '0'}
-          </p>
-          <p className="text-sm text-muted-foreground">Avg Cost per Worker</p>
-        </div>
-      </div>
-    </CardContent>
-  </Card>
-);
-
-// Block Performance Card
-interface BlockCardProps {
-  block: string;
-  stats: { count: number; quantity: number; amount: number };
-}
-
-const BlockCard = ({ block, stats }: BlockCardProps) => (
-  <Card className="hover:shadow-md transition-shadow">
-    <CardContent className="p-4">
-      <div className="flex justify-between items-center mb-3">
-        <span className="font-medium">{block || 'No Block'}</span>
-        <span className="text-sm text-muted-foreground">{stats.count} records</span>
-      </div>
-      <div className="space-y-2">
-        <div className="flex justify-between">
-          <span className="text-sm text-muted-foreground">Workers:</span>
-          <span className="font-semibold">{stats.quantity.toLocaleString()}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-sm text-muted-foreground">Total Amount:</span>
-          <span className="font-semibold text-success">{stats.amount.toLocaleString()}</span>
-        </div>
-        <div className="flex justify-between pt-2 border-t">
-          <span className="text-sm text-muted-foreground">Avg per Worker:</span>
-          <span className="font-semibold text-primary">
-            {stats.quantity > 0 ? (stats.amount / stats.quantity).toLocaleString(undefined, {maximumFractionDigits: 0}) : '0'}
-          </span>
-        </div>
-      </div>
-    </CardContent>
-  </Card>
-);
-
-const PickingDashboard: React.FC<PickingDashboardProps> = ({ user, onLogout, onBack }) => {
+const PickingDashboard: React.FC<PickingDashboardProps> = ({ user }) => {
   const [farms, setFarms] = useState<any[]>([]);
-  const [pickingRecords, setPickingRecords] = useState<any[]>([]);
+  const [blocks, setBlocks] = useState<any[]>([]);
+  const [allWorkers, setAllWorkers] = useState<any[]>([]);
+  const [selectedFarmId, setSelectedFarmId] = useState<string>('');
   const [loading, setLoading] = useState(false);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [receiptFile, setReceiptFile] = useState<File | null>(null);
-  const [availableCrops, setAvailableCrops] = useState<string[]>([]);
-  const [pickingSummary, setPickingSummary] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-  const [pickingForm, setPickingForm] = useState({
-    farm_id: '',
-    worker_name: '',
-    worker_type: 'contracted',
-    block: '',
-    number_of_workers: '',
-    payment_per_worker: '',
-    date_worked: new Date().toISOString().split('T')[0],
-    crop_type: 'coffee'
+  // Active session state
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [activeSession, setActiveSession] = useState<any | null>(null);
+  const [sessionRecords, setSessionRecords] = useState<any[]>([]);
+  const [showOpenSession, setShowOpenSession] = useState(false);
+  const [showWeighForm, setShowWeighForm] = useState(false);
+
+  // Daily summary / leaderboard
+  const [dailySummary, setDailySummary] = useState<any>(null);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+
+  // Price management (GM only)
+  const [todayPrice, setTodayPrice] = useState<any>(null);
+  const [showSetPrice, setShowSetPrice] = useState(false);
+
+  // Picker search
+  const [pickerSearch, setPickerSearch] = useState('');
+
+  // Forms
+  const [sessionForm, setSessionForm] = useState({ block_id: '', notes: '' });
+  const [weighForm, setWeighForm] = useState({
+    worker_id: '', cherry_weight_kg: '', tare_weight_kg: '0',
   });
+  const [priceForm, setPriceForm] = useState({ price_per_kg: '', notes: '' });
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  useEffect(() => {
-    if (pickingForm.farm_id) {
-      const selectedFarm = farms.find((f: any) => f.id === parseInt(pickingForm.farm_id));
-      if (selectedFarm && selectedFarm.crops) {
-        try {
-          const crops = JSON.parse(selectedFarm.crops);
-          setAvailableCrops(crops);
-        } catch (error) {
-          console.error('Error parsing farm crops:', error);
-          setAvailableCrops([]);
-        }
-      } else {
-        setAvailableCrops([]);
+  // Filter workers: only those assigned to the selected farm
+  const farmWorkers = React.useMemo(() => {
+    if (!selectedFarmId) return [];
+    return allWorkers.filter((w: any) => {
+      if (!w.farm_assignments) return false;
+      try {
+        // farm_assignments is a JSON string like "[1,2]" or "1,2" or contains the farm ID
+        const assignments = typeof w.farm_assignments === 'string'
+          ? w.farm_assignments
+          : String(w.farm_assignments);
+        return assignments.includes(selectedFarmId);
+      } catch {
+        return false;
       }
-    } else {
-      setAvailableCrops([]);
-    }
-  }, [pickingForm.farm_id, farms]);
+    });
+  }, [allWorkers, selectedFarmId]);
 
-  const loadData = async () => {
+  // Filter by search term for the weigh dialog
+  const filteredWorkers = React.useMemo(() => {
+    if (!pickerSearch.trim()) return farmWorkers;
+    const q = pickerSearch.toLowerCase();
+    return farmWorkers.filter((w: any) =>
+      (w.full_name || w.name || '').toLowerCase().includes(q) ||
+      (w.phone || '').includes(q)
+    );
+  }, [farmWorkers, pickerSearch]);
+
+  const isGM = ['admin', 'general_manager', 'managing_director'].includes(user.role);
+  const canManageSessions = ['admin', 'supervisor', 'scale_supervisor'].includes(user.role);
+
+  const loadFarms = useCallback(async () => {
+    try {
+      const data = await apiService.getFarms(user.role);
+      setFarms(data || []);
+      if (data?.length === 1) {
+        setSelectedFarmId(String(data[0].farm_id));
+      }
+    } catch { setFarms([]); }
+  }, [user.role]);
+
+  const loadFarmData = useCallback(async () => {
+    if (!selectedFarmId) return;
+    const farmId = parseInt(selectedFarmId);
     setLoading(true);
     try {
-      const [farmsData, pickingData, summaryData] = await Promise.all([
-        apiService.getFarms(user.role).catch(() => []),
-        apiService.getPickingRecords().catch(() => []),
-        apiService.getPickingWeeklySummary().catch(() => null)
+      const [blocksData, workersData, sessionsData, summaryData, leaderData, priceData] = await Promise.all([
+        apiService.getBlocksForFarm(farmId).catch(() => []),
+        apiService.getWorkers().catch(() => []),
+        apiService.getPickingSessions(farmId, undefined, undefined).catch(() => []),
+        apiService.getDailyPickingSummary(farmId).catch(() => null),
+        apiService.getPickerLeaderboard(farmId).catch(() => []),
+        apiService.getDailyPickingPrice(farmId).catch(() => null),
       ]);
-      setFarms(farmsData);
-      setPickingRecords(pickingData);
-      setPickingSummary(summaryData);
-    } catch (error) {
-      console.error('Error loading data:', error);
-      setFarms([]);
-      setPickingRecords([]);
-      setPickingSummary(null);
-    } finally {
-      setLoading(false);
-    }
-  };
+      setBlocks(blocksData || []);
+      setAllWorkers(workersData || []);
+      setSessions(sessionsData || []);
+      setDailySummary(summaryData);
+      setLeaderboard(leaderData || []);
+      setTodayPrice(priceData);
 
-  const handleSubmitPicking = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      let receiptUrl = null;
-      if (receiptFile) {
-        const uploadResult = await apiService.uploadReceipt(receiptFile) as { url: string };
-        receiptUrl = uploadResult.url;
+      // Auto-select the first open session
+      const openSession = (sessionsData || []).find((s: any) => s.status === 'open');
+      if (openSession) {
+        setActiveSession(openSession);
+        loadSessionRecords(openSession.id);
+      } else {
+        setActiveSession(null);
+        setSessionRecords([]);
       }
+    } catch { /* ignore */ }
+    setLoading(false);
+  }, [selectedFarmId]);
 
-      const numberOfWorkers = parseFloat(pickingForm.number_of_workers);
-      const paymentPerWorker = parseFloat(pickingForm.payment_per_worker);
+  const loadSessionRecords = async (sessionId: number) => {
+    try {
+      const detail = await apiService.getPickingSessionDetail(sessionId);
+      setSessionRecords(detail?.records || []);
+      if (detail) setActiveSession(detail);
+    } catch { setSessionRecords([]); }
+  };
 
-      await apiService.createPayrollRecord({
-        farm_id: parseInt(pickingForm.farm_id),
-        task_code: '180',
-        worker_name: pickingForm.worker_name,
-        worker_type: pickingForm.worker_type,
-        block: pickingForm.block || undefined,
-        quantity: numberOfWorkers,
-        rate: paymentPerWorker,
-        date_worked: new Date(pickingForm.date_worked).toISOString(),
-        receipt_image_url: receiptUrl || undefined,
-        crop_type: pickingForm.crop_type || undefined,
+  useEffect(() => { loadFarms(); }, [loadFarms]);
+  useEffect(() => { if (selectedFarmId) loadFarmData(); }, [selectedFarmId, loadFarmData]);
+
+  const clearMessages = () => { setError(null); setSuccess(null); };
+
+  // Open a new picking session
+  const handleOpenSession = async (e: React.FormEvent) => {
+    e.preventDefault();
+    clearMessages();
+    try {
+      const result = await apiService.openPickingSession({
+        farm_id: parseInt(selectedFarmId),
+        block_id: sessionForm.block_id ? parseInt(sessionForm.block_id) : undefined,
+        notes: sessionForm.notes || undefined,
       });
-
-      setPickingForm({
-        farm_id: '',
-        worker_name: '',
-        worker_type: 'contracted',
-        block: '',
-        number_of_workers: '',
-        payment_per_worker: '',
-        date_worked: new Date().toISOString().split('T')[0],
-        crop_type: 'coffee'
-      });
-      setReceiptFile(null);
-      setShowAddForm(false);
-      loadData();
-    } catch (error) {
-      console.error('Error creating picking record:', error);
-      alert('Failed to save picking record. Please try again.');
+      setSuccess('Picking session opened!');
+      setShowOpenSession(false);
+      setSessionForm({ block_id: '', notes: '' });
+      setActiveSession(result);
+      setSessionRecords([]);
+      loadFarmData();
+    } catch (err: any) {
+      setError(err.message || 'Failed to open session');
     }
   };
 
-  const getPickingAnalytics = () => {
-    if (!pickingSummary) return null;
-
-    return {
-      totalRecords: pickingSummary.total_records || 0,
-      totalQuantity: pickingSummary.total_quantity || 0,
-      totalAmount: pickingSummary.total_amount || 0,
-      avgRate: pickingSummary.avg_rate_per_kg || 0,
-      workerTypeStats: pickingSummary.worker_type_breakdown || {},
-      farmStats: pickingSummary.farm_breakdown || {},
-      blockStats: pickingSummary.block_breakdown || {},
-      cropStats: pickingSummary.crop_breakdown || {}
-    };
+  // Close the active session
+  const handleCloseSession = async () => {
+    if (!activeSession) return;
+    clearMessages();
+    try {
+      await apiService.closePickingSession(activeSession.id);
+      setSuccess('Session closed.');
+      setActiveSession(null);
+      setSessionRecords([]);
+      loadFarmData();
+    } catch (err: any) {
+      setError(err.message || 'Failed to close session');
+    }
   };
 
-  const analytics = getPickingAnalytics();
+  // Record picker weight (core action)
+  const handleRecordWeight = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeSession) return;
+    clearMessages();
+    try {
+      const result = await apiService.recordPickerWeight(activeSession.id, {
+        worker_id: parseInt(weighForm.worker_id),
+        cherry_weight_kg: parseFloat(weighForm.cherry_weight_kg),
+        tare_weight_kg: parseFloat(weighForm.tare_weight_kg) || 0,
+      });
+      setSuccess(
+        `Recorded ${result.net_weight_kg} kg for ${result.worker_name}. ` +
+        `Payment: ${result.total_payment?.toLocaleString()} TZS. ` +
+        (result.sms_sent ? 'SMS sent.' : '')
+      );
+      setShowWeighForm(false);
+      setWeighForm({ worker_id: '', cherry_weight_kg: '', tare_weight_kg: '0' });
+      loadSessionRecords(activeSession.id);
+      loadFarmData();
+    } catch (err: any) {
+      setError(err.message || 'Failed to record weight');
+    }
+  };
+
+  // Set daily picking price (GM only)
+  const handleSetPrice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    clearMessages();
+    try {
+      await apiService.setDailyPickingPrice({
+        farm_id: parseInt(selectedFarmId),
+        date: new Date().toISOString().split('T')[0],
+        price_per_kg: parseFloat(priceForm.price_per_kg),
+        notes: priceForm.notes || undefined,
+      });
+      setSuccess('Daily price set!');
+      setShowSetPrice(false);
+      setPriceForm({ price_per_kg: '', notes: '' });
+      loadFarmData();
+    } catch (err: any) {
+      setError(err.message || 'Failed to set price');
+    }
+  };
+
+  const todaySessions = sessions.filter((s: any) => {
+    const sessionDate = new Date(s.date || s.created_at).toISOString().split('T')[0];
+    return sessionDate === new Date().toISOString().split('T')[0];
+  });
 
   return (
     <div className="min-h-screen bg-muted/40">
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div className="space-y-6">
-          {loading && (
-            <Alert>
-              <AlertDescription>Loading picking data...</AlertDescription>
-            </Alert>
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-2xl font-bold">Picking Operations</h1>
+              <p className="text-muted-foreground">Per-picker cherry weight tracking with instant SMS</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Select value={selectedFarmId} onValueChange={setSelectedFarmId}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Select Farm" />
+                </SelectTrigger>
+                <SelectContent>
+                  {farms.map((f: any) => (
+                    <SelectItem key={f.farm_id} value={String(f.farm_id)}>{f.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="icon" onClick={loadFarmData} disabled={loading}>
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
+          </div>
+
+          {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
+          {success && <Alert><AlertDescription>{success}</AlertDescription></Alert>}
+
+          {!selectedFarmId ? (
+            <Card><CardContent className="p-8 text-center text-muted-foreground">Select a farm to begin.</CardContent></Card>
+          ) : (
+            <Tabs defaultValue="session" className="space-y-6">
+              <Card>
+                <CardContent className="p-4">
+                  <TabsList>
+                    <TabsTrigger value="session">Active Session</TabsTrigger>
+                    <TabsTrigger value="daily">Daily Overview</TabsTrigger>
+                    <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
+                    {isGM && <TabsTrigger value="price">Price Management</TabsTrigger>}
+                  </TabsList>
+                </CardContent>
+              </Card>
+
+              {/* ========== ACTIVE SESSION TAB ========== */}
+              <TabsContent value="session" className="space-y-6">
+                {/* Today's price banner */}
+                <Card className={todayPrice ? 'border-green-500' : 'border-yellow-500'}>
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <DollarSign className="h-5 w-5" />
+                      <span className="font-medium">
+                        {todayPrice
+                          ? `Today's Price: ${todayPrice.price_per_kg?.toLocaleString()} TZS/kg`
+                          : 'No price set for today'}
+                      </span>
+                    </div>
+                    {!todayPrice && isGM && (
+                      <Button size="sm" onClick={() => setShowSetPrice(true)}>Set Price</Button>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Session controls */}
+                {activeSession ? (
+                  <>
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <div>
+                          <CardTitle className="text-lg">
+                            Session #{activeSession.id}
+                            {activeSession.block_name && ` - ${activeSession.block_name}`}
+                          </CardTitle>
+                          <p className="text-sm text-muted-foreground">
+                            Price: {activeSession.price_per_kg?.toLocaleString()} TZS/kg |
+                            Pickers: {activeSession.total_pickers || sessionRecords.length} |
+                            Total: {activeSession.total_cherry_kg?.toFixed(1) || '0'} kg
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button onClick={() => setShowWeighForm(true)}>
+                            <Scale className="h-4 w-4 mr-2" />
+                            Weigh Picker
+                          </Button>
+                          {canManageSessions && (
+                            <Button variant="destructive" size="sm" onClick={handleCloseSession}>
+                              <Square className="h-4 w-4 mr-2" />
+                              Close Session
+                            </Button>
+                          )}
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        {sessionRecords.length === 0 ? (
+                          <p className="text-center py-4 text-muted-foreground">No weights recorded yet. Start weighing pickers.</p>
+                        ) : (
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>#</TableHead>
+                                <TableHead>Picker</TableHead>
+                                <TableHead>Gross (kg)</TableHead>
+                                <TableHead>Tare (kg)</TableHead>
+                                <TableHead>Net (kg)</TableHead>
+                                <TableHead>Payment (TZS)</TableHead>
+                                <TableHead>SMS</TableHead>
+                                <TableHead>Time</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {sessionRecords.map((r: any, i: number) => (
+                                <TableRow key={r.id}>
+                                  <TableCell>{i + 1}</TableCell>
+                                  <TableCell className="font-medium">{r.worker_name}</TableCell>
+                                  <TableCell>{r.cherry_weight_kg?.toFixed(1)}</TableCell>
+                                  <TableCell>{r.tare_weight_kg?.toFixed(1)}</TableCell>
+                                  <TableCell className="font-bold">{r.net_weight_kg?.toFixed(1)}</TableCell>
+                                  <TableCell className="font-semibold text-green-600">
+                                    {r.total_payment?.toLocaleString()}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant={r.sms_sent ? 'default' : 'secondary'}>
+                                      {r.sms_sent ? 'Sent' : 'Pending'}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-sm text-muted-foreground">
+                                    {r.weighing_time ? new Date(r.weighing_time).toLocaleTimeString() : '-'}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </>
+                ) : (
+                  <Card>
+                    <CardContent className="p-8 text-center">
+                      <p className="text-muted-foreground mb-4">No active picking session.</p>
+                      {canManageSessions && (
+                        <Button onClick={() => setShowOpenSession(true)} disabled={!todayPrice}>
+                          <Play className="h-4 w-4 mr-2" />
+                          Open New Session
+                        </Button>
+                      )}
+                      {!todayPrice && (
+                        <p className="text-sm text-yellow-600 mt-2">A daily price must be set before opening sessions.</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              {/* ========== DAILY OVERVIEW TAB ========== */}
+              <TabsContent value="daily" className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <Calendar className="h-6 w-6 mx-auto mb-2 text-blue-600" />
+                      <p className="text-2xl font-bold">{todaySessions.length}</p>
+                      <p className="text-sm text-muted-foreground">Sessions Today</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <Users className="h-6 w-6 mx-auto mb-2 text-green-600" />
+                      <p className="text-2xl font-bold">{dailySummary?.total_pickers || 0}</p>
+                      <p className="text-sm text-muted-foreground">Total Pickers</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <Scale className="h-6 w-6 mx-auto mb-2 text-orange-600" />
+                      <p className="text-2xl font-bold">{dailySummary?.total_cherry_kg?.toFixed(0) || 0}</p>
+                      <p className="text-sm text-muted-foreground">Total Cherry (kg)</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <DollarSign className="h-6 w-6 mx-auto mb-2 text-purple-600" />
+                      <p className="text-2xl font-bold">{dailySummary?.total_payment?.toLocaleString() || 0}</p>
+                      <p className="text-sm text-muted-foreground">Total Payment (TZS)</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Sessions list */}
+                <Card>
+                  <CardHeader><CardTitle>Today&apos;s Sessions</CardTitle></CardHeader>
+                  <CardContent>
+                    {todaySessions.length === 0 ? (
+                      <p className="text-center py-4 text-muted-foreground">No sessions today.</p>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>ID</TableHead>
+                            <TableHead>Block</TableHead>
+                            <TableHead>Pickers</TableHead>
+                            <TableHead>Cherry (kg)</TableHead>
+                            <TableHead>Price/kg</TableHead>
+                            <TableHead>Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {todaySessions.map((s: any) => (
+                            <TableRow
+                              key={s.id}
+                              className="cursor-pointer hover:bg-muted/50"
+                              onClick={() => { setActiveSession(s); loadSessionRecords(s.id); }}
+                            >
+                              <TableCell>#{s.id}</TableCell>
+                              <TableCell>{s.block_name || '-'}</TableCell>
+                              <TableCell>{s.total_pickers || 0}</TableCell>
+                              <TableCell>{s.total_cherry_kg?.toFixed(1) || '0'}</TableCell>
+                              <TableCell>{s.price_per_kg?.toLocaleString()}</TableCell>
+                              <TableCell>
+                                <Badge variant={s.status === 'open' ? 'default' : 'secondary'}>
+                                  {s.status}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* ========== LEADERBOARD TAB ========== */}
+              <TabsContent value="leaderboard" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Trophy className="h-5 w-5 text-yellow-500" />
+                      Top Pickers Today
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {leaderboard.length === 0 ? (
+                      <p className="text-center py-4 text-muted-foreground">No picking data for today.</p>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Rank</TableHead>
+                            <TableHead>Picker</TableHead>
+                            <TableHead>Total kg</TableHead>
+                            <TableHead>Weighings</TableHead>
+                            <TableHead>Total Payment (TZS)</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {leaderboard.map((entry: any, i: number) => (
+                            <TableRow key={entry.worker_id}>
+                              <TableCell>
+                                {i < 3 ? (
+                                  <Badge variant={i === 0 ? 'default' : 'secondary'}>
+                                    {i === 0 ? 'Gold' : i === 1 ? 'Silver' : 'Bronze'}
+                                  </Badge>
+                                ) : (
+                                  <span>#{i + 1}</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="font-medium">{entry.worker_name}</TableCell>
+                              <TableCell className="font-bold">{entry.total_kg?.toFixed(1)}</TableCell>
+                              <TableCell>{entry.weighings}</TableCell>
+                              <TableCell className="text-green-600 font-semibold">
+                                {entry.total_payment?.toLocaleString()}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* ========== PRICE MANAGEMENT TAB (GM only) ========== */}
+              {isGM && (
+                <TabsContent value="price" className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Current Price</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {todayPrice ? (
+                          <div className="space-y-2">
+                            <p className="text-3xl font-bold text-green-600">
+                              {todayPrice.price_per_kg?.toLocaleString()} TZS/kg
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Set on {new Date(todayPrice.created_at).toLocaleDateString()}
+                            </p>
+                            {todayPrice.notes && <p className="text-sm">{todayPrice.notes}</p>}
+                          </div>
+                        ) : (
+                          <div>
+                            <p className="text-muted-foreground mb-4">No price set for today.</p>
+                            <Button onClick={() => setShowSetPrice(true)}>
+                              <DollarSign className="h-4 w-4 mr-2" />
+                              Set Today&apos;s Price
+                            </Button>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader><CardTitle>Quick Set Price</CardTitle></CardHeader>
+                      <CardContent>
+                        <form onSubmit={handleSetPrice} className="space-y-4">
+                          <div className="space-y-2">
+                            <Label>Price per kg (TZS)</Label>
+                            <Input
+                              type="number"
+                              step="1"
+                              value={priceForm.price_per_kg}
+                              onChange={(e) => setPriceForm({ ...priceForm, price_per_kg: e.target.value })}
+                              placeholder="e.g. 1200"
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Notes (optional)</Label>
+                            <Textarea
+                              value={priceForm.notes}
+                              onChange={(e) => setPriceForm({ ...priceForm, notes: e.target.value })}
+                              placeholder="Reason for price change..."
+                            />
+                          </div>
+                          <Button type="submit">Set Price</Button>
+                        </form>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </TabsContent>
+              )}
+            </Tabs>
           )}
 
-          {/* Analysis Tabs */}
-          <Tabs defaultValue="overview" className="space-y-6">
-            <Card>
-              <CardContent className="p-4">
-                <TabsList>
-                  <TabsTrigger value="overview">Overview</TabsTrigger>
-                  <TabsTrigger value="performance">Performance</TabsTrigger>
-                </TabsList>
-              </CardContent>
-            </Card>
+          {/* ========== DIALOGS ========== */}
 
-            {/* Overview Tab */}
-            <TabsContent value="overview" className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <StatCard
-                  title="Total Records"
-                  value={pickingSummary?.total_records || 0}
-                  icon={<BarChart3 className="h-6 w-6 text-orange-600" />}
-                  iconBgClass="bg-orange-100"
-                  valueClass="text-orange-600"
-                />
-                <StatCard
-                  title="Total Workers"
-                  value={pickingSummary?.total_quantity?.toLocaleString() || 0}
-                  icon={<Users className="h-6 w-6 text-success" />}
-                  iconBgClass="bg-green-100"
-                  valueClass="text-success"
-                />
-                <StatCard
-                  title="Total Amount"
-                  value={pickingSummary?.total_amount?.toLocaleString() || 0}
-                  icon={<Calendar className="h-6 w-6 text-primary" />}
-                  iconBgClass="bg-blue-100"
-                  valueClass="text-primary"
-                />
-              </div>
-            </TabsContent>
-
-            {/* Performance Tab */}
-            <TabsContent value="performance" className="space-y-6">
-              {analytics && (
-                <>
-                  {/* Permanent vs Contracted Workers */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Permanent vs Contracted Workers</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {Object.entries(analytics.workerTypeStats).map(([type, stats]: [string, any]) => (
-                          <WorkerTypeCard key={type} type={type} stats={stats} />
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Performance by Farm */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Performance by Farm</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Farm</TableHead>
-                              <TableHead>Records</TableHead>
-                              <TableHead>Workers</TableHead>
-                              <TableHead>Total Amount</TableHead>
-                              <TableHead>Avg per Worker</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {Object.entries(analytics.farmStats).map(([farmName, data]: [string, any]) => (
-                              <TableRow key={farmName}>
-                                <TableCell className="font-medium">{farmName}</TableCell>
-                                <TableCell>{data.count}</TableCell>
-                                <TableCell>{data.quantity.toLocaleString()}</TableCell>
-                                <TableCell>{data.amount.toLocaleString()}</TableCell>
-                                <TableCell>
-                                  {data.quantity > 0 ? (data.amount / data.quantity).toLocaleString(undefined, {maximumFractionDigits: 0}) : '0'}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Farm Block Performance */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Farm Block Performance</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {Object.entries(analytics.blockStats).map(([block, stats]: [string, any]) => (
-                          <BlockCard key={block} block={block} stats={stats} />
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </>
-              )}
-            </TabsContent>
-          </Tabs>
-
-          {/* Picking Records Card */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Picking Records</CardTitle>
-              <Button onClick={() => setShowAddForm(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Picking Record
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {pickingRecords.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No picking records found.</p>
-                  <p className="text-sm text-muted-foreground mt-1">Add your first picking record using the button above.</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Farm</TableHead>
-                        <TableHead>Worker</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Block</TableHead>
-                        <TableHead>Workers</TableHead>
-                        <TableHead>Payment/Worker</TableHead>
-                        <TableHead>Total</TableHead>
-                        <TableHead>Date</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {pickingRecords.map((record: any) => (
-                        <TableRow key={record.id}>
-                          <TableCell className="font-medium">
-                            {record.farm?.name || 'Unknown Farm'}
-                          </TableCell>
-                          <TableCell>{record.worker_name}</TableCell>
-                          <TableCell>
-                            <Badge variant={record.worker_type === 'permanent' ? 'default' : 'secondary'}>
-                              {record.worker_type === 'permanent' ? 'Permanent' : 'Contracted'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{record.block || '-'}</TableCell>
-                          <TableCell>{record.quantity}</TableCell>
-                          <TableCell>{record.rate?.toLocaleString() || '0'}</TableCell>
-                          <TableCell>{record.total_amount?.toLocaleString() || '0'}</TableCell>
-                          <TableCell>
-                            {new Date(record.date_worked).toLocaleDateString()}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Add Picking Record Dialog */}
-          <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Add Picking Record</DialogTitle>
-              </DialogHeader>
-
-              <form onSubmit={handleSubmitPicking} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Farm</Label>
-                    <Select
-                      value={pickingForm.farm_id}
-                      onValueChange={(value) => setPickingForm({...pickingForm, farm_id: value, crop_type: ''})}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={farms.length === 0 ? 'Loading farms...' : 'Select Farm'} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {farms.map((farm: any) => (
-                          <SelectItem key={farm.id} value={String(farm.id)}>{farm.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Worker Name</Label>
-                    <Input
-                      value={pickingForm.worker_name}
-                      onChange={(e) => setPickingForm({...pickingForm, worker_name: e.target.value})}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Worker Type</Label>
-                    <Select
-                      value={pickingForm.worker_type}
-                      onValueChange={(value) => setPickingForm({...pickingForm, worker_type: value})}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="permanent">Permanent</SelectItem>
-                        <SelectItem value="contracted">Contracted</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Block (optional)</Label>
-                    <Input
-                      value={pickingForm.block}
-                      onChange={(e) => setPickingForm({...pickingForm, block: e.target.value})}
-                      placeholder="e.g., Block A, Block 1"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Number of Workers</Label>
-                    <Input
-                      type="number"
-                      step="1"
-                      value={pickingForm.number_of_workers}
-                      onChange={(e) => setPickingForm({...pickingForm, number_of_workers: e.target.value})}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Payment per Worker</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={pickingForm.payment_per_worker}
-                      onChange={(e) => setPickingForm({...pickingForm, payment_per_worker: e.target.value})}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Date Worked</Label>
-                    <Input
-                      type="date"
-                      value={pickingForm.date_worked}
-                      onChange={(e) => setPickingForm({...pickingForm, date_worked: e.target.value})}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Receipt (optional)</Label>
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-3 pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowAddForm(false)}
+          {/* Open Session Dialog */}
+          <Dialog open={showOpenSession} onOpenChange={setShowOpenSession}>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Open Picking Session</DialogTitle></DialogHeader>
+              <form onSubmit={handleOpenSession} className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Block (optional)</Label>
+                  <Select
+                    value={sessionForm.block_id}
+                    onValueChange={(v) => setSessionForm({ ...sessionForm, block_id: v })}
                   >
-                    Cancel
-                  </Button>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select block..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {blocks.map((b: any) => (
+                        <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Notes (optional)</Label>
+                  <Textarea
+                    value={sessionForm.notes}
+                    onChange={(e) => setSessionForm({ ...sessionForm, notes: e.target.value })}
+                  />
+                </div>
+                <div className="flex justify-end gap-3">
+                  <Button type="button" variant="outline" onClick={() => setShowOpenSession(false)}>Cancel</Button>
                   <Button type="submit">
-                    Save Picking Record
+                    <Play className="h-4 w-4 mr-2" />
+                    Open Session
                   </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          {/* Weigh Picker Dialog */}
+          <Dialog open={showWeighForm} onOpenChange={(open) => {
+            setShowWeighForm(open);
+            if (!open) setPickerSearch('');
+          }}>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Record Picker Weight</DialogTitle></DialogHeader>
+              <form onSubmit={handleRecordWeight} className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Picker (Worker) — {farmWorkers.length} assigned to this farm</Label>
+                  <Input
+                    placeholder="Search by name or phone..."
+                    value={pickerSearch}
+                    onChange={(e) => setPickerSearch(e.target.value)}
+                    className="mb-2"
+                  />
+                  <Select
+                    value={weighForm.worker_id}
+                    onValueChange={(v) => setWeighForm({ ...weighForm, worker_id: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select picker..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredWorkers.length === 0 ? (
+                        <SelectItem value="__none" disabled>
+                          {farmWorkers.length === 0
+                            ? 'No workers assigned to this farm'
+                            : 'No matching workers'}
+                        </SelectItem>
+                      ) : (
+                        filteredWorkers.map((w: any) => (
+                          <SelectItem key={w.id} value={String(w.id)}>
+                            {w.full_name || w.name} {w.phone ? `(${w.phone})` : ''}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Cherry Weight (kg)</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={weighForm.cherry_weight_kg}
+                      onChange={(e) => setWeighForm({ ...weighForm, cherry_weight_kg: e.target.value })}
+                      placeholder="e.g. 45.5"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Tare Weight (kg)</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={weighForm.tare_weight_kg}
+                      onChange={(e) => setWeighForm({ ...weighForm, tare_weight_kg: e.target.value })}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+                {weighForm.cherry_weight_kg && todayPrice && (
+                  <div className="bg-muted p-3 rounded-lg text-sm">
+                    <p>Net weight: <strong>{(parseFloat(weighForm.cherry_weight_kg) - parseFloat(weighForm.tare_weight_kg || '0')).toFixed(1)} kg</strong></p>
+                    <p>
+                      Estimated payment: <strong className="text-green-600">
+                        {((parseFloat(weighForm.cherry_weight_kg) - parseFloat(weighForm.tare_weight_kg || '0')) * todayPrice.price_per_kg).toLocaleString()} TZS
+                      </strong>
+                    </p>
+                  </div>
+                )}
+                <div className="flex justify-end gap-3">
+                  <Button type="button" variant="outline" onClick={() => setShowWeighForm(false)}>Cancel</Button>
+                  <Button type="submit">
+                    <Scale className="h-4 w-4 mr-2" />
+                    Record & Send SMS
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          {/* Set Price Dialog */}
+          <Dialog open={showSetPrice} onOpenChange={setShowSetPrice}>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Set Daily Picking Price</DialogTitle></DialogHeader>
+              <form onSubmit={handleSetPrice} className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Price per kg (TZS)</Label>
+                  <Input
+                    type="number"
+                    step="1"
+                    value={priceForm.price_per_kg}
+                    onChange={(e) => setPriceForm({ ...priceForm, price_per_kg: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Notes</Label>
+                  <Textarea
+                    value={priceForm.notes}
+                    onChange={(e) => setPriceForm({ ...priceForm, notes: e.target.value })}
+                  />
+                </div>
+                <div className="flex justify-end gap-3">
+                  <Button type="button" variant="outline" onClick={() => setShowSetPrice(false)}>Cancel</Button>
+                  <Button type="submit">Set Price</Button>
                 </div>
               </form>
             </DialogContent>
@@ -569,4 +744,5 @@ const PickingDashboard: React.FC<PickingDashboardProps> = ({ user, onLogout, onB
   );
 };
 
+export { PickingDashboard };
 export default PickingDashboard;
