@@ -131,6 +131,66 @@ interface ApiService {
   getYtdStock(farmId?: number): Promise<any>;
   getFarmStock(farmId?: number): Promise<any>;
   itemLookup(query: string): Promise<any[]>;
+  // Picking Operations
+  setDailyPickingPrice(data: any): Promise<any>;
+  getDailyPickingPrice(farmId: number, date?: string): Promise<any>;
+  getPickingPriceHistory(farmId: number, limit?: number): Promise<any[]>;
+  createHarvestForecast(data: any): Promise<any>;
+  getHarvestForecasts(farmId: number, seasonYear?: number): Promise<any[]>;
+  updateHarvestForecast(forecastId: number, data: any): Promise<any>;
+  sendSeasonCommunication(data: any): Promise<any>;
+  getSeasonCommunications(farmId: number, seasonYear?: number): Promise<any[]>;
+  createEquipmentCheck(data: any): Promise<any>;
+  getEquipmentCheck(farmId: number, seasonYear?: number): Promise<any>;
+  getReadinessOverview(farmId: number, seasonYear: number): Promise<any>;
+  createPickingSeason(data: any): Promise<any>;
+  getPickingSeason(farmId: number, seasonYear?: number): Promise<any>;
+  openPickingSession(data: any): Promise<any>;
+  closePickingSession(sessionId: number): Promise<any>;
+  getPickingSessions(farmId?: number, date?: string, status?: string): Promise<any[]>;
+  getPickingSessionDetail(sessionId: number): Promise<any>;
+  recordPickerWeight(sessionId: number, data: any): Promise<any>;
+  getDailyPickingSummary(farmId: number, date?: string): Promise<any>;
+  getBlockPickingSummary(farmId: number, blockId: number, startDate?: string, endDate?: string): Promise<any>;
+  getPickerHistory(workerId: number, startDate?: string, endDate?: string): Promise<any>;
+  getPickerLeaderboard(farmId: number, date?: string, limit?: number): Promise<any[]>;
+  // Factory Operations
+  recordFactoryIntake(data: any): Promise<any>;
+  getFactoryIntakes(farmId: number, date?: string): Promise<any[]>;
+  createFermentationTank(data: any): Promise<any>;
+  getFermentationTanks(farmId: number): Promise<any[]>;
+  startFermentation(data: any): Promise<any>;
+  completeFermentation(batchId: number): Promise<any>;
+  getActiveFermentations(farmId: number): Promise<any[]>;
+  recordWashing(data: any): Promise<any>;
+  getWashingRecords(farmId: number): Promise<any[]>;
+  createDryingTable(data: any): Promise<any>;
+  getDryingTables(farmId: number): Promise<any[]>;
+  startDrying(data: any): Promise<any>;
+  updateDrying(batchId: number, data: any): Promise<any>;
+  completeDrying(batchId: number, dryWeight: number, moisture?: number): Promise<any>;
+  getActiveDrying(farmId: number): Promise<any[]>;
+  getFactoryDailySummary(farmId: number, date?: string): Promise<any>;
+  getCherryToParchmentRatios(farmId: number, limit?: number): Promise<any[]>;
+  // Godown Operations
+  receiveFromDrying(data: any): Promise<any>;
+  issueFromGodown(data: any): Promise<any>;
+  createBulkMix(data: any): Promise<any>;
+  getGodownInventory(farmId: number): Promise<any>;
+  getGodownPiles(farmId: number, grade?: string): Promise<any[]>;
+  recordGodownDailyStock(farmId: number): Promise<any>;
+  getGodownDailyStock(farmId: number, date?: string): Promise<any>;
+  getGodownHistory(farmId: number, limit?: number): Promise<any[]>;
+  // Milling Operations
+  createMillingBatch(data: any): Promise<any>;
+  startMilling(batchId: number): Promise<any>;
+  completeMilling(batchId: number, data: any): Promise<any>;
+  getMillingBatches(farmId: number, status?: string): Promise<any[]>;
+  // Traceability
+  traceForward(entityType: string, entityId: number): Promise<any>;
+  traceBackward(entityType: string, entityId: number): Promise<any>;
+  investigateComplaint(pileId?: number, millingBatchId?: number): Promise<any>;
+  getAuthorizationChain(entityType: string, entityId: number): Promise<any>;
 }
 
 class ApiServiceImpl implements ApiService {
@@ -1034,6 +1094,278 @@ class ApiServiceImpl implements ApiService {
   async itemLookup(query: string): Promise<any[]> {
     const params = new URLSearchParams({ q: query });
     return this.request(`/farm-clerk/items/lookup?${params}`);
+  }
+
+  // ===========================
+  // Picking Operations
+  // ===========================
+
+  async setDailyPickingPrice(data: any): Promise<any> {
+    return this.request('/picking/daily-price', { method: 'POST', body: data });
+  }
+
+  async getDailyPickingPrice(farmId: number, date?: string): Promise<any> {
+    const params = date ? `?price_date=${date}` : '';
+    return this.request(`/picking/daily-price/${farmId}${params}`);
+  }
+
+  async getPickingPriceHistory(farmId: number, limit: number = 30): Promise<any[]> {
+    return this.request(`/picking/daily-price/history/${farmId}?limit=${limit}`);
+  }
+
+  async createHarvestForecast(data: any): Promise<any> {
+    return this.request('/picking/forecast', { method: 'POST', body: data });
+  }
+
+  async getHarvestForecasts(farmId: number, seasonYear?: number): Promise<any[]> {
+    const params = seasonYear ? `?season_year=${seasonYear}` : '';
+    return this.request(`/picking/forecast/${farmId}${params}`);
+  }
+
+  async updateHarvestForecast(forecastId: number, data: any): Promise<any> {
+    return this.request(`/picking/forecast/${forecastId}`, { method: 'PUT', body: data });
+  }
+
+  async sendSeasonCommunication(data: any): Promise<any> {
+    return this.request('/picking/communication/send', { method: 'POST', body: data });
+  }
+
+  async getSeasonCommunications(farmId: number, seasonYear?: number): Promise<any[]> {
+    const params = seasonYear ? `?season_year=${seasonYear}` : '';
+    return this.request(`/picking/communication/history/${farmId}${params}`);
+  }
+
+  async createEquipmentCheck(data: any): Promise<any> {
+    return this.request('/picking/equipment-check', { method: 'POST', body: data });
+  }
+
+  async getEquipmentCheck(farmId: number, seasonYear?: number): Promise<any> {
+    const params = seasonYear ? `?season_year=${seasonYear}` : '';
+    return this.request(`/picking/equipment-check/${farmId}${params}`);
+  }
+
+  async getReadinessOverview(farmId: number, seasonYear: number): Promise<any> {
+    return this.request(`/picking/readiness/${farmId}?season_year=${seasonYear}`);
+  }
+
+  async createPickingSeason(data: any): Promise<any> {
+    return this.request('/picking/seasons/create', { method: 'POST', body: data });
+  }
+
+  async getPickingSeason(farmId: number, seasonYear?: number): Promise<any> {
+    const params = seasonYear ? `?season_year=${seasonYear}` : '';
+    return this.request(`/picking/seasons/${farmId}${params}`);
+  }
+
+  async openPickingSession(data: any): Promise<any> {
+    return this.request('/picking/sessions', { method: 'POST', body: data });
+  }
+
+  async closePickingSession(sessionId: number): Promise<any> {
+    return this.request(`/picking/sessions/${sessionId}/close`, { method: 'PUT' });
+  }
+
+  async getPickingSessions(farmId?: number, date?: string, status?: string): Promise<any[]> {
+    const params = new URLSearchParams();
+    if (farmId) params.set('farm_id', farmId.toString());
+    if (date) params.set('session_date', date);
+    if (status) params.set('status', status);
+    const qs = params.toString();
+    return this.request(`/picking/sessions${qs ? '?' + qs : ''}`);
+  }
+
+  async getPickingSessionDetail(sessionId: number): Promise<any> {
+    return this.request(`/picking/sessions/${sessionId}`);
+  }
+
+  async recordPickerWeight(sessionId: number, data: any): Promise<any> {
+    return this.request(`/picking/sessions/${sessionId}/weigh`, { method: 'POST', body: data });
+  }
+
+  async getDailyPickingSummary(farmId: number, date?: string): Promise<any> {
+    const params = date ? `?summary_date=${date}` : '';
+    return this.request(`/picking/daily-summary/${farmId}${params}`);
+  }
+
+  async getBlockPickingSummary(farmId: number, blockId: number, startDate?: string, endDate?: string): Promise<any> {
+    const params = new URLSearchParams();
+    if (startDate) params.set('start_date', startDate);
+    if (endDate) params.set('end_date', endDate);
+    const qs = params.toString();
+    return this.request(`/picking/block-summary/${farmId}/${blockId}${qs ? '?' + qs : ''}`);
+  }
+
+  async getPickerHistory(workerId: number, startDate?: string, endDate?: string): Promise<any> {
+    const params = new URLSearchParams();
+    if (startDate) params.set('start_date', startDate);
+    if (endDate) params.set('end_date', endDate);
+    const qs = params.toString();
+    return this.request(`/picking/picker-history/${workerId}${qs ? '?' + qs : ''}`);
+  }
+
+  async getPickerLeaderboard(farmId: number, date?: string, limit: number = 20): Promise<any[]> {
+    const params = new URLSearchParams({ limit: limit.toString() });
+    if (date) params.set('leader_date', date);
+    return this.request(`/picking/leaderboard/${farmId}?${params}`);
+  }
+
+  // ===========================
+  // Factory Operations
+  // ===========================
+
+  async recordFactoryIntake(data: any): Promise<any> {
+    return this.request('/factory/intake', { method: 'POST', body: data });
+  }
+
+  async getFactoryIntakes(farmId: number, date?: string): Promise<any[]> {
+    const params = date ? `?intake_date=${date}` : '';
+    return this.request(`/factory/intake/${farmId}${params}`);
+  }
+
+  async createFermentationTank(data: any): Promise<any> {
+    return this.request('/factory/tanks', { method: 'POST', body: data });
+  }
+
+  async getFermentationTanks(farmId: number): Promise<any[]> {
+    return this.request(`/factory/tanks/${farmId}`);
+  }
+
+  async startFermentation(data: any): Promise<any> {
+    return this.request('/factory/fermentation/start', { method: 'POST', body: data });
+  }
+
+  async completeFermentation(batchId: number): Promise<any> {
+    return this.request(`/factory/fermentation/${batchId}/complete`, { method: 'PUT' });
+  }
+
+  async getActiveFermentations(farmId: number): Promise<any[]> {
+    return this.request(`/factory/fermentation/active/${farmId}`);
+  }
+
+  async recordWashing(data: any): Promise<any> {
+    return this.request('/factory/washing', { method: 'POST', body: data });
+  }
+
+  async getWashingRecords(farmId: number): Promise<any[]> {
+    return this.request(`/factory/washing/${farmId}`);
+  }
+
+  async createDryingTable(data: any): Promise<any> {
+    return this.request('/factory/drying-tables', { method: 'POST', body: data });
+  }
+
+  async getDryingTables(farmId: number): Promise<any[]> {
+    return this.request(`/factory/drying-tables/${farmId}`);
+  }
+
+  async startDrying(data: any): Promise<any> {
+    return this.request('/factory/drying/start', { method: 'POST', body: data });
+  }
+
+  async updateDrying(batchId: number, data: any): Promise<any> {
+    return this.request(`/factory/drying/${batchId}/update`, { method: 'PUT', body: data });
+  }
+
+  async completeDrying(batchId: number, dryWeight: number, moisture?: number): Promise<any> {
+    const params = new URLSearchParams({ dry_weight_kg: dryWeight.toString() });
+    if (moisture !== undefined) params.set('moisture_pct', moisture.toString());
+    return this.request(`/factory/drying/${batchId}/complete?${params}`, { method: 'PUT' });
+  }
+
+  async getActiveDrying(farmId: number): Promise<any[]> {
+    return this.request(`/factory/drying/active/${farmId}`);
+  }
+
+  async getFactoryDailySummary(farmId: number, date?: string): Promise<any> {
+    const params = date ? `?summary_date=${date}` : '';
+    return this.request(`/factory/daily-summary/${farmId}${params}`);
+  }
+
+  async getCherryToParchmentRatios(farmId: number, limit: number = 50): Promise<any[]> {
+    return this.request(`/factory/ratios/${farmId}?limit=${limit}`);
+  }
+
+  // ===========================
+  // Godown Operations
+  // ===========================
+
+  async receiveFromDrying(data: any): Promise<any> {
+    return this.request('/godown/receive', { method: 'POST', body: data });
+  }
+
+  async issueFromGodown(data: any): Promise<any> {
+    return this.request('/godown/issue', { method: 'POST', body: data });
+  }
+
+  async createBulkMix(data: any): Promise<any> {
+    return this.request('/godown/mix', { method: 'POST', body: data });
+  }
+
+  async getGodownInventory(farmId: number): Promise<any> {
+    return this.request(`/godown/inventory/${farmId}`);
+  }
+
+  async getGodownPiles(farmId: number, grade?: string): Promise<any[]> {
+    const params = grade ? `?grade=${grade}` : '';
+    return this.request(`/godown/piles/${farmId}${params}`);
+  }
+
+  async recordGodownDailyStock(farmId: number): Promise<any> {
+    return this.request('/godown/daily-stock', { method: 'POST', body: JSON.stringify({ godown_farm_id: farmId }) });
+  }
+
+  async getGodownDailyStock(farmId: number, date?: string): Promise<any> {
+    const params = date ? `?stock_date=${date}` : '';
+    return this.request(`/godown/daily-stock/${farmId}${params}`);
+  }
+
+  async getGodownHistory(farmId: number, limit: number = 100): Promise<any[]> {
+    return this.request(`/godown/history/${farmId}?limit=${limit}`);
+  }
+
+  // ===========================
+  // Milling Operations
+  // ===========================
+
+  async createMillingBatch(data: any): Promise<any> {
+    return this.request('/milling/batches', { method: 'POST', body: data });
+  }
+
+  async startMilling(batchId: number): Promise<any> {
+    return this.request(`/milling/batches/${batchId}/start`, { method: 'PUT' });
+  }
+
+  async completeMilling(batchId: number, data: any): Promise<any> {
+    return this.request(`/milling/batches/${batchId}/complete`, { method: 'PUT', body: data });
+  }
+
+  async getMillingBatches(farmId: number, status?: string): Promise<any[]> {
+    const params = new URLSearchParams({ factory_farm_id: farmId.toString() });
+    if (status) params.set('status', status);
+    return this.request(`/milling/batches?${params}`);
+  }
+
+  // ===========================
+  // Traceability
+  // ===========================
+
+  async traceForward(entityType: string, entityId: number): Promise<any> {
+    return this.request(`/traceability/forward/${entityType}/${entityId}`);
+  }
+
+  async traceBackward(entityType: string, entityId: number): Promise<any> {
+    return this.request(`/traceability/backward/${entityType}/${entityId}`);
+  }
+
+  async investigateComplaint(pileId?: number, millingBatchId?: number): Promise<any> {
+    const params = new URLSearchParams();
+    if (pileId) params.set('pile_id', pileId.toString());
+    if (millingBatchId) params.set('milling_batch_id', millingBatchId.toString());
+    return this.request(`/traceability/investigate?${params}`);
+  }
+
+  async getAuthorizationChain(entityType: string, entityId: number): Promise<any> {
+    return this.request(`/traceability/authorization-chain/${entityType}/${entityId}`);
   }
 }
 
