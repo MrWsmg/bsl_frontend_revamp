@@ -23,6 +23,7 @@ export interface PhotoUploadResponse {
 
 export interface Farm {
   id: number;
+  farm_id: number;
   name: string;
   location: string;
   crops: string;
@@ -608,5 +609,356 @@ export interface FaceVerificationResult {
 export interface WorkerPhotoUploadResponse extends PhotoUploadResponse {
   face_indexed?: boolean;
   face_id?: string;
+}
+
+// ===========================
+// Picking Operations Types
+// ===========================
+
+export interface DailyPickingPrice {
+  id: number;
+  farm_id: number;
+  date: string;
+  price_per_kg: number;
+  set_by: number;
+  notes?: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface CoffeeHarvestForecast {
+  id: number;
+  farm_id: number;
+  block_id?: number;
+  season_year: number;
+  flowering_date?: string;
+  flowering_intensity?: 'low' | 'medium' | 'high';
+  pins_forming_date?: string;
+  pins_density?: 'sparse' | 'moderate' | 'dense';
+  maturing_date?: string;
+  maturing_status?: 'early' | 'on_track' | 'delayed';
+  estimated_yield_kg?: number;
+  actual_yield_kg?: number;
+  variety?: string;
+  recorded_by?: number;
+  created_at: string;
+}
+
+export interface SeasonCommunication {
+  id: number;
+  farm_id: number;
+  season_year: number;
+  communication_type: 'one_month' | 'two_weeks' | 'one_day';
+  target_audience?: string;
+  message_template: string;
+  sent_at?: string;
+  sent_by?: number;
+  recipient_count?: number;
+  delivery_method: 'sms' | 'in_app' | 'both';
+  status: string;
+  created_at: string;
+}
+
+export interface PickingEquipmentCheck {
+  id: number;
+  farm_id: number;
+  season_year: number;
+  check_date: string;
+  checked_by: number;
+  bags_available: number;
+  bags_condition?: string;
+  scales_count: number;
+  scales_tared: boolean;
+  scales_calibrated: boolean;
+  tractors_operational: number;
+  popping_discs_available: number;
+  fuel_litres_available: number;
+  drying_tables_count: number;
+  drying_tables_condition?: string;
+  overall_status: string;
+  created_at: string;
+}
+
+export interface PickingSeason {
+  id: number;
+  farm_id: number;
+  season_year: number;
+  start_date: string;
+  end_date?: string;
+  status: 'planned' | 'active' | 'completed';
+  total_cherry_kg: number;
+  created_at: string;
+}
+
+export interface PickingSession {
+  id: number;
+  season_id?: number;
+  farm_id: number;
+  block_id?: number;
+  block_name?: string;
+  date: string;
+  sub_supervisor_id?: number;
+  sub_supervisor_name?: string;
+  scale_supervisor_id: number;
+  price_per_kg: number;
+  total_cherry_kg: number;
+  total_pickers: number;
+  status: 'open' | 'closed';
+  notes?: string;
+  created_at: string;
+}
+
+export interface PickingRecord {
+  id: number;
+  session_id: number;
+  worker_id: number;
+  worker_name: string;
+  worker_phone?: string;
+  farm_id: number;
+  block_id?: number;
+  cherry_weight_kg: number;
+  tare_weight_kg: number;
+  net_weight_kg: number;
+  price_per_kg: number;
+  total_payment: number;
+  variety?: string;
+  weighing_time: string;
+  recorded_by: number;
+  sms_sent: boolean;
+  sms_sent_at?: string;
+  payroll_record_id?: number;
+  payroll_synced: boolean;
+  created_at: string;
+}
+
+export interface PickingDailySummary {
+  farm_id: number;
+  date: string;
+  total_sessions: number;
+  total_pickers: number;
+  total_cherry_kg: number;
+  total_payment: number;
+  avg_kg_per_picker: number;
+  price_per_kg: number;
+  sessions: PickingSession[];
+}
+
+export interface PickerLeaderboardEntry {
+  worker_id: number;
+  worker_name: string;
+  total_kg: number;
+  total_payment: number;
+  weighings: number;
+}
+
+// ===========================
+// Factory Processing Types
+// ===========================
+
+export interface FactoryIntake {
+  id: number;
+  factory_farm_id: number;
+  intake_date: string;
+  source_farm_id: number;
+  source_block_id?: number;
+  picking_session_ids?: string;
+  variety?: string;
+  cherry_weight_kg: number;
+  debe_count?: number;
+  vehicle_number?: string;
+  delivered_by?: string;
+  received_by?: number;
+  created_at: string;
+}
+
+export interface FermentationTank {
+  id: number;
+  factory_farm_id: number;
+  tank_name: string;
+  capacity_kg: number;
+  is_active: boolean;
+  current_batch?: FermentationBatch;
+}
+
+export interface FermentationBatch {
+  id: number;
+  tank_id: number;
+  factory_farm_id: number;
+  intake_ids?: string;
+  source_blocks?: string;
+  pulped_weight_kg: number;
+  start_time: string;
+  expected_end_time?: string;
+  actual_end_time?: string;
+  fermentation_hours?: number;
+  status: 'active' | 'completed' | 'washed';
+  quality_notes?: string;
+}
+
+export interface WashingRecord {
+  id: number;
+  fermentation_batch_id: number;
+  factory_farm_id: number;
+  washed_weight_kg: number;
+  washing_date: string;
+  water_usage_litres?: number;
+}
+
+export interface DryingTable {
+  id: number;
+  factory_farm_id: number;
+  table_name: string;
+  table_type: 'table' | 'electrical_dryer';
+  capacity_kg: number;
+  is_active: boolean;
+  active_batch?: DryingBatch;
+}
+
+export interface DryingBatch {
+  id: number;
+  drying_table_id: number;
+  factory_farm_id: number;
+  washing_record_id?: number;
+  grade: 'P1' | 'P2' | 'P3' | 'mbuni';
+  origin_label?: string;
+  source_blocks?: string;
+  variety?: string;
+  wet_parchment_weight_kg: number;
+  debe_count?: number;
+  target_moisture_pct?: number;
+  current_moisture_pct?: number;
+  dry_parchment_weight_kg?: number;
+  original_cherry_kg?: number;
+  cherry_to_parchment_ratio?: number;
+  drying_method: 'table' | 'electrical';
+  status: 'drying' | 'ready' | 'completed';
+  started_at: string;
+  completed_at?: string;
+}
+
+export interface FactoryDailySummary {
+  factory_farm_id: number;
+  date: string;
+  total_intake_kg: number;
+  active_fermentations: number;
+  washing_today_kg: number;
+  active_drying_batches: number;
+  completed_drying_kg: number;
+}
+
+export interface CherryToParchmentRatio {
+  batch_id: number;
+  grade: string;
+  origin_label?: string;
+  cherry_kg: number;
+  parchment_kg: number;
+  ratio: number;
+  completed_at: string;
+}
+
+// ===========================
+// Godown / Warehouse Types
+// ===========================
+
+export interface CoffeeGodownEntry {
+  id: number;
+  godown_farm_id: number;
+  transaction_date: string;
+  transaction_type: 'receipt' | 'issue' | 'transfer' | 'bulk_mix';
+  grade: string;
+  origin_farm_id?: number;
+  origin_block_ids?: string;
+  origin_label?: string;
+  variety?: string;
+  reference_type?: string;
+  reference_id?: number;
+  weight_in_kg?: number;
+  weight_out_kg?: number;
+  running_balance_kg: number;
+  bag_count?: number;
+  pile_identifier?: string;
+  entered_by?: number;
+  authorized_by?: number;
+  notes?: string;
+  created_at: string;
+}
+
+export interface CoffeeGodownPile {
+  id: number;
+  pile_identifier: string;
+  godown_farm_id: number;
+  grade: string;
+  origin_details?: string;
+  variety?: string;
+  current_weight_kg: number;
+  bag_count: number;
+  is_mixed: boolean;
+  parent_pile_ids?: string;
+  mix_reason?: string;
+  status: 'active' | 'depleted' | 'mixed';
+  created_at: string;
+}
+
+export interface GodownInventory {
+  godown_farm_id: number;
+  total_weight_kg: number;
+  total_bags: number;
+  by_grade: Record<string, { weight_kg: number; bags: number; piles: number }>;
+  piles: CoffeeGodownPile[];
+}
+
+export interface GodownDailyStock {
+  id: number;
+  godown_farm_id: number;
+  date: string;
+  p1_weight_kg: number;
+  p2_weight_kg: number;
+  p3_weight_kg: number;
+  mbuni_weight_kg: number;
+  total_weight_kg: number;
+  total_bag_count: number;
+}
+
+// ===========================
+// Milling Types
+// ===========================
+
+export interface MillingBatch {
+  id: number;
+  batch_number: string;
+  factory_farm_id: number;
+  godown_pile_ids?: string;
+  transport_method?: string;
+  vehicle_number?: string;
+  parchment_weight_in_kg: number;
+  green_bean_weight_kg?: number;
+  grade_separation?: string;
+  milling_loss_kg?: number;
+  parchment_to_green_ratio?: number;
+  total_bags?: number;
+  bag_details?: string;
+  milling_machine?: string;
+  status: 'pending' | 'in_transit' | 'at_mill' | 'milling' | 'completed';
+  started_at?: string;
+  completed_at?: string;
+  created_at: string;
+}
+
+// ===========================
+// Traceability Types
+// ===========================
+
+export interface TraceabilityResult {
+  entity_type: string;
+  entity_id: number;
+  chain: TraceabilityNode[];
+}
+
+export interface TraceabilityNode {
+  stage: string;
+  type: string;
+  id: number;
+  details: Record<string, any>;
+  children?: TraceabilityNode[];
 }
 

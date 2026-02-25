@@ -574,6 +574,275 @@ export class ApiService extends BaseApiService {
   async getManagerPerformance(filters?: Record<string, any>) {
     return this.management.getManagerPerformance(filters);
   }
+
+  // ===========================
+  // Picking Operations
+  // ===========================
+
+  async setDailyPickingPrice(data: any) {
+    return this.post('/picking/daily-price', data);
+  }
+
+  async getDailyPickingPrice(farmId: number, date?: string) {
+    const params = date ? `?price_date=${date}` : '';
+    return this.get(`/picking/daily-price/${farmId}${params}`);
+  }
+
+  async getPickingPriceHistory(farmId: number, limit: number = 30) {
+    return this.get(`/picking/daily-price/history/${farmId}`, { limit: limit.toString() });
+  }
+
+  async createHarvestForecast(data: any) {
+    return this.post('/picking/forecast', data);
+  }
+
+  async getHarvestForecasts(farmId: number, seasonYear?: number) {
+    const params = seasonYear ? { season_year: seasonYear.toString() } : undefined;
+    return this.get(`/picking/forecast/${farmId}`, params);
+  }
+
+  async updateHarvestForecast(forecastId: number, data: any) {
+    return this.put(`/picking/forecast/${forecastId}`, data);
+  }
+
+  async sendSeasonCommunication(data: any) {
+    return this.post('/picking/communication/send', data);
+  }
+
+  async getSeasonCommunications(farmId: number, seasonYear?: number) {
+    const params = seasonYear ? { season_year: seasonYear.toString() } : undefined;
+    return this.get(`/picking/communication/history/${farmId}`, params);
+  }
+
+  async createEquipmentCheck(data: any) {
+    return this.post('/picking/equipment-check', data);
+  }
+
+  async getEquipmentCheck(farmId: number, seasonYear?: number) {
+    const params = seasonYear ? { season_year: seasonYear.toString() } : undefined;
+    return this.get(`/picking/equipment-check/${farmId}`, params);
+  }
+
+  async getReadinessOverview(farmId: number, seasonYear: number) {
+    return this.get(`/picking/readiness/${farmId}`, { season_year: seasonYear.toString() });
+  }
+
+  async createPickingSeason(data: any) {
+    return this.post('/picking/seasons/create', data);
+  }
+
+  async getPickingSeason(farmId: number, seasonYear?: number) {
+    const params = seasonYear ? { season_year: seasonYear.toString() } : undefined;
+    return this.get(`/picking/seasons/${farmId}`, params);
+  }
+
+  async openPickingSession(data: any) {
+    return this.post('/picking/sessions', data);
+  }
+
+  async closePickingSession(sessionId: number) {
+    return this.put(`/picking/sessions/${sessionId}/close`);
+  }
+
+  async getPickingSessions(farmId?: number, date?: string, status?: string) {
+    const params: Record<string, string> = {};
+    if (farmId) params.farm_id = farmId.toString();
+    if (date) params.session_date = date;
+    if (status) params.status = status;
+    return this.get('/picking/sessions', Object.keys(params).length > 0 ? params : undefined);
+  }
+
+  async getPickingSessionDetail(sessionId: number) {
+    return this.get(`/picking/sessions/${sessionId}`);
+  }
+
+  async recordPickerWeight(sessionId: number, data: any) {
+    return this.post(`/picking/sessions/${sessionId}/weigh`, data);
+  }
+
+  async getDailyPickingSummary(farmId: number, date?: string) {
+    const params = date ? { summary_date: date } : undefined;
+    return this.get(`/picking/daily-summary/${farmId}`, params);
+  }
+
+  async getBlockPickingSummary(farmId: number, blockId: number, startDate?: string, endDate?: string) {
+    const params: Record<string, string> = {};
+    if (startDate) params.start_date = startDate;
+    if (endDate) params.end_date = endDate;
+    return this.get(`/picking/block-summary/${farmId}/${blockId}`, Object.keys(params).length > 0 ? params : undefined);
+  }
+
+  async getPickerHistory(workerId: number, startDate?: string, endDate?: string) {
+    const params: Record<string, string> = {};
+    if (startDate) params.start_date = startDate;
+    if (endDate) params.end_date = endDate;
+    return this.get(`/picking/picker-history/${workerId}`, Object.keys(params).length > 0 ? params : undefined);
+  }
+
+  async getPickerLeaderboard(farmId: number, date?: string, limit: number = 20) {
+    const params: Record<string, string> = { limit: limit.toString() };
+    if (date) params.leader_date = date;
+    return this.get(`/picking/leaderboard/${farmId}`, params);
+  }
+
+  // ===========================
+  // Factory Operations
+  // ===========================
+
+  async recordFactoryIntake(data: any) {
+    return this.post('/factory/intake', data);
+  }
+
+  async getFactoryIntakes(farmId: number, date?: string) {
+    const params = date ? { intake_date: date } : undefined;
+    return this.get(`/factory/intake/${farmId}`, params);
+  }
+
+  async createFermentationTank(data: any) {
+    return this.post('/factory/tanks', data);
+  }
+
+  async getFermentationTanks(farmId: number) {
+    return this.get(`/factory/tanks/${farmId}`);
+  }
+
+  async startFermentation(data: any) {
+    return this.post('/factory/fermentation/start', data);
+  }
+
+  async completeFermentation(batchId: number) {
+    return this.put(`/factory/fermentation/${batchId}/complete`);
+  }
+
+  async getActiveFermentations(farmId: number) {
+    return this.get(`/factory/fermentation/active/${farmId}`);
+  }
+
+  async recordWashing(data: any) {
+    return this.post('/factory/washing', data);
+  }
+
+  async getWashingRecords(farmId: number) {
+    return this.get(`/factory/washing/${farmId}`);
+  }
+
+  async createDryingTable(data: any) {
+    return this.post('/factory/drying-tables', data);
+  }
+
+  async getDryingTables(farmId: number) {
+    return this.get(`/factory/drying-tables/${farmId}`);
+  }
+
+  async startDrying(data: any) {
+    return this.post('/factory/drying/start', data);
+  }
+
+  async updateDrying(batchId: number, data: any) {
+    return this.put(`/factory/drying/${batchId}/update`, data);
+  }
+
+  async completeDrying(batchId: number, dryWeight: number, moisture?: number) {
+    const params: Record<string, string> = { dry_weight_kg: dryWeight.toString() };
+    if (moisture !== undefined) params.moisture_pct = moisture.toString();
+    return this.request(`/factory/drying/${batchId}/complete?${new URLSearchParams(params)}`, { method: 'PUT' });
+  }
+
+  async getActiveDrying(farmId: number) {
+    return this.get(`/factory/drying/active/${farmId}`);
+  }
+
+  async getFactoryDailySummary(farmId: number, date?: string) {
+    const params = date ? { summary_date: date } : undefined;
+    return this.get(`/factory/daily-summary/${farmId}`, params);
+  }
+
+  async getCherryToParchmentRatios(farmId: number, limit: number = 50) {
+    return this.get(`/factory/ratios/${farmId}`, { limit: limit.toString() });
+  }
+
+  // ===========================
+  // Godown Operations
+  // ===========================
+
+  async receiveFromDrying(data: any) {
+    return this.post('/godown/receive', data);
+  }
+
+  async issueFromGodown(data: any) {
+    return this.post('/godown/issue', data);
+  }
+
+  async createBulkMix(data: any) {
+    return this.post('/godown/mix', data);
+  }
+
+  async getGodownInventory(farmId: number) {
+    return this.get(`/godown/inventory/${farmId}`);
+  }
+
+  async getGodownPiles(farmId: number, grade?: string) {
+    const params = grade ? { grade } : undefined;
+    return this.get(`/godown/piles/${farmId}`, params);
+  }
+
+  async recordGodownDailyStock(farmId: number) {
+    return this.post('/godown/daily-stock', { godown_farm_id: farmId });
+  }
+
+  async getGodownDailyStock(farmId: number, date?: string) {
+    const params = date ? { stock_date: date } : undefined;
+    return this.get(`/godown/daily-stock/${farmId}`, params);
+  }
+
+  async getGodownHistory(farmId: number, limit: number = 100) {
+    return this.get(`/godown/history/${farmId}`, { limit: limit.toString() });
+  }
+
+  // ===========================
+  // Milling Operations
+  // ===========================
+
+  async createMillingBatch(data: any) {
+    return this.post('/milling/batches', data);
+  }
+
+  async startMilling(batchId: number) {
+    return this.put(`/milling/batches/${batchId}/start`);
+  }
+
+  async completeMilling(batchId: number, data: any) {
+    return this.put(`/milling/batches/${batchId}/complete`, data);
+  }
+
+  async getMillingBatches(farmId: number, status?: string) {
+    const params: Record<string, string> = { factory_farm_id: farmId.toString() };
+    if (status) params.status = status;
+    return this.get('/milling/batches', params);
+  }
+
+  // ===========================
+  // Traceability
+  // ===========================
+
+  async traceForward(entityType: string, entityId: number) {
+    return this.get(`/traceability/forward/${entityType}/${entityId}`);
+  }
+
+  async traceBackward(entityType: string, entityId: number) {
+    return this.get(`/traceability/backward/${entityType}/${entityId}`);
+  }
+
+  async investigateComplaint(pileId?: number, millingBatchId?: number) {
+    const params: Record<string, string> = {};
+    if (pileId) params.pile_id = pileId.toString();
+    if (millingBatchId) params.milling_batch_id = millingBatchId.toString();
+    return this.get('/traceability/investigate', params);
+  }
+
+  async getAuthorizationChain(entityType: string, entityId: number) {
+    return this.get(`/traceability/authorization-chain/${entityType}/${entityId}`);
+  }
 }
 
 // Create and export a singleton instance

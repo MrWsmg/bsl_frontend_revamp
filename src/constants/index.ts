@@ -15,6 +15,9 @@ export const USER_ROLES = {
   PAYROLL_MASTER: 'payroll_master',
   GENERAL_MANAGER: 'general_manager',
   MANAGING_DIRECTOR: 'managing_director',
+  FACTORY_SUPERVISOR: 'factory_supervisor',
+  SCALE_SUPERVISOR: 'scale_supervisor',
+  GODOWN_MANAGER: 'godown_manager',
 } as const;
 
 // Dashboard tabs
