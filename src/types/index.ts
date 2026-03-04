@@ -344,10 +344,14 @@ export interface AttendanceRecord {
   check_out_time?: string;
   hours_worked?: number;
   notes?: string;
-  // Face verification fields
+  // Face verification fields (check-in)
   verification_photo_url?: string | null;
   face_verification_confidence?: number | null;
   face_verification_status?: 'manual' | 'verified' | 'failed';
+  // Face verification fields (checkout)
+  checkout_photo_url?: string | null;
+  checkout_face_verification_confidence?: number | null;
+  checkout_face_verification_status?: 'manual' | 'verified' | 'failed';
 }
 
 export interface AttendanceReport {
@@ -960,5 +964,272 @@ export interface TraceabilityNode {
   id: number;
   details: Record<string, any>;
   children?: TraceabilityNode[];
+}
+
+// ===========================
+// Yield Forecasting Types
+// ===========================
+
+export interface CoffeeYieldSample {
+  id: number;
+  farm_id: number;
+  block_id?: number;
+  sample_date: string;
+  sampled_by: string;
+  fruiting_branches: number;
+  sampled_branches_count: number;
+  avg_cherries_per_branch: number;
+  branch_counts?: string;
+  avg_cherry_weight_kg?: number;
+  coffee_stage: 'pinhead' | 'pea_sized' | 'full_green' | 'color_break';
+  notes?: string;
+  created_at: string;
+}
+
+export interface CoffeeYieldForecast {
+  id: number;
+  farm_id: number;
+  block_id?: number;
+  forecast_date: string;
+  season_year: number;
+  crop_type: string;
+  variety?: string;
+  trees_per_hectare: number;
+  conversion_factor_cf: number;
+  cherry_ratio_cr: number;
+  loss_factor: number;
+  fruit_set_factor: number;
+  biennial_index: number;
+  avg_kg_per_picker_per_day: number;
+  harvest_duration_days: number;
+  sample_count: number;
+  mean_cherries_per_tree: number;
+  std_dev?: number;
+  std_error?: number;
+  ci_lower_kg_per_ha?: number;
+  ci_upper_kg_per_ha?: number;
+  yield_kg_per_tree: number;
+  yield_kg_per_hectare: number;
+  adjusted_yield_kg_per_hectare: number;
+  total_farm_yield_kg: number;
+  optimistic_yield_kg: number;
+  base_yield_kg: number;
+  pessimistic_yield_kg: number;
+  estimated_pickers_needed: number;
+  estimated_harvest_start?: string;
+  estimated_harvest_end?: string;
+  status: 'draft' | 'confirmed';
+  confirmed_by?: string;
+  notes?: string;
+  created_at: string;
+}
+
+// ===========================
+// Harvest Planning Types
+// ===========================
+
+export interface HarvestPlan {
+  id: number;
+  farm_id: number;
+  forecast_id?: number;
+  season_year: number;
+  crop_type: string;
+  fly_picking_start: string;
+  main_harvest_start: string;
+  estimated_end: string;
+  pickers_needed: number;
+  pickers_confirmed?: number;
+  pickers_type: string;
+  status: 'draft' | 'approved' | 'revised' | 'completed';
+  checklist_completed: boolean;
+  created_by?: string;
+  approved_by?: string;
+  approved_at?: string;
+  notif_1month_sent: boolean;
+  notif_2weeks_sent: boolean;
+  notif_1day_sent: boolean;
+  created_at: string;
+}
+
+export interface HarvestChecklist {
+  id: number;
+  plan_id: number;
+  farm_id: number;
+  // Scales
+  field_scales_serviced: boolean;
+  field_scales_calibrated: boolean;
+  hopper_scales_serviced: boolean;
+  hopper_scales_calibrated: boolean;
+  parchment_scales_serviced: boolean;
+  platform_scales_serviced: boolean;
+  // Materials
+  harvest_bags_ready: boolean;
+  bags_count?: number;
+  vehicles_listed?: string;
+  vehicles_prepared: boolean;
+  // Documents
+  grn_documents_ready: boolean;
+  seals_ready: boolean;
+  transfer_documents_ready: boolean;
+  // Drying
+  drying_tables_repaired: boolean;
+  drying_plastic_sheeting_ok: boolean;
+  table_legs_ok: boolean;
+  shade_netting_ok: boolean;
+  electric_driers_serviced: boolean;
+  drier_cracks_checked: boolean;
+  drier_soot_cleaned: boolean;
+  drier_electrical_checked: boolean;
+  fuel_availability_confirmed: boolean;
+  fuel_stock_days?: number;
+  // Storage
+  storage_roofing_ok: boolean;
+  factory_doors_ok: boolean;
+  alarm_system_tested: boolean;
+  cctv_tested: boolean;
+  fire_extinguishers_checked: boolean;
+  // Processing
+  pulper_disks_calibrated: boolean;
+  pulper_belts_bearings_ok: boolean;
+  washing_channels_ok: boolean;
+  fermentation_dams_ok: boolean;
+  // Security
+  security_count?: number;
+  security_flashlights: boolean;
+  security_whistles: boolean;
+  security_rain_gear: boolean;
+  security_phones_credit: boolean;
+  security_remotes_ok: boolean;
+  security_firearms_serviced: boolean;
+  // Sign-off
+  completed_by?: string;
+  completed_at?: string;
+  notes?: string;
+  created_at: string;
+}
+
+// ===========================
+// Daily Picking Rate Types
+// ===========================
+
+export interface DailyPickingRate {
+  id: number;
+  farm_id: number;
+  rate_date: string;
+  picking_type: 'fly' | 'main' | 'strip';
+  rate_per_kg: number;
+  set_by: number;
+  notes?: string;
+  created_at: string;
+}
+
+// ===========================
+// Picker Weighing Types
+// ===========================
+
+export interface PickerWeighingRecord {
+  id: number;
+  farm_id: number;
+  block_id?: number;
+  harvest_plan_id?: number;
+  date_picked: string;
+  supervisor_name: string;
+  picking_type: 'main' | 'fly' | 'strip';
+  worker_type: 'permanent' | 'contracted';
+  picker_name: string;
+  picker_phone?: string;
+  picker_token?: string;
+  gross_weight_kg: number;
+  tare_weight_kg: number;
+  net_weight_kg: number;
+  rate_per_kg: number;
+  amount_due: number;
+  delivery_note_ref?: string;
+  payroll_record_id?: number;
+  sms_sent: boolean;
+  sms_sent_at?: string;
+  created_at: string;
+}
+
+// ===========================
+// Coffee Processing Batch Types
+// ===========================
+
+export interface CoffeeProcessingBatch {
+  id: number;
+  farm_id: number;
+  block_id?: number;
+  batch_ref: string;
+  variety?: string;
+  processing_type: 'washed' | 'honey';
+  field_weight_kg: number;
+  hopper_weight_kg: number;
+  hopper_vs_field_variance?: number;
+  status: 'collecting' | 'pulping' | 'fermenting' | 'drying' | 'completed';
+  pulping_start?: string;
+  pulping_end?: string;
+  pulping_photo_url?: string;
+  pulping_notes?: string;
+  fermentation_start?: string;
+  fermentation_end?: string;
+  fermentation_duration_hours?: number;
+  drying_method?: 'table' | 'electric';
+  drying_start?: string;
+  drying_end?: string;
+  debe_count?: number;
+  parchment_kg?: number;
+  final_moisture_pct?: number;
+  p1_kg?: number;
+  p2_kg?: number;
+  floaters_kg?: number;
+  cardex_entry_id?: number;
+  created_at: string;
+}
+
+// ===========================
+// Drying Log Types
+// ===========================
+
+export interface DryingHourlyLog {
+  id: number;
+  batch_id: number;
+  drier_id?: string;
+  drier_levels?: number;
+  logged_at: string;
+  logged_by: string;
+  temperature_c?: number;
+  moisture_pct?: number;
+  photo_url?: string;
+  alert_sent: boolean;
+  notes?: string;
+}
+
+// ===========================
+// Harvest Report Types
+// ===========================
+
+export interface HarvestReport {
+  farm_id: number;
+  farm_name: string;
+  season_year: number;
+  forecast: {
+    total_forecast_kg: number;
+    optimistic_kg: number;
+    pessimistic_kg: number;
+  };
+  actual: {
+    total_cherry_picked_kg: number;
+    total_parchment_kg: number;
+    p1_kg: number;
+    p2_kg: number;
+    floaters_kg: number;
+    batches_completed: number;
+  };
+  labour: {
+    unique_pickers: number;
+    total_weighing_sessions: number;
+    total_paid_to_pickers_tzs: number;
+  };
+  harvest_plans: HarvestPlan[];
 }
 
