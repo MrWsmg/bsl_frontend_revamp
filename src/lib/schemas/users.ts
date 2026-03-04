@@ -3,14 +3,21 @@ import { z } from "zod";
 // User Roles
 export const userRoles = [
   "admin",
+  "managing_director",
+  "general_manager",
   "manager",
-  "payroll",
   "account_manager",
   "financial_controller",
   "payroll_master",
+  "payroll",
   "stock",
   "farm_clerk",
+  "procurement_officer",
   "supervisor",
+  "sub_supervisor",
+  "factory_supervisor",
+  "scale_supervisor",
+  "godown_manager",
   "worker",
 ] as const;
 
