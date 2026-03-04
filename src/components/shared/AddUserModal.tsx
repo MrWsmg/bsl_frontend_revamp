@@ -44,14 +44,21 @@ type UploadKind = 'photo' | 'id';
 
 const ROLE_OPTIONS = [
   { value: 'admin', label: 'Admin' },
+  { value: 'managing_director', label: 'Managing Director' },
+  { value: 'general_manager', label: 'General Manager' },
   { value: 'manager', label: 'Manager' },
-  { value: 'payroll', label: 'Payroll (BSL Auditor)' },
   { value: 'account_manager', label: 'Account Manager' },
   { value: 'financial_controller', label: 'Financial Controller' },
   { value: 'payroll_master', label: 'Payroll Master' },
+  { value: 'payroll', label: 'Payroll (BSL Auditor)' },
   { value: 'stock', label: 'Stock' },
   { value: 'farm_clerk', label: 'Farm Clerk' },
+  { value: 'procurement_officer', label: 'Procurement Officer' },
   { value: 'supervisor', label: 'Supervisor' },
+  { value: 'sub_supervisor', label: 'Sub Supervisor' },
+  { value: 'factory_supervisor', label: 'Factory Supervisor' },
+  { value: 'scale_supervisor', label: 'Scale Supervisor' },
+  { value: 'godown_manager', label: 'Godown Manager' },
   { value: 'worker', label: 'Worker' },
 ];
 
