@@ -580,109 +580,109 @@ export class ApiService extends BaseApiService {
   // ===========================
 
   async setDailyPickingPrice(data: any) {
-    return this.post('/picking/daily-price', data);
+    return this.post<any>('/picking/daily-price', data);
   }
 
   async getDailyPickingPrice(farmId: number, date?: string) {
     const params = date ? `?price_date=${date}` : '';
-    return this.get(`/picking/daily-price/${farmId}${params}`);
+    return this.get<any>(`/picking/daily-price/${farmId}${params}`);
   }
 
   async getPickingPriceHistory(farmId: number, limit: number = 30) {
-    return this.get(`/picking/daily-price/history/${farmId}`, { limit: limit.toString() });
+    return this.get<any>(`/picking/daily-price/history/${farmId}`, { limit: limit.toString() });
   }
 
   async createHarvestForecast(data: any) {
-    return this.post('/picking/forecast', data);
+    return this.post<any>('/picking/forecast', data);
   }
 
   async getHarvestForecasts(farmId: number, seasonYear?: number) {
     const params = seasonYear ? { season_year: seasonYear.toString() } : undefined;
-    return this.get(`/picking/forecast/${farmId}`, params);
+    return this.get<any>(`/picking/forecast/${farmId}`, params);
   }
 
   async updateHarvestForecast(forecastId: number, data: any) {
-    return this.put(`/picking/forecast/${forecastId}`, data);
+    return this.put<any>(`/picking/forecast/${forecastId}`, data);
   }
 
   async sendSeasonCommunication(data: any) {
-    return this.post('/picking/communication/send', data);
+    return this.post<any>('/picking/communication/send', data);
   }
 
   async getSeasonCommunications(farmId: number, seasonYear?: number) {
     const params = seasonYear ? { season_year: seasonYear.toString() } : undefined;
-    return this.get(`/picking/communication/history/${farmId}`, params);
+    return this.get<any>(`/picking/communication/history/${farmId}`, params);
   }
 
   async createEquipmentCheck(data: any) {
-    return this.post('/picking/equipment-check', data);
+    return this.post<any>('/picking/equipment-check', data);
   }
 
   async getEquipmentCheck(farmId: number, seasonYear?: number) {
     const params = seasonYear ? { season_year: seasonYear.toString() } : undefined;
-    return this.get(`/picking/equipment-check/${farmId}`, params);
+    return this.get<any>(`/picking/equipment-check/${farmId}`, params);
   }
 
   async getReadinessOverview(farmId: number, seasonYear: number) {
-    return this.get(`/picking/readiness/${farmId}`, { season_year: seasonYear.toString() });
+    return this.get<any>(`/picking/readiness/${farmId}`, { season_year: seasonYear.toString() });
   }
 
   async createPickingSeason(data: any) {
-    return this.post('/picking/seasons/create', data);
+    return this.post<any>('/picking/seasons/create', data);
   }
 
   async getPickingSeason(farmId: number, seasonYear?: number) {
     const params = seasonYear ? { season_year: seasonYear.toString() } : undefined;
-    return this.get(`/picking/seasons/${farmId}`, params);
+    return this.get<any>(`/picking/seasons/${farmId}`, params);
   }
 
   async openPickingSession(data: any) {
-    return this.post('/picking/sessions', data);
+    return this.post<any>('/picking/sessions', data);
   }
 
   async closePickingSession(sessionId: number) {
-    return this.put(`/picking/sessions/${sessionId}/close`);
+    return this.put<any>(`/picking/sessions/${sessionId}/close`);
   }
 
-  async getPickingSessions(farmId?: number, date?: string, status?: string) {
+  async getPickingSessions(farmId?: number, date?: string, status?: string): Promise<any[]> {
     const params: Record<string, string> = {};
     if (farmId) params.farm_id = farmId.toString();
     if (date) params.session_date = date;
     if (status) params.status = status;
-    return this.get('/picking/sessions', Object.keys(params).length > 0 ? params : undefined);
+    return this.get<any[]>('/picking/sessions', Object.keys(params).length > 0 ? params : undefined);
   }
 
-  async getPickingSessionDetail(sessionId: number) {
-    return this.get(`/picking/sessions/${sessionId}`);
+  async getPickingSessionDetail(sessionId: number): Promise<any> {
+    return this.get<any>(`/picking/sessions/${sessionId}`);
   }
 
-  async recordPickerWeight(sessionId: number, data: any) {
-    return this.post(`/picking/sessions/${sessionId}/weigh`, data);
+  async recordPickerWeight(sessionId: number, data: any): Promise<any> {
+    return this.post<any>(`/picking/sessions/${sessionId}/weigh`, data);
   }
 
   async getDailyPickingSummary(farmId: number, date?: string) {
     const params = date ? { summary_date: date } : undefined;
-    return this.get(`/picking/daily-summary/${farmId}`, params);
+    return this.get<any>(`/picking/daily-summary/${farmId}`, params);
   }
 
   async getBlockPickingSummary(farmId: number, blockId: number, startDate?: string, endDate?: string) {
     const params: Record<string, string> = {};
     if (startDate) params.start_date = startDate;
     if (endDate) params.end_date = endDate;
-    return this.get(`/picking/block-summary/${farmId}/${blockId}`, Object.keys(params).length > 0 ? params : undefined);
+    return this.get<any>(`/picking/block-summary/${farmId}/${blockId}`, Object.keys(params).length > 0 ? params : undefined);
   }
 
   async getPickerHistory(workerId: number, startDate?: string, endDate?: string) {
     const params: Record<string, string> = {};
     if (startDate) params.start_date = startDate;
     if (endDate) params.end_date = endDate;
-    return this.get(`/picking/picker-history/${workerId}`, Object.keys(params).length > 0 ? params : undefined);
+    return this.get<any>(`/picking/picker-history/${workerId}`, Object.keys(params).length > 0 ? params : undefined);
   }
 
-  async getPickerLeaderboard(farmId: number, date?: string, limit: number = 20) {
+  async getPickerLeaderboard(farmId: number, date?: string, limit: number = 20): Promise<any[]> {
     const params: Record<string, string> = { limit: limit.toString() };
     if (date) params.leader_date = date;
-    return this.get(`/picking/leaderboard/${farmId}`, params);
+    return this.get<any[]>(`/picking/leaderboard/${farmId}`, params);
   }
 
   // ===========================
@@ -690,56 +690,56 @@ export class ApiService extends BaseApiService {
   // ===========================
 
   async recordFactoryIntake(data: any) {
-    return this.post('/factory/intake', data);
+    return this.post<any>('/factory/intake', data);
   }
 
   async getFactoryIntakes(farmId: number, date?: string) {
     const params = date ? { intake_date: date } : undefined;
-    return this.get(`/factory/intake/${farmId}`, params);
+    return this.get<any>(`/factory/intake/${farmId}`, params);
   }
 
   async createFermentationTank(data: any) {
-    return this.post('/factory/tanks', data);
+    return this.post<any>('/factory/tanks', data);
   }
 
   async getFermentationTanks(farmId: number) {
-    return this.get(`/factory/tanks/${farmId}`);
+    return this.get<any>(`/factory/tanks/${farmId}`);
   }
 
   async startFermentation(data: any) {
-    return this.post('/factory/fermentation/start', data);
+    return this.post<any>('/factory/fermentation/start', data);
   }
 
   async completeFermentation(batchId: number) {
-    return this.put(`/factory/fermentation/${batchId}/complete`);
+    return this.put<any>(`/factory/fermentation/${batchId}/complete`);
   }
 
   async getActiveFermentations(farmId: number) {
-    return this.get(`/factory/fermentation/active/${farmId}`);
+    return this.get<any>(`/factory/fermentation/active/${farmId}`);
   }
 
   async recordWashing(data: any) {
-    return this.post('/factory/washing', data);
+    return this.post<any>('/factory/washing', data);
   }
 
   async getWashingRecords(farmId: number) {
-    return this.get(`/factory/washing/${farmId}`);
+    return this.get<any>(`/factory/washing/${farmId}`);
   }
 
   async createDryingTable(data: any) {
-    return this.post('/factory/drying-tables', data);
+    return this.post<any>('/factory/drying-tables', data);
   }
 
   async getDryingTables(farmId: number) {
-    return this.get(`/factory/drying-tables/${farmId}`);
+    return this.get<any>(`/factory/drying-tables/${farmId}`);
   }
 
   async startDrying(data: any) {
-    return this.post('/factory/drying/start', data);
+    return this.post<any>('/factory/drying/start', data);
   }
 
   async updateDrying(batchId: number, data: any) {
-    return this.put(`/factory/drying/${batchId}/update`, data);
+    return this.put<any>(`/factory/drying/${batchId}/update`, data);
   }
 
   async completeDrying(batchId: number, dryWeight: number, moisture?: number) {
@@ -749,16 +749,16 @@ export class ApiService extends BaseApiService {
   }
 
   async getActiveDrying(farmId: number) {
-    return this.get(`/factory/drying/active/${farmId}`);
+    return this.get<any>(`/factory/drying/active/${farmId}`);
   }
 
   async getFactoryDailySummary(farmId: number, date?: string) {
     const params = date ? { summary_date: date } : undefined;
-    return this.get(`/factory/daily-summary/${farmId}`, params);
+    return this.get<any>(`/factory/daily-summary/${farmId}`, params);
   }
 
   async getCherryToParchmentRatios(farmId: number, limit: number = 50) {
-    return this.get(`/factory/ratios/${farmId}`, { limit: limit.toString() });
+    return this.get<any>(`/factory/ratios/${farmId}`, { limit: limit.toString() });
   }
 
   // ===========================
@@ -766,37 +766,37 @@ export class ApiService extends BaseApiService {
   // ===========================
 
   async receiveFromDrying(data: any) {
-    return this.post('/godown/receive', data);
+    return this.post<any>('/godown/receive', data);
   }
 
   async issueFromGodown(data: any) {
-    return this.post('/godown/issue', data);
+    return this.post<any>('/godown/issue', data);
   }
 
   async createBulkMix(data: any) {
-    return this.post('/godown/mix', data);
+    return this.post<any>('/godown/mix', data);
   }
 
   async getGodownInventory(farmId: number) {
-    return this.get(`/godown/inventory/${farmId}`);
+    return this.get<any>(`/godown/inventory/${farmId}`);
   }
 
   async getGodownPiles(farmId: number, grade?: string) {
     const params = grade ? { grade } : undefined;
-    return this.get(`/godown/piles/${farmId}`, params);
+    return this.get<any>(`/godown/piles/${farmId}`, params);
   }
 
   async recordGodownDailyStock(farmId: number) {
-    return this.post('/godown/daily-stock', { godown_farm_id: farmId });
+    return this.post<any>('/godown/daily-stock', { godown_farm_id: farmId });
   }
 
   async getGodownDailyStock(farmId: number, date?: string) {
     const params = date ? { stock_date: date } : undefined;
-    return this.get(`/godown/daily-stock/${farmId}`, params);
+    return this.get<any>(`/godown/daily-stock/${farmId}`, params);
   }
 
   async getGodownHistory(farmId: number, limit: number = 100) {
-    return this.get(`/godown/history/${farmId}`, { limit: limit.toString() });
+    return this.get<any>(`/godown/history/${farmId}`, { limit: limit.toString() });
   }
 
   // ===========================
@@ -804,21 +804,21 @@ export class ApiService extends BaseApiService {
   // ===========================
 
   async createMillingBatch(data: any) {
-    return this.post('/milling/batches', data);
+    return this.post<any>('/milling/batches', data);
   }
 
   async startMilling(batchId: number) {
-    return this.put(`/milling/batches/${batchId}/start`);
+    return this.put<any>(`/milling/batches/${batchId}/start`);
   }
 
   async completeMilling(batchId: number, data: any) {
-    return this.put(`/milling/batches/${batchId}/complete`, data);
+    return this.put<any>(`/milling/batches/${batchId}/complete`, data);
   }
 
   async getMillingBatches(farmId: number, status?: string) {
     const params: Record<string, string> = { factory_farm_id: farmId.toString() };
     if (status) params.status = status;
-    return this.get('/milling/batches', params);
+    return this.get<any>('/milling/batches', params);
   }
 
   // ===========================
@@ -826,22 +826,22 @@ export class ApiService extends BaseApiService {
   // ===========================
 
   async traceForward(entityType: string, entityId: number) {
-    return this.get(`/traceability/forward/${entityType}/${entityId}`);
+    return this.get<any>(`/traceability/forward/${entityType}/${entityId}`);
   }
 
   async traceBackward(entityType: string, entityId: number) {
-    return this.get(`/traceability/backward/${entityType}/${entityId}`);
+    return this.get<any>(`/traceability/backward/${entityType}/${entityId}`);
   }
 
   async investigateComplaint(pileId?: number, millingBatchId?: number) {
     const params: Record<string, string> = {};
     if (pileId) params.pile_id = pileId.toString();
     if (millingBatchId) params.milling_batch_id = millingBatchId.toString();
-    return this.get('/traceability/investigate', params);
+    return this.get<any>('/traceability/investigate', params);
   }
 
   async getAuthorizationChain(entityType: string, entityId: number) {
-    return this.get(`/traceability/authorization-chain/${entityType}/${entityId}`);
+    return this.get<any>(`/traceability/authorization-chain/${entityType}/${entityId}`);
   }
 
   // ===========================
@@ -849,27 +849,27 @@ export class ApiService extends BaseApiService {
   // ===========================
 
   async createYieldSample(data: any) {
-    return this.post('/yield/samples', data);
+    return this.post<any>('/yield/samples', data);
   }
 
   async getYieldSamples(farmId: number, blockId?: number, limit?: number) {
     const params: Record<string, string> = {};
     if (blockId) params.block_id = String(blockId);
     if (limit) params.limit = String(limit);
-    return this.get(`/yield/samples/${farmId}`, params);
+    return this.get<any>(`/yield/samples/${farmId}`, params);
   }
 
   async createYieldForecast(farmId: number, data: any) {
-    return this.post(`/yield/forecast/${farmId}`, data);
+    return this.post<any>(`/yield/forecast/${farmId}`, data);
   }
 
   async getYieldForecasts(farmId: number, seasonYear?: number) {
     const params = seasonYear ? { season_year: String(seasonYear) } : undefined;
-    return this.get(`/yield/forecast/${farmId}`, params);
+    return this.get<any>(`/yield/forecast/${farmId}`, params);
   }
 
   async confirmYieldForecast(forecastId: number) {
-    return this.put(`/yield/forecast/${forecastId}/confirm`);
+    return this.put<any>(`/yield/forecast/${forecastId}/confirm`);
   }
 
   // ===========================
@@ -877,24 +877,24 @@ export class ApiService extends BaseApiService {
   // ===========================
 
   async createHarvestPlan(data: any) {
-    return this.post('/harvest/plan', data);
+    return this.post<any>('/harvest/plan', data);
   }
 
   async getHarvestPlans(farmId: number, seasonYear?: number) {
     const params = seasonYear ? { season_year: String(seasonYear) } : undefined;
-    return this.get(`/harvest/plan/${farmId}`, params);
+    return this.get<any>(`/harvest/plan/${farmId}`, params);
   }
 
   async approveHarvestPlan(planId: number) {
-    return this.put(`/harvest/plan/${planId}/approve`);
+    return this.put<any>(`/harvest/plan/${planId}/approve`);
   }
 
   async getHarvestChecklist(planId: number) {
-    return this.get(`/harvest/checklist/${planId}`);
+    return this.get<any>(`/harvest/checklist/${planId}`);
   }
 
   async updateHarvestChecklist(planId: number, data: any) {
-    return this.put(`/harvest/checklist/${planId}`, data);
+    return this.put<any>(`/harvest/checklist/${planId}`, data);
   }
 
   // ===========================
@@ -902,7 +902,7 @@ export class ApiService extends BaseApiService {
   // ===========================
 
   async setDailyPickingRate(data: any) {
-    return this.post('/harvest/picking-rate', data);
+    return this.post<any>('/harvest/picking-rate', data);
   }
 
   async getDailyPickingRates(farmId: number, pickingType?: string, fromDate?: string, toDate?: string) {
@@ -910,7 +910,7 @@ export class ApiService extends BaseApiService {
     if (pickingType) params.picking_type = pickingType;
     if (fromDate) params.from_date = fromDate;
     if (toDate) params.to_date = toDate;
-    return this.get(`/harvest/picking-rate/${farmId}`, params);
+    return this.get<any>(`/harvest/picking-rate/${farmId}`, params);
   }
 
   // ===========================
@@ -918,14 +918,14 @@ export class ApiService extends BaseApiService {
   // ===========================
 
   async recordPickerWeighing(data: any) {
-    return this.post('/harvest/weighing', data);
+    return this.post<any>('/harvest/weighing', data);
   }
 
   async getPickerWeighingRecords(farmId: number, datePicked?: string, harvestPlanId?: number) {
     const params: Record<string, string> = {};
     if (datePicked) params.date_picked = datePicked;
     if (harvestPlanId) params.harvest_plan_id = String(harvestPlanId);
-    return this.get(`/harvest/weighing/${farmId}`, params);
+    return this.get<any>(`/harvest/weighing/${farmId}`, params);
   }
 
   // ===========================
@@ -933,36 +933,36 @@ export class ApiService extends BaseApiService {
   // ===========================
 
   async createProcessingBatch(data: any) {
-    return this.post('/harvest/processing/batch', data);
+    return this.post<any>('/harvest/processing/batch', data);
   }
 
   async getProcessingBatches(farmId: number, status?: string) {
     const params = status ? { status } : undefined;
-    return this.get(`/harvest/processing/${farmId}`, params);
+    return this.get<any>(`/harvest/processing/${farmId}`, params);
   }
 
   async updateBatchHopper(batchId: number, hopperWeightKg: number) {
-    return this.put(`/harvest/processing/${batchId}/hopper`, { hopper_weight_kg: hopperWeightKg });
+    return this.put<any>(`/harvest/processing/${batchId}/hopper`, { hopper_weight_kg: hopperWeightKg });
   }
 
   async updateBatchPulping(batchId: number, data: any) {
-    return this.put(`/harvest/processing/${batchId}/pulping`, data);
+    return this.put<any>(`/harvest/processing/${batchId}/pulping`, data);
   }
 
   async startBatchFermentation(batchId: number, fermentationStart: string) {
-    return this.put(`/harvest/processing/${batchId}/fermentation-start`, { fermentation_start: fermentationStart });
+    return this.put<any>(`/harvest/processing/${batchId}/fermentation-start`, { fermentation_start: fermentationStart });
   }
 
   async endBatchFermentation(batchId: number, fermentationEnd: string) {
-    return this.put(`/harvest/processing/${batchId}/fermentation-end`, { fermentation_end: fermentationEnd });
+    return this.put<any>(`/harvest/processing/${batchId}/fermentation-end`, { fermentation_end: fermentationEnd });
   }
 
   async startBatchDrying(batchId: number, data: any) {
-    return this.put(`/harvest/processing/${batchId}/drying`, data);
+    return this.put<any>(`/harvest/processing/${batchId}/drying`, data);
   }
 
   async completeBatch(batchId: number, data: any) {
-    return this.put(`/harvest/processing/${batchId}/complete`, data);
+    return this.put<any>(`/harvest/processing/${batchId}/complete`, data);
   }
 
   // ===========================
@@ -970,16 +970,16 @@ export class ApiService extends BaseApiService {
   // ===========================
 
   async logDrying(data: any) {
-    return this.post('/harvest/drying/log', data);
+    return this.post<any>('/harvest/drying/log', data);
   }
 
   async getDryingLogs(batchId: number) {
-    return this.get(`/harvest/drying/${batchId}/logs`);
+    return this.get<any>(`/harvest/drying/${batchId}/logs`);
   }
 
   async getDryingForecast(batchId: number, targetMoisture?: number) {
     const params = targetMoisture ? { target_moisture: String(targetMoisture) } : undefined;
-    return this.get(`/harvest/drying/${batchId}/forecast`, params);
+    return this.get<any>(`/harvest/drying/${batchId}/forecast`, params);
   }
 
   // ===========================
@@ -987,7 +987,7 @@ export class ApiService extends BaseApiService {
   // ===========================
 
   async getHarvestReport(farmId: number, seasonYear: number) {
-    return this.get(`/harvest/report/${farmId}`, { season_year: String(seasonYear) });
+    return this.get<any>(`/harvest/report/${farmId}`, { season_year: String(seasonYear) });
   }
 }
 

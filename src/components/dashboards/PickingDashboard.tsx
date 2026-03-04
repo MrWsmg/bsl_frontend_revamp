@@ -112,11 +112,11 @@ const PickingDashboard: React.FC<PickingDashboardProps> = ({ user }) => {
     setLoading(true);
     try {
       const [blocksData, workersData, sessionsData, summaryData, leaderData, priceData] = await Promise.all([
-        apiService.getBlocksForFarm(farmId).catch(() => []),
-        apiService.getWorkers().catch(() => []),
-        apiService.getPickingSessions(farmId, undefined, undefined).catch(() => []),
+        apiService.getBlocksForFarm(farmId).catch((): any[] => []),
+        apiService.getWorkers().catch((): any[] => []),
+        apiService.getPickingSessions(farmId, undefined, undefined).catch((): any[] => []),
         apiService.getDailyPickingSummary(farmId).catch(() => null),
-        apiService.getPickerLeaderboard(farmId).catch(() => []),
+        apiService.getPickerLeaderboard(farmId).catch((): any[] => []),
         apiService.getDailyPickingPrice(farmId).catch(() => null),
       ]);
       setBlocks(blocksData || []);
