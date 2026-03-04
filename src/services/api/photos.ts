@@ -41,7 +41,7 @@ export class PhotosApiService extends BaseApiService {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('worker_id', String(workerId));
-    return this.post<PhotoUploadResponse>('/upload-worker-id-image', formData);
+    return this.post<PhotoUploadResponse>('/photos/upload-worker-id-image', formData);
   }
 
   async getUserPhotos(userId: number): Promise<PhotoInfo> {

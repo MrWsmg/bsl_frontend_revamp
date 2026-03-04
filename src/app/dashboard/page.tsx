@@ -2,41 +2,37 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
-import { AdminDashboard } from "@/components/dashboards/AdminDashboard";
-import { PayrollDashboard } from "@/components/dashboards/PayrollDashboard";
-import { StockDashboard } from "@/components/dashboards/StockDashboard";
-import { FarmClerkDashboard } from "@/components/dashboards/FarmClerkDashboard";
-import { SupervisorDashboard } from "@/components/dashboards/SupervisorDashboard";
-import { WorkerDashboard } from "@/components/dashboards/WorkerDashboard";
-import { ManagerDashboard } from "@/components/dashboards/ManagerDashboard";
-import { AccountManagerDashboard } from "@/components/dashboards/AccountManagerDashboard";
-import { FinancialControllerDashboard } from "@/components/dashboards/FinancialControllerDashboard";
-import { PayrollMasterDashboard } from "@/components/dashboards/PayrollMasterDashboard";
-import { FactorySupervisorDashboard } from "@/components/dashboards/FactorySupervisorDashboard";
-import { PickingDashboard } from "@/components/dashboards/PickingDashboard";
-import { GodownManagerDashboard } from "@/components/dashboards/GodownManagerDashboard";
-import { HarvestOperationsDashboard } from "@/components/dashboards/HarvestOperationsDashboard";
 import { Toaster } from "@/components/ui/sonner";
 import { USER_ROLES } from "@/constants";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import dynamic from "next/dynamic";
 
-// Dashboard component mapping
+const LoadingSpinner = () => (
+  <div className="min-h-screen bg-background flex items-center justify-center">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+      <p className="text-muted-foreground">Loading...</p>
+    </div>
+  </div>
+);
+
+// Dashboard component mapping — each is a separate chunk loaded on demand
 const DashboardComponents: Record<string, React.ComponentType<any>> = {
-  [USER_ROLES.ADMIN]: AdminDashboard,
-  [USER_ROLES.PAYROLL]: PayrollDashboard,
-  [USER_ROLES.STOCK]: StockDashboard,
-  [USER_ROLES.FARM_CLERK]: FarmClerkDashboard,
-  [USER_ROLES.SUPERVISOR]: SupervisorDashboard,
-  [USER_ROLES.WORKER]: WorkerDashboard,
-  [USER_ROLES.MANAGER]: ManagerDashboard,
-  [USER_ROLES.ACCOUNT_MANAGER]: AccountManagerDashboard,
-  [USER_ROLES.FINANCIAL_CONTROLLER]: FinancialControllerDashboard,
-  [USER_ROLES.PAYROLL_MASTER]: PayrollMasterDashboard,
-  [USER_ROLES.FACTORY_SUPERVISOR]: FactorySupervisorDashboard,
-  [USER_ROLES.SCALE_SUPERVISOR]: PickingDashboard,
-  [USER_ROLES.GODOWN_MANAGER]: GodownManagerDashboard,
-  [USER_ROLES.GENERAL_MANAGER]: HarvestOperationsDashboard,
+  [USER_ROLES.ADMIN]: dynamic(() => import("@/components/dashboards/AdminDashboard").then(m => ({ default: m.AdminDashboard })), { loading: LoadingSpinner }),
+  [USER_ROLES.PAYROLL]: dynamic(() => import("@/components/dashboards/PayrollDashboard").then(m => ({ default: m.PayrollDashboard })), { loading: LoadingSpinner }),
+  [USER_ROLES.STOCK]: dynamic(() => import("@/components/dashboards/StockDashboard").then(m => ({ default: m.StockDashboard })), { loading: LoadingSpinner }),
+  [USER_ROLES.FARM_CLERK]: dynamic(() => import("@/components/dashboards/FarmClerkDashboard").then(m => ({ default: m.FarmClerkDashboard })), { loading: LoadingSpinner }),
+  [USER_ROLES.SUPERVISOR]: dynamic(() => import("@/components/dashboards/SupervisorDashboard").then(m => ({ default: m.SupervisorDashboard })), { loading: LoadingSpinner }),
+  [USER_ROLES.WORKER]: dynamic(() => import("@/components/dashboards/WorkerDashboard").then(m => ({ default: m.WorkerDashboard })), { loading: LoadingSpinner }),
+  [USER_ROLES.MANAGER]: dynamic(() => import("@/components/dashboards/ManagerDashboard").then(m => ({ default: m.ManagerDashboard })), { loading: LoadingSpinner }),
+  [USER_ROLES.ACCOUNT_MANAGER]: dynamic(() => import("@/components/dashboards/AccountManagerDashboard").then(m => ({ default: m.AccountManagerDashboard })), { loading: LoadingSpinner }),
+  [USER_ROLES.FINANCIAL_CONTROLLER]: dynamic(() => import("@/components/dashboards/FinancialControllerDashboard").then(m => ({ default: m.FinancialControllerDashboard })), { loading: LoadingSpinner }),
+  [USER_ROLES.PAYROLL_MASTER]: dynamic(() => import("@/components/dashboards/PayrollMasterDashboard").then(m => ({ default: m.PayrollMasterDashboard })), { loading: LoadingSpinner }),
+  [USER_ROLES.FACTORY_SUPERVISOR]: dynamic(() => import("@/components/dashboards/FactorySupervisorDashboard").then(m => ({ default: m.FactorySupervisorDashboard })), { loading: LoadingSpinner }),
+  [USER_ROLES.SCALE_SUPERVISOR]: dynamic(() => import("@/components/dashboards/PickingDashboard").then(m => ({ default: m.PickingDashboard })), { loading: LoadingSpinner }),
+  [USER_ROLES.GODOWN_MANAGER]: dynamic(() => import("@/components/dashboards/GodownManagerDashboard").then(m => ({ default: m.GodownManagerDashboard })), { loading: LoadingSpinner }),
+  [USER_ROLES.GENERAL_MANAGER]: dynamic(() => import("@/components/dashboards/HarvestOperationsDashboard").then(m => ({ default: m.HarvestOperationsDashboard })), { loading: LoadingSpinner }),
 };
 
 export default function DashboardPage() {
@@ -52,14 +48,7 @@ export default function DashboardPage() {
 
   // Show loading state while checking authentication
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   // Show nothing while redirecting

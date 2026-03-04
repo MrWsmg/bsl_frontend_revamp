@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Loader2 } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -68,6 +69,7 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraTarget, setCameraTarget] = useState<UploadKind | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [videoReady, setVideoReady] = useState(false);
 
   const fileInputRefs = useRef<{ photo: HTMLInputElement | null; id: HTMLInputElement | null }>({
     photo: null,
@@ -114,6 +116,7 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
     setCameraActive(false);
     setCameraTarget(null);
     setCameraError(null);
+    setVideoReady(false);
   }, []);
 
   const handleMediaSelection = useCallback((type: 'photo' | 'id', file: File | null) => {
@@ -228,15 +231,17 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
     );
   }, [cameraActive, cameraTarget, handleMediaSelection, stopCamera]);
 
-  useEffect(() => {
-    if (cameraActive && videoRef.current && streamRef.current) {
-      videoRef.current.srcObject = streamRef.current;
-      videoRef.current.play().catch(() => {});
+  // Callback ref: fires as soon as the <video> element mounts inside the Dialog,
+  // guaranteeing srcObject is assigned even if the Dialog portal renders after
+  // the cameraActive state change.
+  const videoCallbackRef = useCallback((node: HTMLVideoElement | null) => {
+    videoRef.current = node;
+    if (node && streamRef.current) {
+      setVideoReady(false);
+      node.srcObject = streamRef.current;
+      node.play().catch(() => {});
     }
-    if (!cameraActive && videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-  }, [cameraActive]);
+  }, []);
 
   useEffect(() => {
     if (!isOpen) stopCamera();
@@ -680,7 +685,26 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
           </DialogHeader>
           <section className="space-y-4">
             <figure className="relative bg-black rounded-xl overflow-hidden aspect-video">
-              <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+              <video
+                ref={videoCallbackRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+                onLoadedMetadata={() => {
+                  if (videoRef.current && videoRef.current.videoWidth > 0 && videoRef.current.videoHeight > 0) {
+                    setVideoReady(true);
+                  }
+                }}
+              />
+              {!videoReady && cameraActive && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                  <div className="text-white text-center">
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
+                    <p className="text-sm">Initializing camera...</p>
+                  </div>
+                </div>
+              )}
             </figure>
             {cameraError && (
               <output className="block text-sm text-red-300 bg-red-900/30 border border-red-500/40 rounded-md px-3 py-2">
@@ -689,8 +713,8 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
             )}
             <menu className="flex flex-wrap gap-3 list-none p-0 m-0">
               <li className="flex-1 min-w-[140px]">
-                <Button onClick={handleCameraSnapshot} className="w-full">
-                  Capture Photo
+                <Button onClick={handleCameraSnapshot} disabled={!videoReady} className="w-full">
+                  {videoReady ? 'Capture Photo' : 'Waiting for camera...'}
                 </Button>
               </li>
               <li className="flex-1 min-w-[140px]">

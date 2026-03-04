@@ -1,5 +1,15 @@
 import { BaseApiService } from './base';
 import { AttendanceRecord, FaceVerificationResult } from '../../types';
+import type { AttendanceReportResponse } from '../../types/farm-clerk';
+
+export interface ManualAttendanceParams {
+  worker_id: number;
+  farm_id: number;
+  date: string;
+  status: 'present' | 'absent' | 'late';
+  check_in_time?: string;
+  notes?: string;
+}
 
 export interface CheckInParams {
   worker_id: number;
@@ -85,5 +95,19 @@ export class AttendanceApiService extends BaseApiService {
    */
   async manualCheckOut(params: ManualCheckInParams): Promise<AttendanceRecord> {
     return this.post<AttendanceRecord>('/supervisor/attendance/manual-checkout', params);
+  }
+
+  /**
+   * Phase 3 — Manual attendance entry with date/time (backdated or no-camera fallback)
+   */
+  async createManualAttendance(params: ManualAttendanceParams): Promise<AttendanceRecord> {
+    return this.post<AttendanceRecord>('/supervisor/attendance', params);
+  }
+
+  /**
+   * Phase 5 — Daily attendance report for a farm
+   */
+  async getAttendanceReport(farmId: number, reportDate: string): Promise<AttendanceReportResponse> {
+    return this.get<AttendanceReportResponse>(`/supervisor/attendance/report/${farmId}`, { report_date: reportDate });
   }
 }

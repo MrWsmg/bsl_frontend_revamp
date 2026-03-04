@@ -200,7 +200,7 @@ export function AttendanceCheckInForm({
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel>Select Farm</FieldLabel>
-              <Select value={field.value} onValueChange={field.onChange}>
+              <Select value={field.value || undefined} onValueChange={field.onChange}>
                 <SelectTrigger aria-invalid={fieldState.invalid}>
                   <SelectValue placeholder="Choose a farm..." />
                 </SelectTrigger>
