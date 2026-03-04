@@ -7,6 +7,7 @@ import ItemRequests from "./ItemRequests";
 
 interface Farm {
   id: number;
+  farm_id: number;
   name: string;
   location: string;
   crops: string;
