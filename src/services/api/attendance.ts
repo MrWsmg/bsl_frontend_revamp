@@ -62,4 +62,28 @@ export class AttendanceApiService extends BaseApiService {
   async getTodayAttendance(farmId: number): Promise<AttendanceRecord[]> {
     return this.get<AttendanceRecord[]>(`/supervisor/attendance/today/${farmId}`);
   }
+
+  /**
+   * Checkout with face verification
+   */
+  async checkOutWithFaceVerification({
+    worker_id,
+    farm_id,
+    file,
+    notes,
+  }: Omit<CheckInParams, 'status'>): Promise<FaceVerificationResult> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('worker_id', String(worker_id));
+    formData.append('farm_id', String(farm_id));
+    if (notes) formData.append('notes', notes);
+    return this.post<FaceVerificationResult>('/supervisor/attendance/checkout', formData);
+  }
+
+  /**
+   * Manual checkout without face verification
+   */
+  async manualCheckOut(params: ManualCheckInParams): Promise<AttendanceRecord> {
+    return this.post<AttendanceRecord>('/supervisor/attendance/manual-checkout', params);
+  }
 }

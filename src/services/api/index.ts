@@ -843,6 +843,152 @@ export class ApiService extends BaseApiService {
   async getAuthorizationChain(entityType: string, entityId: number) {
     return this.get(`/traceability/authorization-chain/${entityType}/${entityId}`);
   }
+
+  // ===========================
+  // Yield Forecasting
+  // ===========================
+
+  async createYieldSample(data: any) {
+    return this.post('/yield/samples', data);
+  }
+
+  async getYieldSamples(farmId: number, blockId?: number, limit?: number) {
+    const params: Record<string, string> = {};
+    if (blockId) params.block_id = String(blockId);
+    if (limit) params.limit = String(limit);
+    return this.get(`/yield/samples/${farmId}`, params);
+  }
+
+  async createYieldForecast(farmId: number, data: any) {
+    return this.post(`/yield/forecast/${farmId}`, data);
+  }
+
+  async getYieldForecasts(farmId: number, seasonYear?: number) {
+    const params = seasonYear ? { season_year: String(seasonYear) } : undefined;
+    return this.get(`/yield/forecast/${farmId}`, params);
+  }
+
+  async confirmYieldForecast(forecastId: number) {
+    return this.put(`/yield/forecast/${forecastId}/confirm`);
+  }
+
+  // ===========================
+  // Harvest Planning
+  // ===========================
+
+  async createHarvestPlan(data: any) {
+    return this.post('/harvest/plan', data);
+  }
+
+  async getHarvestPlans(farmId: number, seasonYear?: number) {
+    const params = seasonYear ? { season_year: String(seasonYear) } : undefined;
+    return this.get(`/harvest/plan/${farmId}`, params);
+  }
+
+  async approveHarvestPlan(planId: number) {
+    return this.put(`/harvest/plan/${planId}/approve`);
+  }
+
+  async getHarvestChecklist(planId: number) {
+    return this.get(`/harvest/checklist/${planId}`);
+  }
+
+  async updateHarvestChecklist(planId: number, data: any) {
+    return this.put(`/harvest/checklist/${planId}`, data);
+  }
+
+  // ===========================
+  // Daily Picking Rate (GM)
+  // ===========================
+
+  async setDailyPickingRate(data: any) {
+    return this.post('/harvest/picking-rate', data);
+  }
+
+  async getDailyPickingRates(farmId: number, pickingType?: string, fromDate?: string, toDate?: string) {
+    const params: Record<string, string> = {};
+    if (pickingType) params.picking_type = pickingType;
+    if (fromDate) params.from_date = fromDate;
+    if (toDate) params.to_date = toDate;
+    return this.get(`/harvest/picking-rate/${farmId}`, params);
+  }
+
+  // ===========================
+  // Picker Weighing (Harvest)
+  // ===========================
+
+  async recordPickerWeighing(data: any) {
+    return this.post('/harvest/weighing', data);
+  }
+
+  async getPickerWeighingRecords(farmId: number, datePicked?: string, harvestPlanId?: number) {
+    const params: Record<string, string> = {};
+    if (datePicked) params.date_picked = datePicked;
+    if (harvestPlanId) params.harvest_plan_id = String(harvestPlanId);
+    return this.get(`/harvest/weighing/${farmId}`, params);
+  }
+
+  // ===========================
+  // Coffee Processing Batches
+  // ===========================
+
+  async createProcessingBatch(data: any) {
+    return this.post('/harvest/processing/batch', data);
+  }
+
+  async getProcessingBatches(farmId: number, status?: string) {
+    const params = status ? { status } : undefined;
+    return this.get(`/harvest/processing/${farmId}`, params);
+  }
+
+  async updateBatchHopper(batchId: number, hopperWeightKg: number) {
+    return this.put(`/harvest/processing/${batchId}/hopper`, { hopper_weight_kg: hopperWeightKg });
+  }
+
+  async updateBatchPulping(batchId: number, data: any) {
+    return this.put(`/harvest/processing/${batchId}/pulping`, data);
+  }
+
+  async startBatchFermentation(batchId: number, fermentationStart: string) {
+    return this.put(`/harvest/processing/${batchId}/fermentation-start`, { fermentation_start: fermentationStart });
+  }
+
+  async endBatchFermentation(batchId: number, fermentationEnd: string) {
+    return this.put(`/harvest/processing/${batchId}/fermentation-end`, { fermentation_end: fermentationEnd });
+  }
+
+  async startBatchDrying(batchId: number, data: any) {
+    return this.put(`/harvest/processing/${batchId}/drying`, data);
+  }
+
+  async completeBatch(batchId: number, data: any) {
+    return this.put(`/harvest/processing/${batchId}/complete`, data);
+  }
+
+  // ===========================
+  // Drying Monitoring
+  // ===========================
+
+  async logDrying(data: any) {
+    return this.post('/harvest/drying/log', data);
+  }
+
+  async getDryingLogs(batchId: number) {
+    return this.get(`/harvest/drying/${batchId}/logs`);
+  }
+
+  async getDryingForecast(batchId: number, targetMoisture?: number) {
+    const params = targetMoisture ? { target_moisture: String(targetMoisture) } : undefined;
+    return this.get(`/harvest/drying/${batchId}/forecast`, params);
+  }
+
+  // ===========================
+  // Harvest Report
+  // ===========================
+
+  async getHarvestReport(farmId: number, seasonYear: number) {
+    return this.get(`/harvest/report/${farmId}`, { season_year: String(seasonYear) });
+  }
 }
 
 // Create and export a singleton instance
