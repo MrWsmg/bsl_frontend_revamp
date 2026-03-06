@@ -42,10 +42,10 @@ export const SupervisorTasksSection: React.FC = () => {
       worker_id: 0,
       farm_id: 0,
       task_code: '',
-      block: '',
+      block_id: undefined,
       crop_type: '',
-      quantity: 0,
-      rate: 0,
+      quantity: undefined,
+      rate: undefined,
       date_worked: new Date().toISOString().split('T')[0],
       payment_method: 'per_task',
     },
@@ -104,8 +104,8 @@ export const SupervisorTasksSection: React.FC = () => {
         payment_method: data.payment_method,
       };
 
-      if (data.block?.trim()) {
-        taskData.block = data.block.trim();
+      if (data.block_id) {
+        taskData.block_id = data.block_id;
       }
       if (data.crop_type?.trim()) {
         taskData.crop_type = data.crop_type.trim();
@@ -115,7 +115,7 @@ export const SupervisorTasksSection: React.FC = () => {
 
       toast.success('Task assigned successfully');
       setShowAssignModal(false);
-      assignForm.reset();
+      assignForm.reset({ worker_id: 0, farm_id: 0, task_code: '', block_id: undefined, crop_type: '', quantity: undefined, rate: undefined, date_worked: new Date().toISOString().split('T')[0], payment_method: 'per_task' });
       setBlocks([]);
       refetchTasks();
     } catch (error: any) {
@@ -239,7 +239,7 @@ export const SupervisorTasksSection: React.FC = () => {
 
   const handleCloseAssignModal = () => {
     setShowAssignModal(false);
-    assignForm.reset();
+    assignForm.reset({ worker_id: 0, farm_id: 0, task_code: '', block_id: undefined, crop_type: '', quantity: undefined, rate: undefined, date_worked: new Date().toISOString().split('T')[0], payment_method: 'per_task' });
     setBlocks([]);
   };
 
@@ -294,7 +294,7 @@ export const SupervisorTasksSection: React.FC = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {workers
-              .filter((w: any) => w.is_active)
+              .filter((w: any) => w.is_active !== false)
               .map((worker: any) => (
                 <div key={worker.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                   <div className="flex items-center mb-3">
@@ -427,7 +427,7 @@ export const SupervisorTasksSection: React.FC = () => {
                         <SelectValue placeholder="Select a Worker" />
                       </SelectTrigger>
                       <SelectContent>
-                        {workers?.filter((w: any) => w.is_active).map((worker: any) => (
+                        {workers?.filter((w: any) => w.is_active !== false).map((worker: any) => (
                           <SelectItem key={worker.id} value={String(worker.id)}>
                             {worker.full_name || worker.name} - {worker.phone}
                           </SelectItem>
@@ -574,18 +574,21 @@ export const SupervisorTasksSection: React.FC = () => {
 
               {/* Block */}
               <Controller
-                name="block"
+                name="block_id"
                 control={assignForm.control}
                 render={({ field }) => (
                   <Field>
                     <FieldLabel>Block</FieldLabel>
-                    <Select value={field.value || ''} onValueChange={field.onChange}>
+                    <Select
+                      value={field.value ? String(field.value) : ''}
+                      onValueChange={(val) => field.onChange(Number(val))}
+                    >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select Block" />
+                        <SelectValue placeholder={watchedFarmId ? 'Select Block' : 'Select farm first'} />
                       </SelectTrigger>
                       <SelectContent>
                         {blocks.map((block: any) => (
-                          <SelectItem key={block.id || block.name} value={block.name || block.block_name}>
+                          <SelectItem key={block.id} value={String(block.id)}>
                             {block.name || block.block_name}
                           </SelectItem>
                         ))}
@@ -650,7 +653,7 @@ export const SupervisorTasksSection: React.FC = () => {
                     <SelectValue placeholder="Select a Worker" />
                   </SelectTrigger>
                   <SelectContent>
-                    {workers?.filter((w: any) => w.is_active).map((worker: any) => (
+                    {workers?.filter((w: any) => w.is_active !== false).map((worker: any) => (
                       <SelectItem key={worker.id} value={String(worker.id)}>
                         {worker.full_name || worker.name}
                       </SelectItem>

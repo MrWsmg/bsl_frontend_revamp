@@ -263,6 +263,7 @@ export function FaceVerificationCapture({
               <img
                 src={capturedImage}
                 alt="Captured verification"
+                crossOrigin="anonymous"
                 className="w-full rounded-lg"
               />
               {isProcessing && (

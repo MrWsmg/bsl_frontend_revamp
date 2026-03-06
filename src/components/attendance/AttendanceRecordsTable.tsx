@@ -311,6 +311,7 @@ export function AttendanceRecordsTable({
               <img
                 src={selectedPhoto}
                 alt="Verification"
+                crossOrigin="anonymous"
                 className="max-w-full max-h-[70vh] rounded-lg mx-auto"
               />
             )}

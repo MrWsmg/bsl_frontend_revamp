@@ -248,6 +248,7 @@ export function WorkerPhotoUploadModal({
                     <img
                       src={previewUrl}
                       alt="Preview"
+                      crossOrigin="anonymous"
                       className="w-full h-64 object-contain bg-gray-50"
                     />
                     {uploadSuccess && (

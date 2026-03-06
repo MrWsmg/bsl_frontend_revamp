@@ -5,10 +5,10 @@ export const taskAssignmentSchema = z.object({
   worker_id: z.number().min(1, "Please select a worker"),
   farm_id: z.number().min(1, "Please select a farm"),
   task_code: z.string().min(1, "Please select a task code"),
-  block: z.string().optional(),
+  block_id: z.number().min(1, "Please select a block").optional(),
   crop_type: z.string().optional(),
   quantity: z.number().positive("Quantity must be greater than 0").optional(),
-  rate: z.number().positive("Rate must be greater than 0"),
+  rate: z.number({ required_error: "Rate is required" }).positive("Rate must be greater than 0"),
   date_worked: z.string().min(1, "Please select a date"),
   payment_method: z.enum(["per_task", "per_day"]),
 });

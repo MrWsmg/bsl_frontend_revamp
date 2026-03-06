@@ -65,7 +65,7 @@ export class WorkersApiService extends BaseApiService {
    */
   async startWorkerTask(workerId: number, taskId: string | number): Promise<any> {
     const taskIdStr = typeof taskId === 'string' ? taskId : taskId.toString();
-    return this.post<any>(`/workers/${workerId}/start-task/${taskIdStr}`);
+    return this.post<any>(`/supervisor/workers/${workerId}/start-task/${taskIdStr}`);
   }
 
   /**

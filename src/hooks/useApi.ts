@@ -34,7 +34,7 @@ export const useApi = <T>(
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An error occurred';
       setError(errorMessage);
-      throw err;
+      return null;
     } finally {
       setLoading(false);
     }
