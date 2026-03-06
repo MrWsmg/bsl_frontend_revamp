@@ -177,12 +177,14 @@ export function AttendanceRecordsTable({
                   <TableRow className="hover:bg-gray-50">
                     <TableCell>
                       <address className="not-italic">
-                        <strong className="block font-medium text-gray-900">{record.worker_name}</strong>
+                        <strong className="block font-medium text-gray-900">
+                          {record.worker_name || record.worker?.full_name || record.worker?.name || '—'}
+                        </strong>
                         <small className="text-xs text-gray-500">ID: {record.worker_id}</small>
                       </address>
                     </TableCell>
                     <TableCell className="text-sm text-gray-900">
-                      {record.farm_name || `Farm ${record.farm_id}`}
+                      {record.farm_name || record.farm?.name || `Farm ${record.farm_id}`}
                     </TableCell>
                     <TableCell>
                       <time dateTime={iso} className="text-sm">

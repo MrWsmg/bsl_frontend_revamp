@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Camera, RefreshCw, CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { Worker } from '../../types';
 
@@ -29,17 +29,21 @@ export function FaceVerificationCapture({
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Connect stream to video element once both are available
+  useEffect(() => {
+    if (cameraStream && videoRef.current) {
+      videoRef.current.srcObject = cameraStream;
+    }
+  }, [cameraStream, isCameraActive]);
+
   // Start camera
   const startCamera = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'user', width: 1280, height: 720 }
       });
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-
+      // Set state first — the useEffect above will assign srcObject after the
+      // <video> element renders (videoRef.current was null before isCameraActive=true)
       setCameraStream(stream);
       setIsCameraActive(true);
     } catch (error) {

@@ -1,5 +1,5 @@
 // Application constants
-export const API_BASE_URL = 'https://bsl-api.fyatua.online/api';
+export const API_BASE_URL = 'http://localhost:8000/api';
 
 // User roles
 export const USER_ROLES = {

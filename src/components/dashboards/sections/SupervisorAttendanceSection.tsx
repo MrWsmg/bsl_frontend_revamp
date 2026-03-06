@@ -58,7 +58,7 @@ export function SupervisorAttendanceSection() {
   const [manualForm, setManualForm] = useState({
     worker_id: '',
     date: today,
-    status: 'present' as 'present' | 'absent' | 'late',
+    status: 'present' as 'present' | 'absent' | 'late' | 'half_day',
     check_in_time: '',
     notes: '',
   });
@@ -76,14 +76,15 @@ export function SupervisorAttendanceSection() {
     return apiService.attendance.getSupervisorAttendance(params);
   }, [selectedFarmId, filters]);
 
-  const { data: workers, loading: loadingWorkers, refetch: refetchWorkers } = useApi(getWorkers);
+  const { data: workers, loading: loadingWorkers, refetch: refetchWorkers, setData: setWorkers } = useApi(getWorkers);
   const { data: farms, loading: loadingFarms } = useApi(getFarms);
   const { data: attendanceRecords, loading: loadingAttendance, refetch: refetchAttendance } = useApi(getAttendance);
 
   // Auto-select first farm when farms load
   useEffect(() => {
-    if (farms && farms.length === 1 && farms[0].id != null && !selectedFarmId) {
-      setSelectedFarmId(String(farms[0].id));
+    if (farms && farms.length === 1 && !selectedFarmId) {
+      const farmId = (farms[0] as any).id ?? (farms[0] as any).farm_id;
+      if (farmId != null) setSelectedFarmId(String(farmId));
     }
   }, [farms, selectedFarmId]);
 
@@ -123,18 +124,18 @@ export function SupervisorAttendanceSection() {
     }
     setSavingManual(true);
     try {
-      await apiService.attendance.createManualAttendance({
+      await apiService.attendance.manualCheckIn({
         worker_id: Number(manualForm.worker_id),
         farm_id: Number(selectedFarmId),
         date: manualForm.date,
-        status: manualForm.status,
         check_in_time: manualForm.check_in_time
           ? `${manualForm.date}T${manualForm.check_in_time}:00`
           : undefined,
+        status: manualForm.status,
         notes: manualForm.notes || undefined,
       });
       toast.success('Manual attendance recorded.');
-      setManualForm({ worker_id: '', date: today, status: 'present', check_in_time: '', notes: '' });
+      setManualForm({ worker_id: '', date: today, status: 'present' as const, check_in_time: '', notes: '' });
       refetchAttendance();
     } catch (err: any) {
       toast.error(err?.response?.data?.detail || err?.message || 'Failed to record attendance.');
@@ -148,7 +149,16 @@ export function SupervisorAttendanceSection() {
     setShowPhotoModal(true);
   };
 
-  const handlePhotoUploaded = () => {
+  const handlePhotoUploaded = (workerId: number) => {
+    // Optimistically mark the worker as face-registered so the UI
+    // updates immediately, regardless of whether /workers returns face_id
+    if (workers) {
+      setWorkers(
+        (workers as Worker[]).map((w) =>
+          w.id === workerId ? { ...w, face_id: w.face_id || 'registered' } : w
+        )
+      );
+    }
     refetchWorkers();
     setPhotoTargetWorker(null);
   };
@@ -191,11 +201,14 @@ export function SupervisorAttendanceSection() {
             <SelectValue placeholder="Choose a farm…" />
           </SelectTrigger>
           <SelectContent>
-            {(farms || []).filter((f: any) => f.id != null).map((farm: any) => (
-              <SelectItem key={farm.id} value={String(farm.id)}>
-                {farm.name}{farm.location ? ` — ${farm.location}` : ''}
-              </SelectItem>
-            ))}
+            {(farms || []).filter((f: any) => (f.id ?? f.farm_id) != null).map((farm: any) => {
+              const farmId = farm.id ?? farm.farm_id;
+              return (
+                <SelectItem key={farmId} value={String(farmId)}>
+                  {farm.name}{farm.location ? ` — ${farm.location}` : ''}
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
         {selectedFarmId && (
@@ -451,6 +464,7 @@ export function SupervisorAttendanceSection() {
                           <SelectItem value="present">Present</SelectItem>
                           <SelectItem value="absent">Absent</SelectItem>
                           <SelectItem value="late">Late</SelectItem>
+                          <SelectItem value="half_day">Half Day</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

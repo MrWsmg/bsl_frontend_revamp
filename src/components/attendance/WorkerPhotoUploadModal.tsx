@@ -105,13 +105,16 @@ export function WorkerPhotoUploadModal({
       });
 
       if (response.success) {
-        toast.success(
-          response.face_indexed
-            ? 'Photo uploaded and face indexed successfully!'
-            : 'Photo uploaded successfully!'
-        );
+        const indexingFailed = response.message?.toLowerCase().includes('face indexing failed');
+        if (indexingFailed) {
+          toast.warning(
+            'Photo saved but face could not be indexed. Re-upload a clearer, front-facing photo so this worker can use face check-in.'
+          );
+        } else {
+          toast.success('Photo uploaded and face indexed successfully!');
+          onPhotoUploaded?.(selectedWorker.id);
+        }
         setUploadSuccess(true);
-        onPhotoUploaded?.(selectedWorker.id);
 
         // Auto-close after 1.5 seconds on success
         setTimeout(() => {

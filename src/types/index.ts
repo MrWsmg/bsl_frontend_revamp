@@ -335,11 +335,13 @@ export interface AnalyticsFilters {
 export interface AttendanceRecord {
   id: number;
   worker_id: number;
-  worker_name: string;
+  worker_name?: string;          // flat field (some endpoints)
+  worker?: { id: number; name?: string; full_name?: string; [key: string]: any }; // nested object
   farm_id: number;
-  farm_name?: string;
+  farm_name?: string;            // flat field (some endpoints)
+  farm?: { id: number; name?: string; [key: string]: any }; // nested object
   date: string;
-  status: 'present' | 'absent' | 'leave' | 'sick';
+  status: 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'sick';
   check_in_time?: string;
   check_out_time?: string;
   hours_worked?: number;
@@ -607,6 +609,7 @@ export interface FaceVerificationResult {
   attendance_id: number;
   confidence?: number;
   worker_name?: string;
+  hours_worked?: number;
   face_verification_status: 'verified' | 'failed' | 'manual';
 }
 

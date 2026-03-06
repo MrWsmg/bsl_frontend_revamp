@@ -2,40 +2,41 @@ import { BaseApiService } from './base';
 import { AttendanceRecord, FaceVerificationResult } from '../../types';
 import type { AttendanceReportResponse } from '../../types/farm-clerk';
 
-export interface ManualAttendanceParams {
-  worker_id: number;
-  farm_id: number;
-  date: string;
-  status: 'present' | 'absent' | 'late';
-  check_in_time?: string;
-  notes?: string;
-}
+export type AttendanceStatus = 'present' | 'absent' | 'late' | 'half_day';
 
 export interface CheckInParams {
   worker_id: number;
   farm_id: number;
   file: File;
-  status?: 'present' | 'absent' | 'leave' | 'sick';
+  status?: AttendanceStatus;
   notes?: string;
 }
 
 export interface ManualCheckInParams {
   worker_id: number;
   farm_id: number;
-  status?: 'present' | 'absent' | 'leave' | 'sick';
+  date?: string;
+  check_in_time?: string;
+  status?: AttendanceStatus;
   notes?: string;
+}
+
+export interface ManualCheckOutParams {
+  worker_id: number;
+  attendance_id: number;
+  check_out_time?: string;
 }
 
 export class AttendanceApiService extends BaseApiService {
   /**
-   * Check in attendance with face verification
+   * Check in with face verification — POST /supervisor/attendance/checkin
    */
   async checkInWithFaceVerification({
     worker_id,
     farm_id,
     file,
     status = 'present',
-    notes
+    notes,
   }: CheckInParams): Promise<FaceVerificationResult> {
     const formData = new FormData();
     formData.append('file', file);
@@ -43,19 +44,45 @@ export class AttendanceApiService extends BaseApiService {
     formData.append('farm_id', String(farm_id));
     if (status) formData.append('status', status);
     if (notes) formData.append('notes', notes);
-
     return this.post<FaceVerificationResult>('/supervisor/attendance/checkin', formData);
   }
 
   /**
-   * Manual check-in without face verification
+   * Manual check-in — POST /workers/{worker_id}/check-in
    */
-  async manualCheckIn(params: ManualCheckInParams): Promise<AttendanceRecord> {
-    return this.post<AttendanceRecord>('/supervisor/attendance/manual-checkin', params);
+  async manualCheckIn({
+    worker_id,
+    farm_id,
+    date,
+    check_in_time,
+    status = 'present',
+    notes,
+  }: ManualCheckInParams): Promise<AttendanceRecord> {
+    const today = new Date().toISOString().split('T')[0];
+    return this.post<AttendanceRecord>(`/workers/${worker_id}/check-in`, {
+      farm_id,
+      date: date || today,
+      check_in_time: check_in_time || new Date().toISOString(),
+      status,
+      notes,
+    });
   }
 
   /**
-   * Get attendance records for a supervisor
+   * Manual check-out — PUT /workers/{worker_id}/check-out/{attendance_id}?check_out_time=...
+   */
+  async manualCheckOut({
+    worker_id,
+    attendance_id,
+    check_out_time,
+  }: ManualCheckOutParams): Promise<AttendanceRecord> {
+    const time = check_out_time || new Date().toISOString();
+    const params = new URLSearchParams({ check_out_time: time });
+    return this.put<AttendanceRecord>(`/workers/${worker_id}/check-out/${attendance_id}?${params}`);
+  }
+
+  /**
+   * Get attendance records — GET /supervisor/attendance
    */
   async getSupervisorAttendance(filters?: {
     farm_id?: number;
@@ -67,14 +94,15 @@ export class AttendanceApiService extends BaseApiService {
   }
 
   /**
-   * Get today's attendance for a farm
+   * Get today's attendance for a farm — reuses getSupervisorAttendance with today's date
    */
   async getTodayAttendance(farmId: number): Promise<AttendanceRecord[]> {
-    return this.get<AttendanceRecord[]>(`/supervisor/attendance/today/${farmId}`);
+    const today = new Date().toISOString().split('T')[0];
+    return this.getSupervisorAttendance({ farm_id: farmId, start_date: today, end_date: today });
   }
 
   /**
-   * Checkout with face verification
+   * Check out with face verification — POST /supervisor/attendance/checkout
    */
   async checkOutWithFaceVerification({
     worker_id,
@@ -91,21 +119,7 @@ export class AttendanceApiService extends BaseApiService {
   }
 
   /**
-   * Manual checkout without face verification
-   */
-  async manualCheckOut(params: ManualCheckInParams): Promise<AttendanceRecord> {
-    return this.post<AttendanceRecord>('/supervisor/attendance/manual-checkout', params);
-  }
-
-  /**
-   * Phase 3 — Manual attendance entry with date/time (backdated or no-camera fallback)
-   */
-  async createManualAttendance(params: ManualAttendanceParams): Promise<AttendanceRecord> {
-    return this.post<AttendanceRecord>('/supervisor/attendance', params);
-  }
-
-  /**
-   * Phase 5 — Daily attendance report for a farm
+   * Daily attendance report — GET /supervisor/attendance/report/{farm_id}?report_date=
    */
   async getAttendanceReport(farmId: number, reportDate: string): Promise<AttendanceReportResponse> {
     return this.get<AttendanceReportResponse>(`/supervisor/attendance/report/${farmId}`, { report_date: reportDate });

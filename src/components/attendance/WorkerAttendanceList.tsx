@@ -27,6 +27,7 @@ type CaptureMode = 'checkin' | 'checkout';
 
 interface WorkerWithStatus extends Worker {
   todayStatus: WorkerStatus;
+  attendanceId?: number;
   checkInTime?: string;
   checkOutTime?: string;
   hoursWorked?: number;
@@ -76,6 +77,7 @@ export function WorkerAttendanceList({
     return {
       ...worker,
       todayStatus,
+      attendanceId: record?.id,
       checkInTime: record?.check_in_time,
       checkOutTime: record?.check_out_time,
       hoursWorked: record?.hours_worked,
@@ -106,9 +108,13 @@ export function WorkerAttendanceList({
         });
         toast.success(`${workerName} manually checked in.`);
       } else {
+        if (!activeWorker.attendanceId) {
+          toast.error('Cannot check out — no attendance record found for today.');
+          return;
+        }
         await apiService.attendance.manualCheckOut({
           worker_id: activeWorker.id,
-          farm_id: farmId,
+          attendance_id: activeWorker.attendanceId,
         });
         toast.success(`${workerName} manually checked out.`);
       }
@@ -148,6 +154,10 @@ export function WorkerAttendanceList({
           } else {
             toast.warning(`${workerName} checked in as manual (face not matched).`);
           }
+        } else {
+          // success: false — HTTP 200, attendance still recorded as manual fallback
+          setVerificationResult({ status: 'failed', message: result.message });
+          toast.warning(result.message || `${workerName} checked in manually — face not matched.`);
         }
       } else {
         const result = await apiService.attendance.checkOutWithFaceVerification({
@@ -165,6 +175,10 @@ export function WorkerAttendanceList({
           toast.success(
             `${workerName} checked out${result.hours_worked != null ? ` — ${result.hours_worked.toFixed(1)}h worked` : ''}.`
           );
+        } else {
+          // success: false — HTTP 200, checkout still recorded as manual fallback
+          setVerificationResult({ status: 'failed', message: result.message });
+          toast.warning(result.message || `${workerName} checked out manually — face not matched.`);
         }
       }
 
