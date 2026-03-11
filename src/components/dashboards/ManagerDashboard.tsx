@@ -6,7 +6,7 @@ import { Layout } from '../layout/Layout';
 import { ErrorBoundary } from '../common/ErrorBoundary';
 import { MANAGER_TABS } from '../../constants';
 import { User } from '../../types';
-import { BarChart3, ClipboardList, CheckSquare, User as UserIcon, Package, Wrench, TrendingUp, Calendar } from 'lucide-react';
+import { BarChart3, ClipboardList, CheckSquare, User as UserIcon, Package, Wrench, TrendingUp, Calendar, Truck } from 'lucide-react';
 
 // Import dashboard sections
 import {
@@ -21,6 +21,7 @@ import {
   ManagerAttendanceSection,
   ManagerPerformanceSection
 } from './sections';
+import { ManagerInterFarmSection } from './sections/ManagerInterFarmSection';
 
 // Icon mapping
 const iconMap = {
@@ -31,7 +32,8 @@ const iconMap = {
   Package,
   Wrench,
   TrendingUp,
-  Calendar
+  Calendar,
+  Truck
 } as const;
 
 interface ManagerDashboardProps {
@@ -45,6 +47,7 @@ const TAB_COMPONENTS: Record<string, React.FC> = {
   payroll: ManagerPayrollSection,
   tasks: ManagerTasksSection,
   item_requests: ManagerItemRequestsSection,
+  inter_farm: ManagerInterFarmSection,
   workers: ManagerWorkersSection,
   attendance: ManagerAttendanceSection,
   performance: ManagerPerformanceSection,

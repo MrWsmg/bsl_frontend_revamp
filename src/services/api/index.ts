@@ -243,22 +243,6 @@ export class ApiService extends BaseApiService {
     return this.items.getAllSimrRequests();
   }
 
-  async getPendingSimrRequests() {
-    return this.items.getPendingSimrRequests();
-  }
-
-  async approveSimrRequest(requestId: number, notes?: string) {
-    return this.items.approveSimrRequest(requestId, notes);
-  }
-
-  async rejectSimrRequest(requestId: number, reason: string) {
-    return this.items.rejectSimrRequest(requestId, reason);
-  }
-
-  async collectSimrRequest(requestId: number) {
-    return this.items.collectSimrRequest(requestId);
-  }
-
   async getSupervisorItemRequests() {
     return this.items.getSupervisorItemRequests();
   }
@@ -268,7 +252,15 @@ export class ApiService extends BaseApiService {
   }
 
   async getPendingItemRequests() {
-    return this.items.getPendingItemRequests();
+    return this.items.getFarmClerkPendingRequests();
+  }
+
+  async approveFarmClerkRequest(requestId: number) {
+    return this.items.approveFarmClerkRequest(requestId);
+  }
+
+  async rejectFarmClerkRequest(requestId: number) {
+    return this.items.rejectFarmClerkRequest(requestId);
   }
 
   async approveItemRequest(requestId: number) {
@@ -279,6 +271,14 @@ export class ApiService extends BaseApiService {
     return this.items.rejectItemRequest(requestId);
   }
 
+  async getPendingIssuances() {
+    return this.items.getPendingIssuances();
+  }
+
+  async prepareIssuance(requestId: number) {
+    return this.items.prepareIssuance(requestId);
+  }
+
   async issueItemRequest(requestId: number) {
     return this.items.issueItemRequest(requestId);
   }
@@ -287,8 +287,24 @@ export class ApiService extends BaseApiService {
     return this.items.confirmReceipt(requestId, receivedStatus);
   }
 
+  async itemLookup(query: string) {
+    return this.items.itemLookup(query);
+  }
+
   async getStockMovements(params?: Record<string, any>) {
     return this.stock.getStockMovements(params);
+  }
+
+  async getDailyStock(farmId?: number) {
+    return this.stock.getDailyStock(farmId);
+  }
+
+  async getYtdStock(farmId?: number) {
+    return this.stock.getYtdStock(farmId);
+  }
+
+  async getFarmStock(farmId?: number) {
+    return this.stock.getFarmStock(farmId);
   }
 
   async getPriceListData() {
@@ -337,6 +353,14 @@ export class ApiService extends BaseApiService {
 
   async approveManagerPayroll(recordId: number) {
     return this.payroll.approveManagerPayroll(recordId);
+  }
+
+  async bulkApproveManagerPayroll(recordIds: number[]) {
+    return this.payroll.bulkApproveManagerPayroll(recordIds);
+  }
+
+  async rejectManagerPayroll(recordId: number, rejectionReason: string) {
+    return this.payroll.rejectManagerPayroll(recordId, rejectionReason);
   }
 
   async getManagerItemRequests() {
@@ -435,6 +459,22 @@ export class ApiService extends BaseApiService {
     return this.payroll.approveFinancialControllerPayroll(recordId);
   }
 
+  async bulkApproveFinancialControllerPayroll(recordIds: number[]) {
+    return this.payroll.bulkApproveFinancialControllerPayroll(recordIds);
+  }
+
+  async rejectFinancialControllerPayroll(recordId: number, rejectionReason: string) {
+    return this.payroll.rejectFinancialControllerPayroll(recordId, rejectionReason);
+  }
+
+  async getSupervisorRejectedPayroll() {
+    return this.payroll.getSupervisorRejectedPayroll();
+  }
+
+  async resubmitSupervisorPayroll(recordId: number) {
+    return this.payroll.resubmitSupervisorPayroll(recordId);
+  }
+
   async getPayrollMasterPendingPayroll() {
     return this.payroll.getPayrollMasterPendingPayroll();
   }
@@ -445,6 +485,26 @@ export class ApiService extends BaseApiService {
 
   async getAnalyticsData(params?: Record<string, any>) {
     return this.activities.getAnalyticsData(params);
+  }
+
+  async getPendingInterFarmSimrs() {
+    return this.procurement.getPendingInterFarmSimrs();
+  }
+
+  async approveInterFarmSimr(simrId: number) {
+    return this.procurement.approveInterFarmSimr(simrId);
+  }
+
+  async rejectInterFarmSimr(simrId: number, rejectionReason: string) {
+    return this.procurement.rejectInterFarmSimr(simrId, rejectionReason);
+  }
+
+  async dispatchInterFarmTransfer(transferId: number) {
+    return this.procurement.dispatchInterFarmTransfer(transferId);
+  }
+
+  async receiveInterFarmTransfer(transferId: number) {
+    return this.procurement.receiveInterFarmTransfer(transferId);
   }
 
   async getAdminManagerDashboardData() {

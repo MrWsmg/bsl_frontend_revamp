@@ -7,11 +7,12 @@ import { ErrorBoundary } from '../common/ErrorBoundary';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { Pagination } from '../common/Pagination';
 import { User } from '../../types';
-import { BarChart3, Users, ClipboardList, TrendingUp, Calendar, CheckCircle, Clock, AlertCircle, Package, UserCheck, LayoutDashboard, FileText } from 'lucide-react';
+import { BarChart3, Users, ClipboardList, TrendingUp, Calendar, CheckCircle, Clock, AlertCircle, Package, UserCheck, LayoutDashboard, FileText, DollarSign } from 'lucide-react';
 import { useApi } from '../../hooks';
 import apiService from '../../services/api';
 import AddWorkerModal from '../shared/AddWorkerModal';
 import { SupervisorTasksSection, SupervisorItemRequestsSection, SupervisorAttendanceSection } from './sections';
+import { SupervisorPayrollSection } from './sections/SupervisorPayrollSection';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -39,6 +40,7 @@ const SUPERVISOR_NAV_ITEMS = [
     children: [
       { id: 'tasks', label: 'Tasks', icon: ClipboardList },
       { id: 'item_requests', label: 'Item Requests', icon: Package },
+      { id: 'payroll', label: 'Payroll', icon: DollarSign },
     ],
   },
   {
@@ -610,6 +612,9 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
         </div>
         <div className={activeTab === 'item_requests' ? '' : 'hidden'}>
           {mountedTabs.has('item_requests') && <SupervisorItemRequestsSection />}
+        </div>
+        <div className={activeTab === 'payroll' ? '' : 'hidden'}>
+          {mountedTabs.has('payroll') && <SupervisorPayrollSection />}
         </div>
         <div className={activeTab === 'calendar' ? '' : 'hidden'}>
           {mountedTabs.has('calendar') && (

@@ -123,38 +123,38 @@ export class PayrollApiService extends BaseApiService {
   }
 
   /**
-   * Get manager payroll records
-   */
-  async getManagerPayroll(params?: { approval_status?: string; farm_id?: number }): Promise<PayrollRecord[]> {
-    return this.get<PayrollRecord[]>('/manager/payroll', params);
-  }
-
-  /**
-   * Get manager pending payroll
+   * Get manager pending payroll (supervisor_pending records)
    */
   async getManagerPendingPayroll(): Promise<PayrollRecord[]> {
-    return this.get<PayrollRecord[]>('/manager/payroll', { approval_status: 'pending' });
+    return this.get<PayrollRecord[]>('/manager/payroll-pending');
   }
 
   /**
-   * Get manager all payroll
+   * Get all payroll records ever approved by this manager
    */
   async getManagerAllPayroll(): Promise<PayrollRecord[]> {
-    return this.get<PayrollRecord[]>('/manager/payroll');
+    return this.get<PayrollRecord[]>('/manager/payroll-all');
   }
 
   /**
-   * Approve manager payroll
+   * Approve manager payroll (level 2)
    */
   async approveManagerPayroll(recordId: number): Promise<PayrollRecord> {
-    return this.post<PayrollRecord>(`/manager/payroll/${recordId}/approve`, {});
+    return this.post<PayrollRecord>(`/manager/approve-payroll/${recordId}`, {});
+  }
+
+  /**
+   * Bulk approve manager payroll (level 2)
+   */
+  async bulkApproveManagerPayroll(recordIds: number[]): Promise<any> {
+    return this.post<any>('/manager/bulk-approve-payroll', { record_ids: recordIds });
   }
 
   /**
    * Reject manager payroll
    */
-  async rejectManagerPayroll(recordId: number, reason?: string): Promise<PayrollRecord> {
-    return this.post<PayrollRecord>(`/manager/payroll/${recordId}/reject`, { reason });
+  async rejectManagerPayroll(recordId: number, rejectionReason: string): Promise<PayrollRecord> {
+    return this.post<PayrollRecord>(`/manager/reject-payroll/${recordId}`, { rejection_reason: rejectionReason });
   }
 
   /**
@@ -179,10 +179,38 @@ export class PayrollApiService extends BaseApiService {
   }
 
   /**
-   * Approve financial controller payroll
+   * Approve financial controller payroll (final approval + budget deduction)
    */
   async approveFinancialControllerPayroll(recordId: number): Promise<PayrollRecord> {
     return this.post<PayrollRecord>(`/financial-controller/approve-payroll/${recordId}`);
+  }
+
+  /**
+   * Bulk approve financial controller payroll
+   */
+  async bulkApproveFinancialControllerPayroll(recordIds: number[]): Promise<any> {
+    return this.post<any>('/financial-controller/bulk-approve-payroll', { record_ids: recordIds });
+  }
+
+  /**
+   * Reject financial controller payroll (can reject at any level)
+   */
+  async rejectFinancialControllerPayroll(recordId: number, rejectionReason: string): Promise<PayrollRecord> {
+    return this.post<PayrollRecord>(`/financial-controller/reject-payroll/${recordId}`, { rejection_reason: rejectionReason });
+  }
+
+  /**
+   * Get supervisor's own rejected payroll records
+   */
+  async getSupervisorRejectedPayroll(): Promise<PayrollRecord[]> {
+    return this.get<PayrollRecord[]>('/supervisor/rejected-payroll');
+  }
+
+  /**
+   * Resubmit a rejected payroll record (supervisor only, own records)
+   */
+  async resubmitSupervisorPayroll(recordId: number): Promise<PayrollRecord> {
+    return this.put<PayrollRecord>(`/supervisor/resubmit-payroll/${recordId}`, {});
   }
 
   /**

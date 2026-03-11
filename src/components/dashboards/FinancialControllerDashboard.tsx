@@ -6,6 +6,7 @@ import { Layout } from '../layout/Layout';
 import { ErrorBoundary } from '../common/ErrorBoundary';
 import { User } from '../../types';
 import { BarChart3, ClipboardList, TrendingUp } from 'lucide-react';
+import { FinancialControllerPayrollSection } from './sections/FinancialControllerPayrollSection';
 
 interface FinancialControllerDashboardProps {
   user: User;
@@ -13,7 +14,7 @@ interface FinancialControllerDashboardProps {
 }
 
 export const FinancialControllerDashboard: React.FC<FinancialControllerDashboardProps> = ({ user, onLogout }) => {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('payroll');
 
   const sidebarItems = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
@@ -24,13 +25,21 @@ export const FinancialControllerDashboard: React.FC<FinancialControllerDashboard
   const renderContent = () => {
     switch (activeTab) {
       case 'overview':
-        return <div>Financial Controller Overview</div>;
+        return (
+          <div className="p-6 text-gray-500">
+            Financial Controller overview coming soon.
+          </div>
+        );
       case 'payroll':
-        return <div>Payroll Approval</div>;
+        return <FinancialControllerPayrollSection />;
       case 'reports':
-        return <div>Financial Controller Reports</div>;
+        return (
+          <div className="p-6 text-gray-500">
+            Financial reports coming soon.
+          </div>
+        );
       default:
-        return <div>Financial Controller Overview</div>;
+        return <FinancialControllerPayrollSection />;
     }
   };
 

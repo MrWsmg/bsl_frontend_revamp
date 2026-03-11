@@ -462,11 +462,15 @@ export const SupervisorItemRequestsSection: React.FC = () => {
                         <SelectValue placeholder="Select Farm" />
                       </SelectTrigger>
                       <SelectContent>
-                        {farms?.filter((farm: any) => farm.id != null).map((farm: any) => (
-                          <SelectItem key={farm.id || farm.farm_id} value={String(farm.id || farm.farm_id)}>
-                            {farm.name}
-                          </SelectItem>
-                        ))}
+                        {farms?.map((farm: any) => {
+                          const farmId = farm.id ?? farm.farm_id;
+                          if (farmId == null) return null;
+                          return (
+                            <SelectItem key={farmId} value={String(farmId)}>
+                              {farm.name}
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                     {fieldState.invalid && <FieldError errors={[fieldState.error]} />}

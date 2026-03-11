@@ -1043,17 +1043,17 @@ class ApiServiceImpl implements ApiService {
 
   // Issuance endpoints
   async getPendingIssuances(): Promise<any[]> {
-    return this.request('/farm-clerk/issuances/pending');
+    return this.request('/farm-clerk/pending-issuances');
   }
 
   async prepareIssuance(requestId: number): Promise<void> {
-    return this.request(`/farm-clerk/issuances/${requestId}/prepare`, {
+    return this.request(`/farm-clerk/prepare-issuance/${requestId}`, {
       method: 'POST',
     });
   }
 
   async confirmIssuance(requestId: number): Promise<void> {
-    return this.request(`/farm-clerk/issuances/${requestId}/confirm`, {
+    return this.request(`/farm-clerk/confirm-issuance/${requestId}`, {
       method: 'POST',
     });
   }
@@ -1093,7 +1093,7 @@ class ApiServiceImpl implements ApiService {
 
   async itemLookup(query: string): Promise<any[]> {
     const params = new URLSearchParams({ q: query });
-    return this.request(`/farm-clerk/items/lookup?${params}`);
+    return this.request(`/farm-clerk/item-lookup?${params}`);
   }
 
   // ===========================

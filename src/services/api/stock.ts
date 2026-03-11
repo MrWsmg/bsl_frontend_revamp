@@ -58,4 +58,25 @@ export class StockApiService extends BaseApiService {
   async getStockLevels(): Promise<any[]> {
     return this.get<any[]>('/stock/levels');
   }
+
+  /**
+   * Today's stock levels per farm
+   */
+  async getDailyStock(farmId?: number): Promise<any> {
+    return this.get<any>('/farm-clerk/stock/daily', farmId ? { farm_id: farmId } : undefined);
+  }
+
+  /**
+   * Year-to-date stock + budget per farm
+   */
+  async getYtdStock(farmId?: number): Promise<any> {
+    return this.get<any>('/farm-clerk/stock/ytd', farmId ? { farm_id: farmId } : undefined);
+  }
+
+  /**
+   * Full farm stock view
+   */
+  async getFarmStock(farmId?: number): Promise<any> {
+    return this.get<any>('/farm-clerk/stock/farm', farmId ? { farm_id: farmId } : undefined);
+  }
 }

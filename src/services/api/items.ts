@@ -4,17 +4,18 @@ import { ItemRequest, InventoryItem, SimrRequest, SimrItem, SimrRequestPayload }
 
 export class ItemsApiService extends BaseApiService {
   /**
-   * Request item (legacy single item request)
+   * Request item — routes to modern SIMR endpoint
    */
   async requestItem(data: any): Promise<ItemRequest> {
-    return this.post<ItemRequest>('/supervisor/request-item', data);
+    return this.post<ItemRequest>('/procurement/internal/simr', data);
   }
 
   /**
-   * Create SIMR request (multi-item request)
+   * Create SIMR request — triggers 3-tier automatic stock check
+   * (own farm → cross-farm → external purchase)
    */
   async createSimrRequest(data: SimrRequestPayload): Promise<SimrRequest> {
-    return this.post<SimrRequest>('/supervisor/request-item', data);
+    return this.post<SimrRequest>('/procurement/internal/simr', data);
   }
 
   /**
@@ -29,34 +30,6 @@ export class ItemsApiService extends BaseApiService {
    */
   async getAllSimrRequests(): Promise<SimrRequest[]> {
     return this.get<SimrRequest[]>('/supervisor/all-item-requests');
-  }
-
-  /**
-   * Get pending SIMR requests for FM approval
-   */
-  async getPendingSimrRequests(): Promise<SimrRequest[]> {
-    return this.get<SimrRequest[]>('/supervisor/pending-simr-requests');
-  }
-
-  /**
-   * Approve SIMR request (Farm Manager)
-   */
-  async approveSimrRequest(requestId: number, notes?: string): Promise<SimrRequest> {
-    return this.post<SimrRequest>(`/supervisor/approve-simr/${requestId}`, { notes });
-  }
-
-  /**
-   * Reject SIMR request (Farm Manager)
-   */
-  async rejectSimrRequest(requestId: number, reason: string): Promise<SimrRequest> {
-    return this.post<SimrRequest>(`/supervisor/reject-simr/${requestId}`, { reason });
-  }
-
-  /**
-   * Mark SIMR as collected
-   */
-  async collectSimrRequest(requestId: number): Promise<SimrRequest> {
-    return this.post<SimrRequest>(`/supervisor/collect-simr/${requestId}`);
   }
 
   /**
@@ -102,7 +75,42 @@ export class ItemsApiService extends BaseApiService {
   }
 
   /**
-   * Issue item request
+   * Farm clerk approves request (L2) — checks inventory availability
+   */
+  async approveFarmClerkRequest(requestId: number): Promise<ItemRequest> {
+    return this.post<ItemRequest>(`/farm-clerk/approve-request/${requestId}`);
+  }
+
+  /**
+   * Farm clerk rejects request
+   */
+  async rejectFarmClerkRequest(requestId: number): Promise<ItemRequest> {
+    return this.post<ItemRequest>(`/farm-clerk/reject-request/${requestId}`);
+  }
+
+  /**
+   * Get requests pending farm clerk approval
+   */
+  async getFarmClerkPendingRequests(): Promise<ItemRequest[]> {
+    return this.get<ItemRequest[]>('/farm-clerk/pending-requests');
+  }
+
+  /**
+   * Get approved requests ready to issue
+   */
+  async getPendingIssuances(): Promise<ItemRequest[]> {
+    return this.get<ItemRequest[]>('/farm-clerk/pending-issuances');
+  }
+
+  /**
+   * Farm clerk marks items prepared
+   */
+  async prepareIssuance(requestId: number): Promise<ItemRequest> {
+    return this.post<ItemRequest>(`/farm-clerk/prepare-issuance/${requestId}`);
+  }
+
+  /**
+   * Issue item request (decreases inventory)
    */
   async issueItemRequest(requestId: number): Promise<ItemRequest> {
     return this.post<ItemRequest>(`/farm-clerk/issue-request/${requestId}`);
@@ -139,6 +147,13 @@ export class ItemsApiService extends BaseApiService {
    */
   async getManagerInventory(): Promise<InventoryItem[]> {
     return this.get<InventoryItem[]>('/manager/inventory');
+  }
+
+  /**
+   * Search PriceList by name/code (includes accounting_code)
+   */
+  async itemLookup(query: string): Promise<any[]> {
+    return this.get<any[]>('/farm-clerk/item-lookup', { q: query });
   }
 
   /**

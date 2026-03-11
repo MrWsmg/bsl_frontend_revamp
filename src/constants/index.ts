@@ -41,6 +41,7 @@ export const MANAGER_TABS = [
   { id: 'payroll', label: 'Payroll', icon: 'ClipboardList' },
   { id: 'tasks', label: 'Tasks', icon: 'CheckSquare' },
   { id: 'item_requests', label: 'Item Requests', icon: 'Package' },
+  { id: 'inter_farm', label: 'Inter-Farm Transfers', icon: 'Truck' },
   { id: 'workers', label: 'Workers', icon: 'User' },
   { id: 'attendance', label: 'Attendance', icon: 'Calendar' },
   { id: 'performance', label: 'Performance', icon: 'TrendingUp' },

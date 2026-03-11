@@ -38,12 +38,8 @@ export default function ItemRequests({ farms, useSimr = true }: ItemRequestsProp
   const loadRequests = async () => {
     setLoading(true);
     try {
-      let data;
-      if (useSimr) {
-        data = await apiService.getPendingSimrRequests();
-      } else {
-        data = await apiService.getPendingItemRequests();
-      }
+      // Both modes use the farm-clerk pending-requests endpoint
+      const data = await apiService.getPendingItemRequests();
       setRequests(data);
     } catch (error) {
       console.error('Error loading item requests:', error);
@@ -54,16 +50,12 @@ export default function ItemRequests({ farms, useSimr = true }: ItemRequestsProp
   };
 
   const handleApproveRequest = async (requestId: number) => {
-    const confirmApprove = window.confirm('Are you sure you want to approve this SIMR request?');
+    const confirmApprove = window.confirm('Are you sure you want to approve this request?');
     if (!confirmApprove) return;
 
     const loadingToast = toast.loading('Approving request...');
     try {
-      if (useSimr) {
-        await apiService.approveSimrRequest(requestId);
-      } else {
-        await apiService.approveItemRequest(requestId);
-      }
+      await apiService.approveFarmClerkRequest(requestId);
       toast.success('Request approved successfully!', { id: loadingToast });
       loadRequests();
     } catch (error: any) {
@@ -78,11 +70,7 @@ export default function ItemRequests({ farms, useSimr = true }: ItemRequestsProp
 
     const loadingToast = toast.loading('Rejecting request...');
     try {
-      if (useSimr) {
-        await apiService.rejectSimrRequest(requestId, reason);
-      } else {
-        await apiService.rejectItemRequest(requestId);
-      }
+      await apiService.rejectFarmClerkRequest(requestId);
       toast.success('Request rejected successfully!', { id: loadingToast });
       loadRequests();
     } catch (error: any) {
@@ -91,18 +79,18 @@ export default function ItemRequests({ farms, useSimr = true }: ItemRequestsProp
     }
   };
 
-  const handleCollectRequest = async (requestId: number) => {
-    const confirmCollect = window.confirm('Are you sure you want to mark this SIMR as collected?');
-    if (!confirmCollect) return;
+  const handleIssueRequest = async (requestId: number) => {
+    const confirmIssue = window.confirm('Are you sure you want to issue these items? This will decrease inventory.');
+    if (!confirmIssue) return;
 
-    const loadingToast = toast.loading('Marking as collected...');
+    const loadingToast = toast.loading('Issuing items...');
     try {
-      await apiService.collectSimrRequest(requestId);
-      toast.success('SIMR marked as collected!', { id: loadingToast });
+      await apiService.issueItemRequest(requestId);
+      toast.success('Items issued successfully!', { id: loadingToast });
       loadRequests();
     } catch (error: any) {
-      console.error('Error collecting request:', error);
-      toast.error(error.response?.data?.detail || 'Failed to update request. Please try again.', { id: loadingToast });
+      console.error('Error issuing request:', error);
+      toast.error(error.response?.data?.detail || 'Failed to issue items. Please try again.', { id: loadingToast });
     }
   };
 
@@ -118,18 +106,20 @@ export default function ItemRequests({ farms, useSimr = true }: ItemRequestsProp
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'pending_fm':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Pending FM</Badge>;
+      case 'pending':
+        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Pending</Badge>;
       case 'approved':
         return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Approved</Badge>;
-      case 'rejected':
-        return <Badge variant="destructive">Rejected</Badge>;
-      case 'collected':
-        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Collected</Badge>;
+      case 'prepared':
+        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Prepared</Badge>;
       case 'issued':
         return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Issued</Badge>;
       case 'received':
         return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Received</Badge>;
+      case 'not_received':
+        return <Badge variant="destructive">Not Received</Badge>;
+      case 'rejected':
+        return <Badge variant="destructive">Rejected</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -137,13 +127,16 @@ export default function ItemRequests({ farms, useSimr = true }: ItemRequestsProp
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'pending_fm':
+      case 'pending':
         return <Clock className="w-5 h-5 text-yellow-500" />;
       case 'approved':
+      case 'prepared':
         return <CheckCircle className="w-5 h-5 text-green-500" />;
       case 'rejected':
+      case 'not_received':
         return <XCircle className="w-5 h-5 text-red-500" />;
-      case 'collected':
+      case 'issued':
+      case 'received':
         return <Package className="w-5 h-5 text-blue-500" />;
       default:
         return <Clock className="w-5 h-5 text-gray-500" />;
@@ -152,13 +145,16 @@ export default function ItemRequests({ farms, useSimr = true }: ItemRequestsProp
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending_fm':
+      case 'pending':
         return 'bg-yellow-500';
       case 'approved':
+      case 'prepared':
         return 'bg-green-500';
       case 'rejected':
+      case 'not_received':
         return 'bg-red-500';
-      case 'collected':
+      case 'issued':
+      case 'received':
         return 'bg-blue-500';
       default:
         return 'bg-gray-500';
@@ -219,22 +215,13 @@ export default function ItemRequests({ farms, useSimr = true }: ItemRequestsProp
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
-                {useSimr ? (
-                  <>
-                    <SelectItem value="pending_fm">Pending FM</SelectItem>
-                    <SelectItem value="approved">Approved</SelectItem>
-                    <SelectItem value="rejected">Rejected</SelectItem>
-                    <SelectItem value="collected">Collected</SelectItem>
-                  </>
-                ) : (
-                  <>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="approved">Approved</SelectItem>
-                    <SelectItem value="rejected">Rejected</SelectItem>
-                    <SelectItem value="issued">Issued</SelectItem>
-                    <SelectItem value="received">Received</SelectItem>
-                  </>
-                )}
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="prepared">Prepared</SelectItem>
+                <SelectItem value="issued">Issued</SelectItem>
+                <SelectItem value="received">Received</SelectItem>
+                <SelectItem value="not_received">Not Received</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -420,72 +407,35 @@ export default function ItemRequests({ farms, useSimr = true }: ItemRequestsProp
                             )}
                           </div>
 
-                          {/* Action Buttons */}
+                          {/* Action Buttons — farm clerk approval flow */}
                           <div className="flex flex-col sm:flex-row lg:flex-col gap-2 lg:min-w-[140px]">
-                            {simrReq ? (
-                              /* SIMR Actions */
+                            {request.status === 'pending' && (
                               <>
-                                {request.status === 'pending_fm' && (
-                                  <>
-                                    <Button
-                                      onClick={() => handleApproveRequest(request.id)}
-                                      className="bg-green-600 hover:bg-green-700"
-                                    >
-                                      <CheckCircle className="w-4 h-4 mr-2" />
-                                      Approve
-                                    </Button>
-                                    <Button
-                                      variant="destructive"
-                                      onClick={() => handleRejectRequest(request.id)}
-                                    >
-                                      <XCircle className="w-4 h-4 mr-2" />
-                                      Reject
-                                    </Button>
-                                  </>
-                                )}
-
-                                {request.status === 'approved' && (
-                                  <Button
-                                    onClick={() => handleCollectRequest(request.id)}
-                                    className="bg-blue-600 hover:bg-blue-700"
-                                  >
-                                    <Package className="w-4 h-4 mr-2" />
-                                    Mark Collected
-                                  </Button>
-                                )}
+                                <Button
+                                  onClick={() => handleApproveRequest(request.id)}
+                                  className="bg-green-600 hover:bg-green-700"
+                                >
+                                  <CheckCircle className="w-4 h-4 mr-2" />
+                                  Approve
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  onClick={() => handleRejectRequest(request.id)}
+                                >
+                                  <XCircle className="w-4 h-4 mr-2" />
+                                  Reject
+                                </Button>
                               </>
-                            ) : (
-                              /* Legacy Actions */
-                              <>
-                                {request.status === 'pending' && (
-                                  <>
-                                    <Button
-                                      onClick={() => handleApproveRequest(request.id)}
-                                      className="bg-green-600 hover:bg-green-700"
-                                    >
-                                      <CheckCircle className="w-4 h-4 mr-2" />
-                                      Approve
-                                    </Button>
-                                    <Button
-                                      variant="destructive"
-                                      onClick={() => handleRejectRequest(request.id)}
-                                    >
-                                      <XCircle className="w-4 h-4 mr-2" />
-                                      Reject
-                                    </Button>
-                                  </>
-                                )}
+                            )}
 
-                                {request.status === 'approved' && (
-                                  <Button
-                                    onClick={() => handleApproveRequest(request.id)}
-                                    className="bg-blue-600 hover:bg-blue-700"
-                                  >
-                                    <Package className="w-4 h-4 mr-2" />
-                                    Issue Item
-                                  </Button>
-                                )}
-                              </>
+                            {request.status === 'approved' && (
+                              <Button
+                                onClick={() => handleIssueRequest(request.id)}
+                                className="bg-blue-600 hover:bg-blue-700"
+                              >
+                                <Package className="w-4 h-4 mr-2" />
+                                Issue Items
+                              </Button>
                             )}
                           </div>
                         </div>

@@ -6,12 +6,17 @@ import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { StatusBadge } from '../../common/StatusBadge';
-import { Check, X, DollarSign, Clock } from 'lucide-react';
+import { Check, X, DollarSign, Clock, CheckSquare } from 'lucide-react';
 import { toast } from '../../ui/sonner';
 
 export const ManagerPayrollSection: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'pending' | 'all'>('pending');
   const [approvingId, setApprovingId] = useState<number | null>(null);
+  const [rejectingId, setRejectingId] = useState<number | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [bulkApproving, setBulkApproving] = useState(false);
 
   const getPendingPayroll = useCallback(() => apiService.getManagerPendingPayroll(), []);
   const getAllPayroll = useCallback(() => apiService.getManagerAllPayroll(), []);
@@ -26,20 +31,68 @@ export const ManagerPayrollSection: React.FC = () => {
   const loading = activeTab === 'pending' ? pendingLoading : allLoading;
   const payrollData = activeTab === 'pending' ? pendingPayroll : allPayroll;
 
+  const refetchCurrent = activeTab === 'pending' ? refetchPending : refetchAll;
+
   const handleApprove = async (recordId: number) => {
     setApprovingId(recordId);
     try {
       await apiService.approveManagerPayroll(recordId);
-      toast.success('Payroll record approved successfully');
-      if (activeTab === 'pending') {
-        await refetchPending();
-      } else {
-        await refetchAll();
-      }
+      toast.success('Payroll record approved');
+      await refetchCurrent();
+      setSelectedIds(prev => prev.filter(id => id !== recordId));
     } catch (error: any) {
       toast.error(error.message || 'Failed to approve payroll record');
     } finally {
       setApprovingId(null);
+    }
+  };
+
+  const handleBulkApprove = async () => {
+    if (selectedIds.length === 0) return;
+    setBulkApproving(true);
+    try {
+      await apiService.bulkApproveManagerPayroll(selectedIds);
+      toast.success(`${selectedIds.length} records approved`);
+      setSelectedIds([]);
+      await refetchCurrent();
+    } catch (error: any) {
+      toast.error(error.message || 'Bulk approval failed');
+    } finally {
+      setBulkApproving(false);
+    }
+  };
+
+  const openRejectModal = (recordId: number) => {
+    setRejectingId(recordId);
+    setRejectReason('');
+    setShowRejectModal(true);
+  };
+
+  const handleReject = async () => {
+    if (!rejectingId || !rejectReason.trim()) return;
+    try {
+      await apiService.rejectManagerPayroll(rejectingId, rejectReason.trim());
+      toast.success('Payroll record rejected');
+      setShowRejectModal(false);
+      setRejectingId(null);
+      await refetchCurrent();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to reject payroll record');
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    const pending = pendingPayroll || [];
+    if (selectedIds.length === pending.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(pending.map((r: any) => r.id));
     }
   };
 
@@ -101,7 +154,7 @@ export const ManagerPayrollSection: React.FC = () => {
         <div className="border-b border-gray-200">
           <div className="flex">
             <button
-              onClick={() => setActiveTab('pending')}
+              onClick={() => { setActiveTab('pending'); setSelectedIds([]); }}
               className={`px-6 py-3 font-medium transition-colors ${
                 activeTab === 'pending'
                   ? 'border-b-2 border-blue-500 text-blue-600'
@@ -116,7 +169,7 @@ export const ManagerPayrollSection: React.FC = () => {
               )}
             </button>
             <button
-              onClick={() => setActiveTab('all')}
+              onClick={() => { setActiveTab('all'); setSelectedIds([]); }}
               className={`px-6 py-3 font-medium transition-colors ${
                 activeTab === 'all'
                   ? 'border-b-2 border-blue-500 text-blue-600'
@@ -127,6 +180,27 @@ export const ManagerPayrollSection: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {/* Bulk Actions Bar */}
+        {activeTab === 'pending' && selectedIds.length > 0 && (
+          <div className="px-6 py-3 bg-blue-50 border-b flex items-center gap-3">
+            <span className="text-sm text-blue-700 font-medium">{selectedIds.length} selected</span>
+            <button
+              onClick={handleBulkApprove}
+              disabled={bulkApproving}
+              className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:opacity-50"
+            >
+              {bulkApproving ? <LoadingSpinner size="sm" /> : <CheckSquare className="w-4 h-4" />}
+              Approve All Selected
+            </button>
+            <button
+              onClick={() => setSelectedIds([])}
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
+              Clear
+            </button>
+          </div>
+        )}
 
         {/* Payroll List */}
         <div className="p-6">
@@ -143,6 +217,16 @@ export const ManagerPayrollSection: React.FC = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
+                    {activeTab === 'pending' && (
+                      <th className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.length === (pendingPayroll?.length || 0) && (pendingPayroll?.length || 0) > 0}
+                          onChange={toggleSelectAll}
+                          className="rounded"
+                        />
+                      </th>
+                    )}
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Worker
                     </th>
@@ -174,6 +258,16 @@ export const ManagerPayrollSection: React.FC = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {payrollData.map((record: any) => (
                     <tr key={record.id} className="hover:bg-gray-50">
+                      {activeTab === 'pending' && (
+                        <td className="px-4 py-4">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.includes(record.id)}
+                            onChange={() => toggleSelect(record.id)}
+                            className="rounded"
+                          />
+                        </td>
+                      )}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">{record.worker_name}</div>
                         <div className="text-sm text-gray-500">{record.worker_type}</div>
@@ -198,17 +292,27 @@ export const ManagerPayrollSection: React.FC = () => {
                       </td>
                       {activeTab === 'pending' && (
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button
-                            onClick={() => handleApprove(record.id)}
-                            disabled={approvingId === record.id}
-                            className="text-green-600 hover:text-green-900 disabled:text-gray-400"
-                          >
-                            {approvingId === record.id ? (
-                              <LoadingSpinner size="sm" />
-                            ) : (
-                              <Check className="w-5 h-5" />
-                            )}
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => handleApprove(record.id)}
+                              disabled={approvingId === record.id}
+                              title="Approve"
+                              className="text-green-600 hover:text-green-900 disabled:text-gray-400"
+                            >
+                              {approvingId === record.id ? (
+                                <LoadingSpinner size="sm" />
+                              ) : (
+                                <Check className="w-5 h-5" />
+                              )}
+                            </button>
+                            <button
+                              onClick={() => openRejectModal(record.id)}
+                              title="Reject"
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <X className="w-5 h-5" />
+                            </button>
+                          </div>
                         </td>
                       )}
                     </tr>
@@ -219,6 +323,40 @@ export const ManagerPayrollSection: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Reject Modal */}
+      {showRejectModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Reject Payroll Record</h3>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Reason for rejection <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              rows={3}
+              placeholder="Enter rejection reason..."
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+            />
+            <div className="flex justify-end gap-3 mt-4">
+              <button
+                onClick={() => { setShowRejectModal(false); setRejectingId(null); }}
+                className="px-4 py-2 text-sm text-gray-700 border rounded hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleReject}
+                disabled={!rejectReason.trim()}
+                className="px-4 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+              >
+                Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

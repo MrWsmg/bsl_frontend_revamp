@@ -9,6 +9,43 @@ import {
 } from '../../types';
 
 export class ProcurementApiService extends BaseApiService {
+  // ==================== INTER-FARM TRANSFERS (Modern SIMR workflow) ====================
+
+  /**
+   * Get SIMRs with PENDING_INTER_FARM status — these need source farm manager approval
+   */
+  async getPendingInterFarmSimrs(): Promise<any[]> {
+    return this.get<any[]>('/procurement/internal/simr', { status: 'PENDING_INTER_FARM' });
+  }
+
+  /**
+   * Manager approves inter-farm SIMR — auto-creates GIN/DN/GatePass/InternalTransfer
+   */
+  async approveInterFarmSimr(simrId: number): Promise<any> {
+    return this.post<any>(`/procurement/internal/simr/${simrId}/approve-inter-farm`, {});
+  }
+
+  /**
+   * Manager rejects inter-farm SIMR — falls back to external purchase
+   */
+  async rejectInterFarmSimr(simrId: number, rejectionReason: string): Promise<any> {
+    return this.post<any>(`/procurement/internal/simr/${simrId}/reject-inter-farm`, { rejection_reason: rejectionReason });
+  }
+
+  /**
+   * Source farm clerk dispatches items — reduces source Cardex
+   */
+  async dispatchInterFarmTransfer(transferId: number): Promise<any> {
+    return this.post<any>(`/procurement/internal/transfers/${transferId}/dispatch`, {});
+  }
+
+  /**
+   * Destination farm clerk receives items — creates GRN, increases dest Cardex
+   */
+  async receiveInterFarmTransfer(transferId: number): Promise<any> {
+    return this.post<any>(`/procurement/internal/transfers/${transferId}/receive`, {});
+  }
+
   // ==================== PURCHASE REQUESTS ====================
   
   /**
