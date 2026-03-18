@@ -152,10 +152,6 @@ export class BaseApiService {
           } else if (typeof errorData === 'string') {
             errorMessage = errorData;
           }
-          // Only log if there are actual error details
-          if (errorData && Object.keys(errorData).length > 0) {
-            console.error('API Error Details:', errorData);
-          }
         } catch (e) {
           // Response body might not be JSON
           console.warn('Failed to parse error response as JSON');

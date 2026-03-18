@@ -519,6 +519,8 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onUserAdde
   };
 
   const watchedAssignedFarms = form.watch('assigned_farms');
+  const watchedRole = form.watch('role');
+  const farmRequiredRoles = ['manager', 'farm_clerk', 'supervisor'];
 
   return (
     <>
@@ -632,7 +634,14 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onUserAdde
                   name="farm_id"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Primary Farm (Optional)</FormLabel>
+                      <FormLabel>
+                        Primary Farm
+                        {farmRequiredRoles.includes(watchedRole) ? (
+                          <span className="ml-1 text-amber-600 font-medium">(Required for this role)</span>
+                        ) : (
+                          <span className="ml-1 text-gray-400 font-normal">(Optional)</span>
+                        )}
+                      </FormLabel>
                       <Select
                         value={field.value || undefined}
                         onValueChange={(value) => field.onChange(value === "none" ? "" : value)}
@@ -654,6 +663,11 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onUserAdde
                           })}
                         </SelectContent>
                       </Select>
+                      {farmRequiredRoles.includes(watchedRole) && !field.value && (
+                        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-1">
+                          This role requires a Primary Farm. Without it, item requests and inventory will not appear for this user.
+                        </p>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}

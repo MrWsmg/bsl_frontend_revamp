@@ -13,6 +13,13 @@ import apiService from '../../services/api';
 import AddWorkerModal from '../shared/AddWorkerModal';
 import { SupervisorTasksSection, SupervisorItemRequestsSection, SupervisorAttendanceSection } from './sections';
 import { SupervisorPayrollSection } from './sections/SupervisorPayrollSection';
+import {
+  SharedSimrSection,
+  SharedGinSection,
+  SharedTransportVoucherSection,
+  SharedDeliveryNoteSection,
+  SharedCardexSection,
+} from './sections';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -41,6 +48,18 @@ const SUPERVISOR_NAV_ITEMS = [
       { id: 'tasks', label: 'Tasks', icon: ClipboardList },
       { id: 'item_requests', label: 'Item Requests', icon: Package },
       { id: 'payroll', label: 'Payroll', icon: DollarSign },
+    ],
+  },
+  {
+    id: 'procurement',
+    label: 'Procurement',
+    icon: Package,
+    children: [
+      { id: 'proc-simr',   label: 'SIMR',      icon: ClipboardList },
+      { id: 'proc-gin',    label: 'GIN',        icon: Package },
+      { id: 'proc-tv',     label: 'Transport',  icon: Calendar },
+      { id: 'proc-dn',     label: 'Delivery',   icon: CheckCircle },
+      { id: 'proc-cardex', label: 'CARDEX',     icon: TrendingUp },
     ],
   },
   {
@@ -629,6 +648,12 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
         <div className={activeTab === 'reports' ? '' : 'hidden'}>
           {mountedTabs.has('reports') && renderReports()}
         </div>
+        {/* Procurement tabs */}
+        <div className={activeTab === 'proc-simr'   ? '' : 'hidden'}>{mountedTabs.has('proc-simr')   && <SharedSimrSection userRole="supervisor" />}</div>
+        <div className={activeTab === 'proc-gin'    ? '' : 'hidden'}>{mountedTabs.has('proc-gin')    && <SharedGinSection userRole="supervisor" />}</div>
+        <div className={activeTab === 'proc-tv'     ? '' : 'hidden'}>{mountedTabs.has('proc-tv')     && <SharedTransportVoucherSection userRole="supervisor" />}</div>
+        <div className={activeTab === 'proc-dn'     ? '' : 'hidden'}>{mountedTabs.has('proc-dn')     && <SharedDeliveryNoteSection userRole="supervisor" />}</div>
+        <div className={activeTab === 'proc-cardex' ? '' : 'hidden'}>{mountedTabs.has('proc-cardex') && <SharedCardexSection userRole="supervisor" />}</div>
       </Layout>
 
       {/* Add Worker Modal */}

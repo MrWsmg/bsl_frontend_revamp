@@ -18,6 +18,8 @@ import {
   Clock,
   PackageCheck,
   Settings,
+  Tag,
+  PackageOpen,
 } from 'lucide-react';
 import { useApi } from '../../hooks';
 import { LoadingSpinner } from '../common/LoadingSpinner';
@@ -34,6 +36,18 @@ import { Badge } from '@/components/ui/badge';
 import { DailyStock, YtdStock } from '../stock';
 import { AttendanceCheckIn, AttendanceRecords, AttendanceReport } from '../attendance';
 import { PendingIssuances, DispatchPhotoUpload } from '../issuance';
+import { PriceListSection } from './sections/PriceListSection';
+import {
+  SharedPfiSection,
+  SharedLpoSection,
+  SharedGrnSection,
+  SharedGinSection,
+  SharedCardexSection,
+  SharedTransportVoucherSection,
+  SharedDeliveryNoteSection,
+  SharedTransferSection,
+  SharedGatePassSection,
+} from './sections';
 
 interface User {
   id: number;
@@ -86,8 +100,25 @@ const sidebarItems = [
     label: 'Operations',
     icon: Settings,
     children: [
-      { id: 'requests', label: 'Requests', icon: ClipboardList },
-      { id: 'transfers', label: 'Transfers', icon: Truck },
+      { id: 'requests',    label: 'Requests',   icon: ClipboardList },
+      { id: 'transfers',   label: 'Transfers',  icon: Truck },
+      { id: 'price-list',  label: 'Price List', icon: Tag },
+    ],
+  },
+  {
+    id: 'procurement',
+    label: 'Procurement',
+    icon: PackageCheck,
+    children: [
+      { id: 'proc-pfi',      label: 'Supplier Catalog', icon: Tag },
+      { id: 'proc-lpo',      label: 'LPO',       icon: ClipboardList },
+      { id: 'proc-grn',      label: 'GRN',       icon: PackageCheck },
+      { id: 'proc-gin',      label: 'GIN',       icon: PackageOpen },
+      { id: 'proc-cardex',   label: 'CARDEX',    icon: TrendingUp },
+      { id: 'proc-tv',       label: 'Transport', icon: Truck },
+      { id: 'proc-dn',       label: 'Delivery',  icon: ArrowLeftRight },
+      { id: 'proc-transfer', label: 'Transfers', icon: ArrowLeftRight },
+      { id: 'proc-gatepass', label: 'Gate Pass', icon: ClipboardList },
     ],
   },
   { id: 'expenses', label: 'Expenses', icon: DollarSign },
@@ -399,6 +430,12 @@ const FarmClerkDashboard: React.FC<FarmClerkDashboardProps> = ({ user, onLogout 
     </div>
   );
 
+  const renderPriceList = () => (
+    <div className="space-y-6">
+      <PriceListSection />
+    </div>
+  );
+
   const renderExpenses = () => (
     <div className="space-y-6">
       <Card>
@@ -465,7 +502,17 @@ const FarmClerkDashboard: React.FC<FarmClerkDashboardProps> = ({ user, onLogout 
       dispatch: 'Dispatch',
       requests: 'Item Requests',
       transfers: 'Transfers',
+      'price-list': 'Price List',
       expenses: 'Expenses',
+      'proc-pfi':      'PFI',
+      'proc-lpo':      'LPO',
+      'proc-grn':      'GRN',
+      'proc-gin':      'GIN',
+      'proc-cardex':   'CARDEX',
+      'proc-tv':       'Transport Vouchers',
+      'proc-dn':       'Delivery Notes',
+      'proc-transfer': 'Internal Transfers',
+      'proc-gatepass': 'Gate Passes',
     };
     return titles[activeTab] || 'Farm Clerk Dashboard';
   };
@@ -525,11 +572,25 @@ const FarmClerkDashboard: React.FC<FarmClerkDashboardProps> = ({ user, onLogout 
         <div className={activeTab === 'transfers' ? '' : 'hidden'}>
           {mountedTabs.has('transfers') && renderTransfers()}
         </div>
+        <div className={activeTab === 'price-list' ? '' : 'hidden'}>
+          {mountedTabs.has('price-list') && renderPriceList()}
+        </div>
 
         {/* Expenses */}
         <div className={activeTab === 'expenses' ? '' : 'hidden'}>
           {mountedTabs.has('expenses') && renderExpenses()}
         </div>
+
+        {/* Procurement tabs */}
+        <div className={activeTab === 'proc-pfi'      ? '' : 'hidden'}>{mountedTabs.has('proc-pfi')      && <SharedPfiSection userRole="farm_clerk" />}</div>
+        <div className={activeTab === 'proc-lpo'      ? '' : 'hidden'}>{mountedTabs.has('proc-lpo')      && <SharedLpoSection userRole="farm_clerk" />}</div>
+        <div className={activeTab === 'proc-grn'      ? '' : 'hidden'}>{mountedTabs.has('proc-grn')      && <SharedGrnSection userRole="farm_clerk" />}</div>
+        <div className={activeTab === 'proc-gin'      ? '' : 'hidden'}>{mountedTabs.has('proc-gin')      && <SharedGinSection userRole="farm_clerk" />}</div>
+        <div className={activeTab === 'proc-cardex'   ? '' : 'hidden'}>{mountedTabs.has('proc-cardex')   && <SharedCardexSection userRole="farm_clerk" />}</div>
+        <div className={activeTab === 'proc-tv'       ? '' : 'hidden'}>{mountedTabs.has('proc-tv')       && <SharedTransportVoucherSection userRole="farm_clerk" />}</div>
+        <div className={activeTab === 'proc-dn'       ? '' : 'hidden'}>{mountedTabs.has('proc-dn')       && <SharedDeliveryNoteSection userRole="farm_clerk" />}</div>
+        <div className={activeTab === 'proc-transfer' ? '' : 'hidden'}>{mountedTabs.has('proc-transfer') && <SharedTransferSection userRole="farm_clerk" />}</div>
+        <div className={activeTab === 'proc-gatepass' ? '' : 'hidden'}>{mountedTabs.has('proc-gatepass') && <SharedGatePassSection userRole="farm_clerk" />}</div>
       </Layout>
     </ErrorBoundary>
   );

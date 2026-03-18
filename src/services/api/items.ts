@@ -4,18 +4,26 @@ import { ItemRequest, InventoryItem, SimrRequest, SimrItem, SimrRequestPayload }
 
 export class ItemsApiService extends BaseApiService {
   /**
-   * Request item — routes to modern SIMR endpoint
+   * Request item — creates ItemRequest that goes through Manager L1 → Farm Clerk L2 approval
    */
   async requestItem(data: any): Promise<ItemRequest> {
-    return this.post<ItemRequest>('/procurement/internal/simr', data);
+    return this.post<ItemRequest>('/supervisor/request-item', data);
   }
 
   /**
-   * Create SIMR request — triggers 3-tier automatic stock check
-   * (own farm → cross-farm → external purchase)
+   * Create SIMR request — creates ItemRequest that goes through Manager L1 → Farm Clerk L2 approval
    */
   async createSimrRequest(data: SimrRequestPayload): Promise<SimrRequest> {
-    return this.post<SimrRequest>('/procurement/internal/simr', data);
+    return this.post<SimrRequest>('/supervisor/request-item', data);
+  }
+
+  /**
+   * Create procurement SIMR — triggers 3-tier automatic stock check
+   * (own farm CardexSummary → cross-farm → external purchase PENDING_SMR)
+   * Use this only when the procurement/transfer inter-farm workflow is needed.
+   */
+  async createProcurementSimr(data: SimrRequestPayload): Promise<any> {
+    return this.post<any>('/procurement/internal/simr', data);
   }
 
   /**
@@ -161,5 +169,32 @@ export class ItemsApiService extends BaseApiService {
    */
   async getPriceListData(): Promise<any[]> {
     return this.get<any[]>('/price-list-data');
+  }
+
+  /**
+   * List price list items (optionally filter by category)
+   */
+  async getPriceList(category?: string): Promise<any[]> {
+    return this.get<any[]>('/farm-clerk/price-list', category ? { category } : undefined);
+  }
+
+  /**
+   * Add a new item to the price list
+   */
+  async addPriceListItem(data: {
+    category: string;
+    name: string;
+    unit: string;
+    price: number;
+    accounting_code?: string;
+  }): Promise<any> {
+    return this.post<any>('/farm-clerk/price-list', data);
+  }
+
+  /**
+   * Delete a price list item (blocked if referenced by SMR/SIMR)
+   */
+  async deletePriceListItem(itemId: number): Promise<{ message: string }> {
+    return this.delete<{ message: string }>(`/farm-clerk/price-list/${itemId}`);
   }
 }

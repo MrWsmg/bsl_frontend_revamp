@@ -4,6 +4,7 @@ export interface User {
   username: string;
   full_name: string;
   role: string;
+  farm_id?: number | null;
   assigned_farms: string;
   is_active: boolean;
 }
@@ -588,6 +589,7 @@ export interface Supplier {
   address?: string;
   tax_id?: string;
   payment_terms?: string;
+  vrn?: string;
   risk_score?: number;
   is_active: boolean;
   created_at: string;

@@ -1,4 +1,21 @@
 // Utility functions
+
+/**
+ * Extract a human-readable error message from an Axios error.
+ * Handles FastAPI validation errors where `detail` is an array of
+ * { type, loc, msg, input } objects.
+ */
+export function getApiError(e: unknown, fallback = 'Something went wrong'): string {
+  const detail = (e as any)?.response?.data?.detail;
+  if (!detail) return (e as any)?.message || fallback;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail)) {
+    return detail
+      .map((d: any) => (typeof d?.msg === 'string' ? d.msg : JSON.stringify(d)))
+      .join('; ');
+  }
+  return fallback;
+}
 import { format, parseISO, isValid } from 'date-fns';
 
 /**

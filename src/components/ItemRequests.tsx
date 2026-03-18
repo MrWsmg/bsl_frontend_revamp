@@ -105,15 +105,13 @@ export default function ItemRequests({ farms, useSimr = true }: ItemRequestsProp
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case 'pending':
         return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Pending</Badge>;
       case 'approved':
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Approved</Badge>;
-      case 'prepared':
-        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Prepared</Badge>;
+        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Approved</Badge>;
       case 'issued':
-        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Issued</Badge>;
+        return <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100">Issued</Badge>;
       case 'received':
         return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Received</Badge>;
       case 'not_received':
@@ -144,18 +142,18 @@ export default function ItemRequests({ farms, useSimr = true }: ItemRequestsProp
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case 'pending':
         return 'bg-yellow-500';
       case 'approved':
-      case 'prepared':
-        return 'bg-green-500';
+        return 'bg-blue-500';
       case 'rejected':
       case 'not_received':
         return 'bg-red-500';
       case 'issued':
+        return 'bg-purple-500';
       case 'received':
-        return 'bg-blue-500';
+        return 'bg-green-500';
       default:
         return 'bg-gray-500';
     }

@@ -5,8 +5,9 @@ import React, { useState, useCallback } from 'react';
 import {
   Sprout, BarChart3, ClipboardList, Scale, Layers, Thermometer,
   Plus, RefreshCw, CheckCircle2, AlertTriangle, LayoutDashboard,
-  TrendingUp, Calendar, Wheat, Sun, FileText, Play,
+  TrendingUp, Calendar, Wheat, Sun, FileText, Play, Warehouse,
 } from 'lucide-react';
+import { SharedCardexSection } from './sections';
 import { Layout } from '../layout/Layout';
 import { ErrorBoundary } from '../common/ErrorBoundary';
 import { LoadingSpinner } from '../common/LoadingSpinner';
@@ -58,6 +59,7 @@ const HARVEST_NAV_ITEMS = [
     ],
   },
   { id: 'report', label: 'Season Report', icon: FileText },
+  { id: 'store',  label: 'Store/CARDEX',  icon: Warehouse },
 ];
 
 interface HarvestOperationsDashboardProps {
@@ -940,6 +942,7 @@ export const HarvestOperationsDashboard: React.FC<HarvestOperationsDashboardProp
     overview: 'Harvest Overview', samples: 'Field Samples', forecasts: 'Yield Forecasts',
     plans: 'Harvest Plans', checklist: 'Pre-Harvest Checklist', weighing: 'Picker Weighing',
     batches: 'Processing Batches', drying: 'Drying Logs', report: 'Season Report',
+    store: 'Store / CARDEX',
   }[activeTab] || 'Harvest Operations');
 
   return (
@@ -968,6 +971,9 @@ export const HarvestOperationsDashboard: React.FC<HarvestOperationsDashboardProp
             )}
           </div>
         ))}
+        <div className={activeTab === 'store' ? '' : 'hidden'}>
+          {mountedTabs.has('store') && <SharedCardexSection userRole="general_manager" />}
+        </div>
 
         {/* ===== DIALOGS ===== */}
 

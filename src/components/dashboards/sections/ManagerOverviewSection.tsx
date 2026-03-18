@@ -109,8 +109,8 @@ export const ManagerOverviewSection: React.FC = () => {
         <CardContent>
           {farms && farms.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {farms.map((farm: any) => (
-                <Card key={farm.id} className="hover:shadow-md transition-shadow">
+              {farms.map((farm: any, idx: number) => (
+                <Card key={farm.id ?? farm.farm_id ?? idx} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
                     <h4 className="font-semibold text-foreground text-lg">{farm.name}</h4>
                     <p className="text-sm text-muted-foreground mt-1">{farm.location}</p>

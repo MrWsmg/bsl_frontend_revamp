@@ -9,7 +9,62 @@ import {
 } from '../../types';
 
 export class ProcurementApiService extends BaseApiService {
-  // ==================== INTER-FARM TRANSFERS (Modern SIMR workflow) ====================
+  // ==================== MANAGER SIMR / GIN APPROVAL ====================
+
+  /**
+   * Get SIMRs pending farm manager approval — supervisors submitted these
+   */
+  async getManagerPendingSimrs(farmId?: number): Promise<any[]> {
+    const params: Record<string, any> = { status: 'pending_fm_approval' };
+    if (farmId) params.farm_id = farmId;
+    return this.get<any[]>('/procurement/internal/simr', params);
+  }
+
+  /**
+   * Get all SIMRs visible to the manager (all statuses)
+   */
+  async getManagerAllSimrs(params?: Record<string, any>): Promise<any[]> {
+    return this.get<any[]>('/procurement/internal/simr', params);
+  }
+
+  /**
+   * Get a specific SIMR in detail
+   */
+  async getSimrDetail(simrId: number): Promise<any> {
+    return this.get<any>(`/procurement/internal/simr/${simrId}`);
+  }
+
+  /**
+   * Get GINs pending farm manager approval
+   */
+  async getPendingGins(farmId?: number): Promise<any[]> {
+    const params: Record<string, any> = { status: 'pending_fm_approval' };
+    if (farmId) params.farm_id = farmId;
+    return this.get<any[]>('/procurement/internal/gin', params);
+  }
+
+  /**
+   * Manager approves a SIMR at pending_fm_approval — triggers stock allocation and GIN creation
+   */
+  async approveFmSimr(simrId: number, notes?: string): Promise<any> {
+    return this.post<any>(`/procurement/internal/simr/${simrId}/approve`, { notes: notes ?? '' });
+  }
+
+  /**
+   * Manager rejects a SIMR at pending_fm_approval
+   */
+  async rejectFmSimr(simrId: number, rejectionReason: string): Promise<any> {
+    return this.post<any>(`/procurement/internal/simr/${simrId}/reject`, { rejection_reason: rejectionReason });
+  }
+
+  /**
+   * Manager approves a GIN — releases items to farm clerk for issuance
+   */
+  async approveGin(ginId: number): Promise<any> {
+    return this.post<any>(`/procurement/internal/gin/${ginId}/approve`, {});
+  }
+
+  // ==================== INTER-FARM TRANSFERS ====================
 
   /**
    * Get SIMRs with PENDING_INTER_FARM status — these need source farm manager approval
@@ -36,14 +91,14 @@ export class ProcurementApiService extends BaseApiService {
    * Source farm clerk dispatches items — reduces source Cardex
    */
   async dispatchInterFarmTransfer(transferId: number): Promise<any> {
-    return this.post<any>(`/procurement/internal/transfers/${transferId}/dispatch`, {});
+    return this.post<any>(`/procurement/internal/transfer/${transferId}/dispatch`, {});
   }
 
   /**
    * Destination farm clerk receives items — creates GRN, increases dest Cardex
    */
   async receiveInterFarmTransfer(transferId: number): Promise<any> {
-    return this.post<any>(`/procurement/internal/transfers/${transferId}/receive`, {});
+    return this.post<any>(`/procurement/internal/transfer/${transferId}/receive`, {});
   }
 
   // ==================== PURCHASE REQUESTS ====================
@@ -228,6 +283,216 @@ export class ProcurementApiService extends BaseApiService {
     photo_urls: string[];
   }): Promise<any> {
     return this.put<any>(`/procurement/goods-receipts/${grnId}/upload-photos`, data);
+  }
+
+  // ==================== STORE / CARDEX (Procurement Officer) ====================
+
+  async getStores(): Promise<any[]> {
+    return this.get<any[]>('/procurement/stores');
+  }
+
+  async getStoreDetail(farmId: number): Promise<any> {
+    return this.get<any>(`/procurement/stores/${farmId}`);
+  }
+
+  async searchStock(itemName: string): Promise<any[]> {
+    return this.get<any[]>('/procurement/stores/stock-search', { item_name: itemName });
+  }
+
+  // ==================== SMR (view only) ====================
+
+  async getProcurementSmrs(filters?: Record<string, any>): Promise<any[]> {
+    return this.get<any[]>('/procurement/external/smr', filters);
+  }
+
+  async getProcurementSmrDetail(smrId: number): Promise<any> {
+    return this.get<any>(`/procurement/external/smr/${smrId}`);
+  }
+
+  // ==================== PFI ====================
+
+  async createPfi(data: any): Promise<any> {
+    return this.post<any>('/procurement/external/pfi', data);
+  }
+
+  /** List all PFIs with optional filters */
+  async getPfis(filters?: Record<string, any>): Promise<any[]> {
+    return this.get<any[]>('/procurement/external/pfi', filters);
+  }
+
+  /** List PFIs linked to a specific SMR */
+  async getPfisBySmr(smrId: number): Promise<any[]> {
+    return this.get<any[]>(`/procurement/external/pfi/smr/${smrId}`);
+  }
+
+  // ==================== LPO ====================
+
+  async createLpo(data: any): Promise<any> {
+    return this.post<any>('/procurement/external/lpo', data);
+  }
+
+  async getLpos(filters?: Record<string, any>): Promise<any[]> {
+    return this.get<any[]>('/procurement/external/lpo', filters);
+  }
+
+  async getLpoDetail(lpoId: number): Promise<any> {
+    return this.get<any>(`/procurement/external/lpo/${lpoId}`);
+  }
+
+  // ==================== GRN ====================
+
+  async createGrn(data: any): Promise<any> {
+    return this.post<any>('/procurement/external/grn', data);
+  }
+
+  async getGrns(filters?: Record<string, any>): Promise<any[]> {
+    return this.get<any[]>('/procurement/external/grn', filters);
+  }
+
+  async getGrnDetail(grnId: number): Promise<any> {
+    return this.get<any>(`/procurement/external/grn/${grnId}`);
+  }
+
+  async approveGrn(grnId: number): Promise<any> {
+    return this.post<any>(`/procurement/external/grn/${grnId}/approve`, {});
+  }
+
+  // ==================== SMR CREATE (manager/admin) ====================
+
+  async createSmr(data: any): Promise<any> {
+    return this.post<any>('/procurement/external/smr', data);
+  }
+
+  async getExternalChain(smrNumber: string): Promise<any> {
+    return this.get<any>(`/procurement/external/chain/${smrNumber}`);
+  }
+
+  // ==================== GIN (internal) ====================
+
+  async createGin(data: any): Promise<any> {
+    return this.post<any>('/procurement/internal/gin', data);
+  }
+
+  async getGins(filters?: Record<string, any>): Promise<any[]> {
+    return this.get<any[]>('/procurement/internal/gin', filters);
+  }
+
+  async getGinDetail(ginId: number): Promise<any> {
+    return this.get<any>(`/procurement/internal/gin/${ginId}`);
+  }
+
+  async rejectGin(ginId: number, reason: string): Promise<any> {
+    return this.post<any>(`/procurement/internal/gin/${ginId}/reject`, { rejection_reason: reason });
+  }
+
+  async issueGin(ginId: number): Promise<any> {
+    return this.post<any>(`/procurement/internal/gin/${ginId}/issue`, {});
+  }
+
+  // ==================== TRANSPORT VOUCHER ====================
+
+  async createTransportVoucher(data: any): Promise<any> {
+    return this.post<any>('/procurement/transport-voucher', data);
+  }
+
+  async getTransportVouchers(filters?: Record<string, any>): Promise<any[]> {
+    return this.get<any[]>('/procurement/transport-voucher', filters);
+  }
+
+  async getTransportVoucherDetail(tvId: number): Promise<any> {
+    return this.get<any>(`/procurement/transport-voucher/${tvId}`);
+  }
+
+  async approveTransportVoucher(tvId: number): Promise<any> {
+    return this.post<any>(`/procurement/transport-voucher/${tvId}/approve`, {});
+  }
+
+  async rejectTransportVoucher(tvId: number, reason: string): Promise<any> {
+    return this.post<any>(`/procurement/transport-voucher/${tvId}/reject`, { reason });
+  }
+
+  async dispatchTransportVoucher(tvId: number): Promise<any> {
+    return this.post<any>(`/procurement/transport-voucher/${tvId}/dispatch`, {});
+  }
+
+  async signTransportVoucher(tvId: number, data?: any): Promise<any> {
+    return this.post<any>(`/procurement/transport-voucher/${tvId}/sign`, data ?? {});
+  }
+
+  // ==================== DELIVERY NOTE ====================
+
+  async createDeliveryNote(data: any): Promise<any> {
+    return this.post<any>('/procurement/delivery-note', data);
+  }
+
+  async getDeliveryNotes(filters?: Record<string, any>): Promise<any[]> {
+    return this.get<any[]>('/procurement/delivery-note', filters);
+  }
+
+  async getDeliveryNoteDetail(dnId: number): Promise<any> {
+    return this.get<any>(`/procurement/delivery-note/${dnId}`);
+  }
+
+  async approveDeliveryNote(dnId: number): Promise<any> {
+    return this.post<any>(`/procurement/delivery-note/${dnId}/approve`, {});
+  }
+
+  async dispatchDeliveryNote(dnId: number): Promise<any> {
+    return this.post<any>(`/procurement/delivery-note/${dnId}/dispatch`, {});
+  }
+
+  async signDeliveryNote(dnId: number, data?: any): Promise<any> {
+    return this.post<any>(`/procurement/delivery-note/${dnId}/sign`, data ?? {});
+  }
+
+  // ==================== GATE PASS ====================
+
+  async createGatePass(data: any): Promise<any> {
+    return this.post<any>('/procurement/gate-pass', data);
+  }
+
+  async getGatePasses(filters?: Record<string, any>): Promise<any[]> {
+    return this.get<any[]>('/procurement/gate-pass', filters);
+  }
+
+  async getGatePassDetail(gpId: number): Promise<any> {
+    return this.get<any>(`/procurement/gate-pass/${gpId}`);
+  }
+
+  async issueGatePass(gpId: number): Promise<any> {
+    return this.post<any>(`/procurement/gate-pass/${gpId}/issue`, {});
+  }
+
+  async recordGatePassExit(gpId: number): Promise<any> {
+    return this.post<any>(`/procurement/gate-pass/${gpId}/exit`, {});
+  }
+
+  async verifyGatePass(gpId: number): Promise<any> {
+    return this.post<any>(`/procurement/gate-pass/${gpId}/verify`, {});
+  }
+
+  // ==================== CARDEX ====================
+
+  async getCardex(farmId: number): Promise<any[]> {
+    return this.get<any[]>(`/procurement/cardex/${farmId}`);
+  }
+
+  async getCardexItem(farmId: number, itemName: string): Promise<any> {
+    return this.get<any>(`/procurement/cardex/${farmId}/${encodeURIComponent(itemName)}`);
+  }
+
+  async getCardexItemHistory(farmId: number, itemName: string): Promise<any[]> {
+    return this.get<any[]>(`/procurement/cardex/${farmId}/${encodeURIComponent(itemName)}/history`);
+  }
+
+  // ==================== INTERNAL TRANSFERS (view) ====================
+
+  async getInternalTransfers(filters?: Record<string, any>): Promise<any[]> {
+    return this.get<any[]>('/procurement/internal/transfer', filters);
+  }
+
+  async getInternalTransferDetail(transferId: number): Promise<any> {
+    return this.get<any>(`/procurement/internal/transfer/${transferId}`);
   }
 
   // ==================== SUPPLIERS ====================

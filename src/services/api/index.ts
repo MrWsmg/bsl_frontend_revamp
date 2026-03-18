@@ -235,6 +235,10 @@ export class ApiService extends BaseApiService {
     return this.items.createSimrRequest(data);
   }
 
+  async createProcurementSimr(data: any) {
+    return this.items.createProcurementSimr(data);
+  }
+
   async getSimrRequests() {
     return this.items.getSimrRequests();
   }
@@ -309,6 +313,18 @@ export class ApiService extends BaseApiService {
 
   async getPriceListData() {
     return this.items.getPriceListData();
+  }
+
+  async getPriceList(category?: string) {
+    return this.items.getPriceList(category);
+  }
+
+  async addPriceListItem(data: { category: string; name: string; unit: string; price: number; accounting_code?: string }) {
+    return this.items.addPriceListItem(data);
+  }
+
+  async deletePriceListItem(itemId: number) {
+    return this.items.deletePriceListItem(itemId);
   }
 
   async getManagerActivities(params?: Record<string, any>) {
@@ -487,6 +503,34 @@ export class ApiService extends BaseApiService {
     return this.activities.getAnalyticsData(params);
   }
 
+  async getManagerPendingSimrs(farmId?: number) {
+    return this.procurement.getManagerPendingSimrs(farmId);
+  }
+
+  async getManagerAllSimrs(params?: Record<string, any>) {
+    return this.procurement.getManagerAllSimrs(params);
+  }
+
+  async getSimrDetail(simrId: number) {
+    return this.procurement.getSimrDetail(simrId);
+  }
+
+  async getPendingGins(farmId?: number) {
+    return this.procurement.getPendingGins(farmId);
+  }
+
+  async approveFmSimr(simrId: number, notes?: string) {
+    return this.procurement.approveFmSimr(simrId, notes);
+  }
+
+  async rejectFmSimr(simrId: number, rejectionReason: string) {
+    return this.procurement.rejectFmSimr(simrId, rejectionReason);
+  }
+
+  async approveGin(ginId: number) {
+    return this.procurement.approveGin(ginId);
+  }
+
   async getPendingInterFarmSimrs() {
     return this.procurement.getPendingInterFarmSimrs();
   }
@@ -506,6 +550,64 @@ export class ApiService extends BaseApiService {
   async receiveInterFarmTransfer(transferId: number) {
     return this.procurement.receiveInterFarmTransfer(transferId);
   }
+
+  // ── Procurement Officer ───────────────────────────────────────────────────
+  async getStores() { return this.procurement.getStores(); }
+  async getStoreDetail(farmId: number) { return this.procurement.getStoreDetail(farmId); }
+  async searchStock(itemName: string) { return this.procurement.searchStock(itemName); }
+  async getProcurementSmrs(filters?: Record<string, any>) { return this.procurement.getProcurementSmrs(filters); }
+  async getProcurementSmrDetail(smrId: number) { return this.procurement.getProcurementSmrDetail(smrId); }
+  async createPfi(data: any) { return this.procurement.createPfi(data); }
+  async getPfis(filters?: Record<string, any>) { return this.procurement.getPfis(filters); }
+  async getPfisBySmr(smrId: number) { return this.procurement.getPfisBySmr(smrId); }
+  async getSuppliers() { return this.procurement.getSuppliers(); }
+  async getSupplier(supplierId: number) { return this.procurement.getSupplier(supplierId); }
+  async createSupplier(data: any) { return this.procurement.createSupplier(data); }
+  async updateSupplier(id: number, data: any) { return this.procurement.updateSupplier(id, data); }
+  async createLpo(data: any) { return this.procurement.createLpo(data); }
+  async getLpos(filters?: Record<string, any>) { return this.procurement.getLpos(filters); }
+  async getLpoDetail(lpoId: number) { return this.procurement.getLpoDetail(lpoId); }
+  async createGrn(data: any) { return this.procurement.createGrn(data); }
+  async getGrns(filters?: Record<string, any>) { return this.procurement.getGrns(filters); }
+  async getGrnDetail(grnId: number) { return this.procurement.getGrnDetail(grnId); }
+  async approveGrn(grnId: number) { return this.procurement.approveGrn(grnId); }
+  async getInternalTransfers(filters?: Record<string, any>) { return this.procurement.getInternalTransfers(filters); }
+  async getInternalTransferDetail(transferId: number) { return this.procurement.getInternalTransferDetail(transferId); }
+  // SMR create + chain
+  async createSmr(data: any) { return this.procurement.createSmr(data); }
+  async getExternalChain(smrNumber: string) { return this.procurement.getExternalChain(smrNumber); }
+  // GIN
+  async createGin(data: any) { return this.procurement.createGin(data); }
+  async getGins(filters?: Record<string, any>) { return this.procurement.getGins(filters); }
+  async getGinDetail(ginId: number) { return this.procurement.getGinDetail(ginId); }
+  async rejectGin(ginId: number, reason: string) { return this.procurement.rejectGin(ginId, reason); }
+  async issueGin(ginId: number) { return this.procurement.issueGin(ginId); }
+  // Transport Voucher
+  async createTransportVoucher(data: any) { return this.procurement.createTransportVoucher(data); }
+  async getTransportVouchers(filters?: Record<string, any>) { return this.procurement.getTransportVouchers(filters); }
+  async getTransportVoucherDetail(tvId: number) { return this.procurement.getTransportVoucherDetail(tvId); }
+  async approveTransportVoucher(tvId: number) { return this.procurement.approveTransportVoucher(tvId); }
+  async rejectTransportVoucher(tvId: number, reason: string) { return this.procurement.rejectTransportVoucher(tvId, reason); }
+  async dispatchTransportVoucher(tvId: number) { return this.procurement.dispatchTransportVoucher(tvId); }
+  async signTransportVoucher(tvId: number, data?: any) { return this.procurement.signTransportVoucher(tvId, data); }
+  // Delivery Note
+  async createDeliveryNote(data: any) { return this.procurement.createDeliveryNote(data); }
+  async getDeliveryNotes(filters?: Record<string, any>) { return this.procurement.getDeliveryNotes(filters); }
+  async getDeliveryNoteDetail(dnId: number) { return this.procurement.getDeliveryNoteDetail(dnId); }
+  async approveDeliveryNote(dnId: number) { return this.procurement.approveDeliveryNote(dnId); }
+  async dispatchDeliveryNote(dnId: number) { return this.procurement.dispatchDeliveryNote(dnId); }
+  async signDeliveryNote(dnId: number, data?: any) { return this.procurement.signDeliveryNote(dnId, data); }
+  // Gate Pass
+  async createGatePass(data: any) { return this.procurement.createGatePass(data); }
+  async getGatePasses(filters?: Record<string, any>) { return this.procurement.getGatePasses(filters); }
+  async getGatePassDetail(gpId: number) { return this.procurement.getGatePassDetail(gpId); }
+  async issueGatePass(gpId: number) { return this.procurement.issueGatePass(gpId); }
+  async recordGatePassExit(gpId: number) { return this.procurement.recordGatePassExit(gpId); }
+  async verifyGatePass(gpId: number) { return this.procurement.verifyGatePass(gpId); }
+  // CARDEX
+  async getCardex(farmId: number) { return this.procurement.getCardex(farmId); }
+  async getCardexItem(farmId: number, itemName: string) { return this.procurement.getCardexItem(farmId, itemName); }
+  async getCardexItemHistory(farmId: number, itemName: string) { return this.procurement.getCardexItemHistory(farmId, itemName); }
 
   async getAdminManagerDashboardData() {
     return this.analytics.getAdminManagerDashboardData();
