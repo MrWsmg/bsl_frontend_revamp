@@ -351,6 +351,14 @@ export class ApiService extends BaseApiService {
     return this.farms.getFarmBlocksSummary(farmId);
   }
 
+  async downloadBlocksCsvTemplate() {
+    return this.farms.downloadBlocksCsvTemplate();
+  }
+
+  async uploadBlocksCsv(file: File) {
+    return this.farms.uploadBlocksCsv(file);
+  }
+
   async getManagerFarms() {
     return this.farms.getManagerFarms();
   }
@@ -557,6 +565,7 @@ export class ApiService extends BaseApiService {
   async searchStock(itemName: string) { return this.procurement.searchStock(itemName); }
   async getProcurementSmrs(filters?: Record<string, any>) { return this.procurement.getProcurementSmrs(filters); }
   async getProcurementSmrDetail(smrId: number) { return this.procurement.getProcurementSmrDetail(smrId); }
+  async markSmrOrdered(smrId: number) { return this.procurement.markSmrOrdered(smrId); }
   async createPfi(data: any) { return this.procurement.createPfi(data); }
   async getPfis(filters?: Record<string, any>) { return this.procurement.getPfis(filters); }
   async getPfisBySmr(smrId: number) { return this.procurement.getPfisBySmr(smrId); }
@@ -567,10 +576,20 @@ export class ApiService extends BaseApiService {
   async createLpo(data: any) { return this.procurement.createLpo(data); }
   async getLpos(filters?: Record<string, any>) { return this.procurement.getLpos(filters); }
   async getLpoDetail(lpoId: number) { return this.procurement.getLpoDetail(lpoId); }
+  async getLposForGrn(farmId?: number) { return this.procurement.getLposForGrn(farmId); }
+  async getLpoPrefill(lpoId: number) { return this.procurement.getLpoPrefill(lpoId); }
+  async approveLpo(lpoId: number, notes?: string) { return this.procurement.approveLpo(lpoId, notes); }
+  async rejectLpo(lpoId: number, notes: string) { return this.procurement.rejectLpo(lpoId, notes); }
+  async sendLpoToSupplier(lpoId: number) { return this.procurement.sendLpoToSupplier(lpoId); }
   async createGrn(data: any) { return this.procurement.createGrn(data); }
   async getGrns(filters?: Record<string, any>) { return this.procurement.getGrns(filters); }
   async getGrnDetail(grnId: number) { return this.procurement.getGrnDetail(grnId); }
   async approveGrn(grnId: number) { return this.procurement.approveGrn(grnId); }
+  async rejectGrn(grnId: number, reason: string) { return this.procurement.rejectGrn(grnId, reason); }
+  async patchGrnItem(grnId: number, itemId: number, data: any) { return this.procurement.patchGrnItem(grnId, itemId, data); }
+  async uploadGrnDocument(grnId: number, file: File) { return this.procurement.uploadGrnDocument(grnId, file); }
+  async createDirectReceipt(data: any) { return this.procurement.createDirectReceipt(data); }
+  async getPriceLists(farmId?: number) { return this.procurement.getPriceLists(farmId); }
   async getInternalTransfers(filters?: Record<string, any>) { return this.procurement.getInternalTransfers(filters); }
   async getInternalTransferDetail(transferId: number) { return this.procurement.getInternalTransferDetail(transferId); }
   // SMR create + chain
@@ -608,6 +627,10 @@ export class ApiService extends BaseApiService {
   async getCardex(farmId: number) { return this.procurement.getCardex(farmId); }
   async getCardexItem(farmId: number, itemName: string) { return this.procurement.getCardexItem(farmId, itemName); }
   async getCardexItemHistory(farmId: number, itemName: string) { return this.procurement.getCardexItemHistory(farmId, itemName); }
+  // Chain & actions
+  async getInternalChain(simrNumber: string) { return this.procurement.getInternalChain(simrNumber); }
+  async approveSMR(smrId: number) { return this.procurement.approveSMR(smrId); }
+  async attachTVtoGIN(ginId: number, tvId: number) { return this.procurement.attachTVtoGIN(ginId, tvId); }
 
   async getAdminManagerDashboardData() {
     return this.analytics.getAdminManagerDashboardData();

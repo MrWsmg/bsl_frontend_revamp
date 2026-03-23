@@ -309,6 +309,10 @@ export class ProcurementApiService extends BaseApiService {
     return this.get<any>(`/procurement/external/smr/${smrId}`);
   }
 
+  async markSmrOrdered(smrId: number): Promise<any> {
+    return this.patch<any>(`/procurement/external/smr/${smrId}`, { status: 'lpo_created' });
+  }
+
   // ==================== PFI ====================
 
   async createPfi(data: any): Promise<any> {
@@ -339,6 +343,26 @@ export class ProcurementApiService extends BaseApiService {
     return this.get<any>(`/procurement/external/lpo/${lpoId}`);
   }
 
+  async getLposForGrn(farmId?: number): Promise<any[]> {
+    return this.get<any[]>('/procurement/external/lpo/for-grn', farmId ? { farm_id: farmId } : undefined);
+  }
+
+  async getLpoPrefill(lpoId: number): Promise<any> {
+    return this.get<any>(`/procurement/external/lpo/${lpoId}/grn-prefill`);
+  }
+
+  async approveLpo(lpoId: number, notes?: string): Promise<any> {
+    return this.post<any>(`/procurement/external/lpo/${lpoId}/approve`, { notes });
+  }
+
+  async rejectLpo(lpoId: number, notes: string): Promise<any> {
+    return this.post<any>(`/procurement/external/lpo/${lpoId}/reject`, { notes });
+  }
+
+  async sendLpoToSupplier(lpoId: number): Promise<any> {
+    return this.post<any>(`/procurement/external/lpo/${lpoId}/send`, {});
+  }
+
   // ==================== GRN ====================
 
   async createGrn(data: any): Promise<any> {
@@ -355,6 +379,26 @@ export class ProcurementApiService extends BaseApiService {
 
   async approveGrn(grnId: number): Promise<any> {
     return this.post<any>(`/procurement/external/grn/${grnId}/approve`, {});
+  }
+
+  async rejectGrn(grnId: number, reason: string): Promise<any> {
+    return this.post<any>(`/procurement/external/grn/${grnId}/reject`, { rejection_reason: reason });
+  }
+
+  async patchGrnItem(grnId: number, itemId: number, data: { quantity_accepted: number; rejection_reason?: string }): Promise<any> {
+    return this.patch<any>(`/procurement/external/grn/${grnId}/items/${itemId}`, data);
+  }
+
+  async uploadGrnDocument(grnId: number, file: File): Promise<any> {
+    return this.uploadFile<any>(`/procurement/external/grn/${grnId}/upload-document`, file, 'document');
+  }
+
+  async createDirectReceipt(data: any): Promise<any> {
+    return this.post<any>('/procurement/external/grn/direct', data);
+  }
+
+  async getPriceLists(farmId?: number): Promise<any[]> {
+    return this.get<any[]>('/farm-clerk/price-list', farmId ? { farm_id: farmId } : undefined);
   }
 
   // ==================== SMR CREATE (manager/admin) ====================
@@ -524,6 +568,27 @@ export class ProcurementApiService extends BaseApiService {
    */
   async updateSupplier(supplierId: number, data: Partial<Supplier>): Promise<Supplier> {
     return this.put<Supplier>(`/procurement/suppliers/${supplierId}`, data);
+  }
+
+  /**
+   * Get internal procurement chain for a SIMR
+   */
+  async getInternalChain(simrNumber: string): Promise<any> {
+    return this.get<any>(`/procurement/internal/chain/${simrNumber}`);
+  }
+
+  /**
+   * Approve an SMR (manager/admin)
+   */
+  async approveSMR(smrId: number): Promise<any> {
+    return this.post<any>(`/procurement/external/smr/${smrId}/approve`, {});
+  }
+
+  /**
+   * Attach a Transport Voucher to a GIN
+   */
+  async attachTVtoGIN(ginId: number, tvId: number): Promise<any> {
+    return this.patch<any>(`/procurement/internal/gin/${ginId}/attach-tv?tv_id=${tvId}`, {});
   }
 }
 

@@ -20,13 +20,15 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { PackageOpen, RefreshCw, AlertCircle, CheckCircle2, XCircle, SendHorizontal, ChevronRight } from 'lucide-react';
+import { PackageOpen, RefreshCw, AlertCircle, CheckCircle2, XCircle, SendHorizontal, ChevronRight, AlertTriangle, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { DocLink } from '@/components/procurement/DocLink';
 
 interface Props { userRole: string; }
 
-const CAN_APPROVE = ['manager', 'admin'];
-const CAN_ISSUE   = ['farm_clerk', 'admin'];
+const CAN_APPROVE    = ['manager', 'admin'];
+const CAN_ISSUE      = ['farm_clerk', 'admin'];
+const CAN_ATTACH_TV  = ['farm_clerk', 'admin'];
 
 const GIN_STATUS_COLORS: Record<string, string> = {
   pending:          'bg-yellow-100 text-yellow-800 border-yellow-200',
@@ -46,13 +48,17 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export const SharedGinSection: React.FC<Props> = ({ userRole }) => {
-  const canApprove = CAN_APPROVE.includes(userRole);
-  const canIssue   = CAN_ISSUE.includes(userRole);
+  const canApprove   = CAN_APPROVE.includes(userRole);
+  const canIssue     = CAN_ISSUE.includes(userRole);
+  const canAttachTV  = CAN_ATTACH_TV.includes(userRole);
 
-  const [selected, setSelected]       = useState<any>(null);
-  const [rejectTarget, setRejectTarget] = useState<number | null>(null);
-  const [rejectReason, setRejectReason] = useState('');
-  const [actionBusy, setActionBusy]   = useState<number | null>(null);
+  const [selected, setSelected]           = useState<any>(null);
+  const [rejectTarget, setRejectTarget]   = useState<number | null>(null);
+  const [rejectReason, setRejectReason]   = useState('');
+  const [actionBusy, setActionBusy]       = useState<number | null>(null);
+  const [showAttachTV, setShowAttachTV]   = useState(false);
+  const [attachTVId, setAttachTVId]       = useState('');
+  const [attachingTV, setAttachingTV]     = useState(false);
 
   const fetchGins = useCallback(() => apiService.getGins(), []);
   const { data: gins, loading, error, refetch } = useApi(fetchGins);
@@ -78,6 +84,20 @@ export const SharedGinSection: React.FC<Props> = ({ userRole }) => {
     try { await apiService.issueGin(id); toast.success('GIN issued — CARDEX reduced'); refetch(); }
     catch (e: any) { toast.error(getApiError(e, 'Failed to issue')); }
     finally { setActionBusy(null); }
+  };
+
+  const handleAttachTV = async () => {
+    if (!selected || !attachTVId.trim()) return;
+    setAttachingTV(true);
+    try {
+      await apiService.attachTVtoGIN(selected.id, parseInt(attachTVId));
+      toast.success('TV attached to GIN');
+      setShowAttachTV(false); setAttachTVId('');
+      refetch();
+      setSelected((prev: any) => prev ? { ...prev, tv_id: parseInt(attachTVId) } : prev);
+    } catch (e: any) {
+      toast.error(getApiError(e, 'Failed to attach TV'));
+    } finally { setAttachingTV(false); }
   };
 
   return (
@@ -177,10 +197,42 @@ export const SharedGinSection: React.FC<Props> = ({ userRole }) => {
               <div className="space-y-4 text-sm">
                 <div className="grid grid-cols-2 gap-3">
                   <div><p className="text-xs text-gray-400 mb-0.5">Farm</p><p className="font-medium">{selected.farm?.name ?? `Farm #${selected.farm_id}`}</p></div>
-                  <div><p className="text-xs text-gray-400 mb-0.5">Linked SIMR</p><p className="font-mono text-amber-700">{selected.simr_id ? `SIMR #${selected.simr_id}` : '—'}</p></div>
-                  <div><p className="text-xs text-gray-400 mb-0.5">Issued to</p><p className="text-gray-700">{selected.issued_to?.full_name ?? '—'}</p></div>
+                  <div>
+                    <p className="text-xs text-gray-400 mb-0.5">Linked SIMR</p>
+                    {selected.simr_id ? (
+                      <DocLink label={selected.simr_number ?? `SIMR #${selected.simr_id}`} />
+                    ) : <span className="text-muted-foreground text-sm">—</span>}
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 mb-0.5">Issued to</p>
+                    <p className="text-gray-700">{selected.issued_to?.full_name ?? selected.issued_to_name ?? '—'}</p>
+                  </div>
                   <div><p className="text-xs text-gray-400 mb-0.5">Issued at</p><p className="text-gray-700">{selected.issued_at ? new Date(selected.issued_at).toLocaleDateString() : '—'}</p></div>
+                  <div>
+                    <p className="text-xs text-gray-400 mb-0.5">Transport Voucher</p>
+                    {selected.tv_id ? (
+                      <DocLink label={selected.tv_number ?? `TV #${selected.tv_id}`} />
+                    ) : <span className="text-muted-foreground text-sm">—</span>}
+                  </div>
                 </div>
+
+                {selected.tv_required && !selected.tv_id && (
+                  <div className="flex items-center gap-2 bg-amber-50 border border-amber-300 rounded p-3 text-amber-800 text-xs">
+                    <AlertTriangle className="w-4 h-4 flex-shrink-0 text-amber-600" />
+                    <span>A Transport Voucher is required for this GIN but has not been attached.</span>
+                  </div>
+                )}
+
+                {canAttachTV && !selected.tv_id && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs"
+                    onClick={() => setShowAttachTV(true)}
+                  >
+                    <Link2 className="w-3.5 h-3.5" /> Attach TV
+                  </Button>
+                )}
                 {selected.rejection_reason && (
                   <div className="bg-red-50 border border-red-200 rounded p-3">
                     <p className="text-xs text-red-500 mb-1">Rejection Reason</p>
@@ -256,6 +308,37 @@ export const SharedGinSection: React.FC<Props> = ({ userRole }) => {
             <Button variant="outline" onClick={() => { setRejectTarget(null); setRejectReason(''); }}>Cancel</Button>
             <Button variant="destructive" disabled={!rejectReason.trim() || !!actionBusy} onClick={handleReject}>
               {actionBusy ? 'Rejecting…' : 'Confirm Reject'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Attach TV Dialog */}
+      <Dialog open={showAttachTV} onOpenChange={open => { if (!open) { setShowAttachTV(false); setAttachTVId(''); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Link2 className="w-4 h-4" /> Attach Transport Voucher
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-2 space-y-3">
+            <p className="text-sm text-gray-600">Enter the ID of the Transport Voucher to link to this GIN.</p>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">TV ID *</label>
+              <Input
+                type="number"
+                min="1"
+                value={attachTVId}
+                onChange={e => setAttachTVId(e.target.value)}
+                placeholder="Transport Voucher ID"
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowAttachTV(false); setAttachTVId(''); }} disabled={attachingTV}>Cancel</Button>
+            <Button onClick={handleAttachTV} disabled={!attachTVId.trim() || attachingTV} className="bg-amber-600 hover:bg-amber-700 text-white">
+              {attachingTV ? 'Attaching…' : 'Attach TV'}
             </Button>
           </DialogFooter>
         </DialogContent>

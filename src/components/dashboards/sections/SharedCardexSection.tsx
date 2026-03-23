@@ -197,6 +197,11 @@ export const SharedCardexSection: React.FC<Props> = ({ userRole, farmId }) => {
                         <span className={item.balance <= (item.reorder_level ?? 0) ? 'text-red-600' : 'text-gray-800'}>
                           {item.balance}
                         </span>
+                        {item.in_transit_balance > 0 && (
+                          <div className="text-xs text-blue-600 font-normal">
+                            +{item.in_transit_balance} in transit
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="text-xs text-gray-500">{item.unit ?? '—'}</TableCell>
                       <TableCell className="text-xs text-gray-400">

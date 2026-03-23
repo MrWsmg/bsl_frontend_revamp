@@ -68,5 +68,19 @@ export class FarmsApiService extends BaseApiService {
   async getFarmsOverview(): Promise<Farm[]> {
     return this.get<Farm[]>('/farms/overview');
   }
+
+  /**
+   * Download blocks CSV template
+   */
+  async downloadBlocksCsvTemplate(): Promise<void> {
+    return this.downloadFile('/blocks/csv-template', 'blocks_template.csv');
+  }
+
+  /**
+   * Upload blocks via CSV
+   */
+  async uploadBlocksCsv(file: File): Promise<any> {
+    return this.uploadFile<any>('/blocks/upload-csv', file, 'file');
+  }
 }
 

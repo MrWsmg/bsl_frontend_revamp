@@ -14,7 +14,7 @@ import AddWorkerModal from '../shared/AddWorkerModal';
 import { SupervisorTasksSection, SupervisorItemRequestsSection, SupervisorAttendanceSection } from './sections';
 import { SupervisorPayrollSection } from './sections/SupervisorPayrollSection';
 import {
-  SharedSimrSection,
+  SupervisorSimrSection,
   SharedGinSection,
   SharedTransportVoucherSection,
   SharedDeliveryNoteSection,
@@ -649,7 +649,7 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
           {mountedTabs.has('reports') && renderReports()}
         </div>
         {/* Procurement tabs */}
-        <div className={activeTab === 'proc-simr'   ? '' : 'hidden'}>{mountedTabs.has('proc-simr')   && <SharedSimrSection userRole="supervisor" />}</div>
+        <div className={activeTab === 'proc-simr'   ? '' : 'hidden'}>{mountedTabs.has('proc-simr')   && <SupervisorSimrSection />}</div>
         <div className={activeTab === 'proc-gin'    ? '' : 'hidden'}>{mountedTabs.has('proc-gin')    && <SharedGinSection userRole="supervisor" />}</div>
         <div className={activeTab === 'proc-tv'     ? '' : 'hidden'}>{mountedTabs.has('proc-tv')     && <SharedTransportVoucherSection userRole="supervisor" />}</div>
         <div className={activeTab === 'proc-dn'     ? '' : 'hidden'}>{mountedTabs.has('proc-dn')     && <SharedDeliveryNoteSection userRole="supervisor" />}</div>

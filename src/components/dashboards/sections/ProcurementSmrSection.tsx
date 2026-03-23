@@ -18,6 +18,7 @@ const statusColor: Record<string, string> = {
   approved:            'bg-green-100 text-green-800',
   rejected:            'bg-red-100 text-red-800',
   ordered:             'bg-blue-100 text-blue-800',
+  lpo_created:         'bg-blue-100 text-blue-800',
 };
 
 const priorityColor: Record<string, string> = {
@@ -154,13 +155,17 @@ export const ProcurementSmrSection: React.FC<Props> = ({ onCreateLpo }) => {
                   )}
                   {onCreateLpo && (
                     <div className="mt-3 pt-3 border-t border-gray-50 flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() => onCreateLpo(smr.id, smr.smr_number ?? smr.pr_number ?? `SMR #${smr.id}`, Array.isArray(smr.items) ? smr.items : [])}
-                        className="flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
-                      >
-                        <Plus className="w-3.5 h-3.5" /> Create LPO
-                      </button>
+                      {smr.status?.toLowerCase() === 'lpo_created' ? (
+                        <span className="text-xs text-blue-600 font-medium">LPO Raised</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => onCreateLpo(smr.id, smr.smr_number ?? smr.pr_number ?? `SMR #${smr.id}`, Array.isArray(smr.items) ? smr.items : [])}
+                          className="flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> Create LPO
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

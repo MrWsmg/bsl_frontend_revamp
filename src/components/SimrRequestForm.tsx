@@ -326,8 +326,8 @@ export default function SimrRequestForm({ farms, onSuccess }: SimrRequestFormPro
                                   <SelectValue placeholder="Select item" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {priceList.map((priceItem) => (
-                                    <SelectItem key={priceItem.id} value={priceItem.item_name}>
+                                  {[...new Map(priceList.map((p) => [p.item_name, p])).values()].map((priceItem, idx) => (
+                                    <SelectItem key={priceItem.id ?? idx} value={priceItem.item_name}>
                                       {priceItem.item_name}
                                     </SelectItem>
                                   ))}

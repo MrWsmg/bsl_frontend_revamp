@@ -212,6 +212,16 @@ export class BaseApiService {
   }
 
   /**
+   * PATCH request
+   */
+  protected async patch<T>(endpoint: string, data?: any): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'PATCH',
+      body: data,
+    });
+  }
+
+  /**
    * DELETE request
    */
   protected async delete<T>(endpoint: string): Promise<T> {

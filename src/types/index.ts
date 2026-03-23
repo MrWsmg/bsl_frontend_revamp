@@ -547,7 +547,9 @@ export interface GoodsReceiptItem {
 export interface GoodsReceiptNote {
   id: number;
   grn_number: string;
-  purchase_order_id: number;
+  lpo_id: number;
+  /** @deprecated use lpo_id */
+  purchase_order_id?: number;
   purchase_order?: PurchaseOrder;
   farm_id: number;
   farm?: Farm;
@@ -559,6 +561,13 @@ export interface GoodsReceiptNote {
   delivery_note_number?: string;
   carrier_name?: string;
   vehicle_number?: string;
+
+  status?: string;
+  lpo_number?: string;
+  smr_id?: number;
+  smr_number?: string;
+  simr_id?: number;
+  simr_number?: string;
 
   // Inspection details
   inspection_status: 'pending' | 'passed' | 'failed' | 'partial';
@@ -578,6 +587,64 @@ export interface GoodsReceiptNote {
 
   // Expanded items
   items?: GoodsReceiptItem[];
+}
+
+export interface GinItem {
+  id: number;
+  item_name: string;
+  quantity_requested: number;
+  quantity_issued: number;
+  unit: string;
+  accounting_code?: string;
+  specifications?: string;
+}
+
+export interface GinDocument {
+  id: number;
+  gin_number: string;
+  simr_id?: number;
+  simr_number?: string;
+  farm_id: number;
+  farm?: Farm;
+  status: string;
+  issued_by?: number;
+  issued_by_name?: string;
+  issued_to?: number;
+  issued_to_name?: string;
+  tv_id?: number;
+  tv_number?: string;
+  tv_required?: boolean;
+  approved_by?: number;
+  approved_at?: string;
+  created_at: string;
+  items?: GinItem[];
+}
+
+export interface ChainNode {
+  id: number;
+  number: string;
+  status: string;
+  doc_type: string;
+  created_at?: string;
+}
+
+export interface ExternalProcurementChain {
+  smr: ChainNode | null;
+  lpos: ChainNode[];
+  grns: ChainNode[];
+  tvs: ChainNode[];
+  dns: ChainNode[];
+  gate_passes: ChainNode[];
+}
+
+export interface InternalProcurementChain {
+  simr: ChainNode | null;
+  gins: ChainNode[];
+  grns: ChainNode[];
+  tvs: ChainNode[];
+  dns: ChainNode[];
+  gate_passes: ChainNode[];
+  triggered_smr: ChainNode | null;
 }
 
 export interface Supplier {

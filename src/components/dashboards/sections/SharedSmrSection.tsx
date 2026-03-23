@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { getApiError } from '../../../utils';
@@ -24,14 +24,17 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { FileText, RefreshCw, Plus, AlertCircle, Link2, ChevronRight } from 'lucide-react';
+import { FileText, RefreshCw, Plus, AlertCircle, Link2, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ChainStepper } from '@/components/procurement/ChainStepper';
 
 interface Props { userRole: string; }
 
-const CAN_CREATE = ['manager', 'admin'];
+const CAN_CREATE       = ['manager', 'admin'];
+const CAN_APPROVE_SMR  = ['manager', 'admin'];
 
 const SMR_STATUS_COLORS: Record<string, string> = {
+  draft:     'bg-gray-100 text-gray-600 border-gray-200',
   pending:   'bg-yellow-100 text-yellow-800 border-yellow-200',
   approved:  'bg-green-100 text-green-800 border-green-200',
   rejected:  'bg-red-100 text-red-800 border-red-200',
@@ -87,8 +90,15 @@ export const SharedSmrSection: React.FC<Props> = ({ userRole }) => {
   const [form, setForm]                 = useState<SmrFormData>(emptyForm());
   const [submitting, setSubmitting]     = useState(false);
   const [formError, setFormError]       = useState('');
+  const [approving, setApproving]       = useState<number | null>(null);
 
-  const canCreate = CAN_CREATE.includes(userRole);
+  const canCreate     = CAN_CREATE.includes(userRole);
+  const canApproveSMR = CAN_APPROVE_SMR.includes(userRole);
+
+  const [farms, setFarms] = useState<any[]>([]);
+  useEffect(() => {
+    apiService.getManagerFarms().then(setFarms).catch(() => {});
+  }, []);
 
   const fetchSmrs = useCallback(
     () => apiService.getProcurementSmrs(statusFilter && statusFilter !== 'all' ? { status: statusFilter } : undefined),
@@ -120,9 +130,23 @@ export const SharedSmrSection: React.FC<Props> = ({ userRole }) => {
   const updateItem = (i: number, patch: Partial<SmrFormData['items'][0]>) =>
     setForm(f => ({ ...f, items: f.items.map((r, idx) => idx === i ? { ...r, ...patch } : r) }));
 
+  const handleApproveSMR = async (smrId: number) => {
+    setApproving(smrId);
+    try {
+      await apiService.approveSMR(smrId);
+      toast.success('SMR approved');
+      refetch();
+      setSelected((prev: any) => prev?.id === smrId ? { ...prev, status: 'approved' } : prev);
+    } catch (err: any) {
+      toast.error(getApiError(err, 'Failed to approve SMR'));
+    } finally {
+      setApproving(null);
+    }
+  };
+
   const handleSubmit = async () => {
     setFormError('');
-    if (!form.farm_id) { setFormError('Farm ID is required.'); return; }
+    if (!form.farm_id) { setFormError('Farm is required.'); return; }
     if (!form.justification.trim()) { setFormError('Justification is required.'); return; }
     const validItems = form.items.filter(r => r.item_name.trim() && parseFloat(r.quantity) > 0);
     if (validItems.length === 0) { setFormError('Add at least one item.'); return; }
@@ -168,6 +192,7 @@ export const SharedSmrSection: React.FC<Props> = ({ userRole }) => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="approved">Approved</SelectItem>
                   <SelectItem value="rejected">Rejected</SelectItem>
@@ -266,6 +291,18 @@ export const SharedSmrSection: React.FC<Props> = ({ userRole }) => {
                     <p className="text-xs text-gray-400 mb-0.5">Requested by</p>
                     <p className="font-medium text-gray-800">{selected.requested_by?.full_name ?? selected.requested_by ?? '—'}</p>
                   </div>
+                  {selected.approved_by && (
+                    <div>
+                      <p className="text-xs text-gray-400 mb-0.5">Approved by</p>
+                      <p className="font-medium text-gray-800">{selected.approved_by?.full_name ?? selected.approved_by}</p>
+                    </div>
+                  )}
+                  {selected.approved_at && (
+                    <div>
+                      <p className="text-xs text-gray-400 mb-0.5">Approved at</p>
+                      <p className="text-gray-700">{new Date(selected.approved_at).toLocaleString()}</p>
+                    </div>
+                  )}
                   <div className="col-span-2">
                     <p className="text-xs text-gray-400 mb-0.5">Purpose</p>
                     <p className="text-gray-700">{selected.purpose}</p>
@@ -277,6 +314,20 @@ export const SharedSmrSection: React.FC<Props> = ({ userRole }) => {
                     </div>
                   )}
                 </div>
+
+                {canApproveSMR && selected.status === 'draft' && (
+                  <>
+                    <Separator />
+                    <Button
+                      className="w-full bg-green-600 hover:bg-green-700 text-white"
+                      disabled={approving === selected.id}
+                      onClick={() => handleApproveSMR(selected.id)}
+                    >
+                      <CheckCircle2 className="w-4 h-4 mr-2" />
+                      {approving === selected.id ? 'Approving…' : 'Approve SMR'}
+                    </Button>
+                  </>
+                )}
 
                 <Separator />
 
@@ -302,25 +353,11 @@ export const SharedSmrSection: React.FC<Props> = ({ userRole }) => {
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                     <Link2 className="w-3.5 h-3.5" /> Document Chain
                   </p>
-                  {loadingChain ? (
-                    <div className="flex justify-center py-4"><LoadingSpinner size="sm" /></div>
-                  ) : chain ? (
-                    <div className="space-y-1.5">
-                      {['smr', 'pfi', 'lpo', 'grn'].map(key => {
-                        const doc = chain[key];
-                        if (!doc) return null;
-                        return (
-                          <div key={key} className="flex items-center justify-between bg-gray-50 rounded px-3 py-2 text-xs">
-                            <span className="uppercase font-semibold text-gray-500 w-10">{key}</span>
-                            <span className="font-mono text-amber-700">{doc.number ?? doc.id}</span>
-                            <StatusBadge status={doc.status} />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-gray-400 py-2">No chain data available</p>
-                  )}
+                  <ChainStepper
+                    chainType="external"
+                    chain={chain}
+                    loading={loadingChain}
+                  />
                 </div>
               </div>
             </>
@@ -347,8 +384,19 @@ export const SharedSmrSection: React.FC<Props> = ({ userRole }) => {
               )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Farm ID *</label>
-                  <Input type="number" value={form.farm_id} onChange={e => setForm(f => ({ ...f, farm_id: e.target.value }))} placeholder="Farm ID" />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Farm *</label>
+                  <Select value={form.farm_id} onValueChange={v => setForm(f => ({ ...f, farm_id: v }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select farm…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {farms.map((farm: any) => (
+                        <SelectItem key={farm.id} value={String(farm.id)}>
+                          {farm.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>

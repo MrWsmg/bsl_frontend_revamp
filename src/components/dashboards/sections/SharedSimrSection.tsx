@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useApi } from '../../../hooks';
+import { useAuth } from '../../../contexts/AuthContext';
 import apiService from '../../../services/api';
 import { getApiError } from '../../../utils';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
@@ -73,6 +74,7 @@ export const SharedSimrSection: React.FC<Props> = ({ userRole }) => {
   const canCreate    = CAN_CREATE.includes(userRole);
   const canApprove   = CAN_APPROVE.includes(userRole);
   const canRaiseSmr  = CAN_RAISE_SMR.includes(userRole);
+  const { user }     = useAuth();
 
   const [statusFilter, setStatusFilter]   = useState('all');
   const [selected, setSelected]           = useState<any>(null);
@@ -85,8 +87,46 @@ export const SharedSimrSection: React.FC<Props> = ({ userRole }) => {
   const [actionBusy, setActionBusy]       = useState<number | null>(null);
   const [formError, setFormError]         = useState('');
 
+  // Farms and blocks for the create form
+  const [farms, setFarms] = useState<any[]>([]);
+  const [blocks, setBlocks] = useState<any[]>([]);
+
+  // Helper: resolve farm name from loaded farms list
+  const farmName = (farmId: number | string | null | undefined): string => {
+    if (!farmId) return '—';
+    const id = Number(farmId);
+    const match = farms.find((f: any) => (f.farm_id ?? f.id) === id);
+    return match?.name ?? `Farm #${farmId}`;
+  };
+
+  useEffect(() => {
+    apiService.getFarms(userRole).then(all => {
+      // Filter to only farms assigned to this user
+      const assignedIds = user?.farm_id
+        ? [user.farm_id]
+        : (user?.assigned_farms ? user.assigned_farms.split(',').map(Number).filter(Boolean) : []);
+
+      const filtered = assignedIds.length > 0
+        ? all.filter((f: any) => assignedIds.includes(f.id))
+        : all;
+
+      setFarms(filtered);
+
+      // Auto-select if only one farm
+      if (filtered.length === 1) {
+        setForm(f => ({ ...f, farm_id: String(filtered[0].id) }));
+      }
+    }).catch(() => {});
+  }, [userRole]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // SIMR create form
   const [form, setForm] = useState({ farm_id: '', block_id: '', purpose: '', priority: 'normal' });
+
+  // Reload blocks whenever the selected farm changes
+  useEffect(() => {
+    if (!form.farm_id) { setBlocks([]); return; }
+    apiService.getBlocksForFarm(parseInt(form.farm_id)).then(setBlocks).catch(() => setBlocks([]));
+  }, [form.farm_id]); // eslint-disable-line react-hooks/exhaustive-deps
   const [formItems, setFormItems] = useState([{ item_name: '', quantity: '', unit: 'kg', specifications: '' }]);
 
   // SMR-from-SIMR state
@@ -151,7 +191,7 @@ export const SharedSimrSection: React.FC<Props> = ({ userRole }) => {
 
   const handleCreateSimrSubmit = async () => {
     setFormError('');
-    if (!form.farm_id) { setFormError('Farm ID required.'); return; }
+    if (!form.farm_id) { setFormError('Please select a farm.'); return; }
     if (!form.purpose.trim()) { setFormError('Purpose required.'); return; }
     const valid = formItems.filter(r => r.item_name.trim() && parseFloat(r.quantity) > 0);
     if (valid.length === 0) { setFormError('Add at least one item.'); return; }
@@ -309,7 +349,7 @@ export const SharedSimrSection: React.FC<Props> = ({ userRole }) => {
                           {s.simr_number ?? `SIMR #${s.id}`}
                         </span>
                       </TableCell>
-                      <TableCell className="text-sm text-gray-700 cursor-pointer" onClick={() => openDetail(s)}>{s.farm?.name ?? `Farm #${s.farm_id}`}</TableCell>
+                      <TableCell className="text-sm text-gray-700 cursor-pointer" onClick={() => openDetail(s)}>{s.farm?.name ?? farmName(s.farm_id)}</TableCell>
                       <TableCell className="text-sm text-gray-600 max-w-[160px] truncate cursor-pointer" onClick={() => openDetail(s)}>{s.purpose}</TableCell>
                       <TableCell className="cursor-pointer" onClick={() => openDetail(s)}><PriorityBadge priority={s.priority ?? 'medium'} /></TableCell>
                       <TableCell className="cursor-pointer" onClick={() => openDetail(s)}><StatusBadge status={s.status} /></TableCell>
@@ -329,10 +369,17 @@ export const SharedSimrSection: React.FC<Props> = ({ userRole }) => {
                             </>
                           )}
                           {canRaiseSmr && isPendingSmr && (
-                            <Button size="sm" variant="outline" className="text-xs h-7 text-orange-700 border-orange-200 hover:bg-orange-50 gap-1"
-                              onClick={() => openCreateSmrFromSimr(s)}>
-                              <FileText className="w-3 h-3" /> Raise SMR
-                            </Button>
+                            s.smr_id ? (
+                              <Button size="sm" variant="outline" className="text-xs h-7 text-blue-700 border-blue-200 hover:bg-blue-50 gap-1"
+                                onClick={() => openDetail(s)}>
+                                <FileText className="w-3 h-3" /> View SMR
+                              </Button>
+                            ) : (
+                              <Button size="sm" variant="outline" className="text-xs h-7 text-orange-700 border-orange-200 hover:bg-orange-50 gap-1"
+                                onClick={() => openCreateSmrFromSimr(s)}>
+                                <FileText className="w-3 h-3" /> Raise SMR
+                              </Button>
+                            )
                           )}
                         </div>
                       </TableCell>
@@ -364,7 +411,7 @@ export const SharedSimrSection: React.FC<Props> = ({ userRole }) => {
 
               <div className="space-y-4 text-sm">
                 <div className="grid grid-cols-2 gap-3">
-                  <div><p className="text-xs text-gray-400 mb-0.5">Farm</p><p className="font-medium">{selected.farm?.name ?? `Farm #${selected.farm_id}`}</p></div>
+                  <div><p className="text-xs text-gray-400 mb-0.5">Farm</p><p className="font-medium">{selected.farm?.name ?? farmName(selected.farm_id)}</p></div>
                   <div><p className="text-xs text-gray-400 mb-0.5">Requested by</p><p className="font-medium">{selected.supervisor?.full_name ?? '—'}</p></div>
                   <div className="col-span-2"><p className="text-xs text-gray-400 mb-0.5">Purpose</p><p className="text-gray-700">{selected.purpose}</p></div>
                   {selected.rejection_reason && (
@@ -458,24 +505,39 @@ export const SharedSimrSection: React.FC<Props> = ({ userRole }) => {
                   </>
                 )}
 
-                {/* ── Raise SMR button when stock unavailable ── */}
-                {canRaiseSmr && selected.status === 'pending_smr' && !createdSmr && !selected.smr_id && (
+                {/* ── SMR action panel when stock unavailable ── */}
+                {canRaiseSmr && selected.status === 'pending_smr' && !createdSmr && (
                   <>
                     <Separator />
-                    <div className="bg-orange-50 border border-orange-200 rounded p-3 space-y-2">
-                      <p className="text-xs text-orange-700 font-medium flex items-center gap-1.5">
-                        <AlertCircle className="w-3.5 h-3.5" />
-                        Stock unavailable — external procurement required
-                      </p>
-                      <p className="text-xs text-orange-600">
-                        Raise a SMART Material Request (SMR) to source these items externally.
-                        The form will be pre-filled with the items from this SIMR.
-                      </p>
-                      <Button className="w-full bg-orange-600 hover:bg-orange-700 text-white gap-1.5"
-                        onClick={() => { openCreateSmrFromSimr(selected); setSelected(null); }}>
-                        <FileText className="w-4 h-4" /> Create SMR from this SIMR
-                      </Button>
-                    </div>
+                    {selected.smr_id ? (
+                      <div className="bg-blue-50 border border-blue-200 rounded p-3 flex items-center gap-3">
+                        <FileText className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-sm text-blue-800 font-medium">SMR already raised</p>
+                          <p className="text-xs text-blue-600 font-mono">
+                            {selected.smr_number ?? `SMR #${selected.smr_id}`}
+                          </p>
+                        </div>
+                        <Button size="sm" variant="outline" className="text-blue-700 border-blue-300 hover:bg-blue-100 gap-1.5">
+                          <ExternalLink className="w-3.5 h-3.5" /> View SMR
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="bg-orange-50 border border-orange-200 rounded p-3 space-y-2">
+                        <p className="text-xs text-orange-700 font-medium flex items-center gap-1.5">
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          Stock unavailable — external procurement required
+                        </p>
+                        <p className="text-xs text-orange-600">
+                          Raise a SMART Material Request (SMR) to source these items externally.
+                          The form will be pre-filled with the items from this SIMR.
+                        </p>
+                        <Button className="w-full bg-orange-600 hover:bg-orange-700 text-white gap-1.5"
+                          onClick={() => { openCreateSmrFromSimr(selected); setSelected(null); }}>
+                          <FileText className="w-4 h-4" /> Create SMR from this SIMR
+                        </Button>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
@@ -514,12 +576,38 @@ export const SharedSimrSection: React.FC<Props> = ({ userRole }) => {
               {formError && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertDescription>{formError}</AlertDescription></Alert>}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Farm ID *</label>
-                  <Input type="number" value={form.farm_id} onChange={e => setForm(f => ({ ...f, farm_id: e.target.value }))} placeholder="Farm" />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Farm *</label>
+                  {farms.length <= 1 ? (
+                    <div className="flex items-center h-10 px-3 rounded-md border border-gray-200 bg-gray-50 text-sm text-gray-700">
+                      {farmName(form.farm_id)}
+                    </div>
+                  ) : (
+                    <Select value={form.farm_id} onValueChange={v => setForm(f => ({ ...f, farm_id: v, block_id: '' }))}>
+                      <SelectTrigger><SelectValue placeholder="Select farm…" /></SelectTrigger>
+                      <SelectContent>
+                        {farms.map((farm: any, i: number) => (
+                          <SelectItem key={farm.id ?? i} value={String(farm.id)}>{farm.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Block ID <span className="text-gray-400 font-normal">(optional)</span></label>
-                  <Input type="number" value={form.block_id} onChange={e => setForm(f => ({ ...f, block_id: e.target.value }))} placeholder="Block #" />
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Block <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <Select
+                    value={form.block_id}
+                    onValueChange={v => setForm(f => ({ ...f, block_id: v }))}
+                    disabled={!form.farm_id || blocks.length === 0}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={!form.farm_id ? 'Select a farm first' : blocks.length === 0 ? 'No blocks' : 'Select block…'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {blocks.map((b: any, i: number) => (
+                        <SelectItem key={b.id ?? i} value={String(b.id)}>{b.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
@@ -583,7 +671,7 @@ export const SharedSimrSection: React.FC<Props> = ({ userRole }) => {
                 <span className="font-mono text-orange-700 font-medium">
                   {smrSimrSource.simr_number ?? `SIMR #${smrSimrSource.id}`}
                 </span>
-                {' '}· Farm: <span className="font-medium">{smrSimrSource.farm?.name ?? `Farm #${smrSimrSource.farm_id}`}</span>
+                {' '}· Farm: <span className="font-medium">{smrSimrSource.farm?.name ?? farmName(smrSimrSource.farm_id)}</span>
               </p>
             )}
           </DialogHeader>
@@ -599,8 +687,12 @@ export const SharedSimrSection: React.FC<Props> = ({ userRole }) => {
             {/* Read-only context fields */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Farm ID (auto)</label>
-                <Input value={smrSimrSource?.farm_id ?? ''} readOnly className="bg-gray-50 text-gray-500 text-sm" />
+                <label className="block text-xs font-medium text-gray-500 mb-1">Farm (auto)</label>
+                <Input
+                  value={smrSimrSource ? (smrSimrSource.farm?.name ?? farmName(smrSimrSource.farm_id)) : ''}
+                  readOnly
+                  className="bg-gray-50 text-gray-500 text-sm"
+                />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">Linked SIMR (auto)</label>

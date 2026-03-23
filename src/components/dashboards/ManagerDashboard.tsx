@@ -9,7 +9,7 @@ import { User } from '../../types';
 import {
   BarChart3, ClipboardList, CheckSquare, User as UserIcon, Package, Wrench,
   TrendingUp, Calendar, Truck, FileText, Receipt, PackageCheck, ArrowLeftRight,
-  PackageOpen, SendHorizontal, ShieldCheck,
+  PackageOpen, SendHorizontal, ShieldCheck, LayoutGrid,
 } from 'lucide-react';
 
 // Import dashboard sections
@@ -24,6 +24,7 @@ import {
   ManagerReportsSection,
   ManagerAttendanceSection,
   ManagerPerformanceSection,
+  ManagerBlocksSection,
   SharedSmrSection,
   SharedPfiSection,
   SharedLpoSection,
@@ -69,10 +70,12 @@ const TAB_COMPONENTS: Record<string, React.FC> = {
   stock: ManagerStockSection,
   equipment: ManagerEquipmentSection,
   reports: ManagerReportsSection,
+  blocks: ManagerBlocksSection,
 };
 
 const MANAGER_SIDEBAR = [
   ...MANAGER_TABS.map(tab => ({ id: tab.id, label: tab.label, icon: iconMap[tab.icon as keyof typeof iconMap] })),
+  { id: 'blocks', label: 'Blocks', icon: LayoutGrid },
   {
     id: 'procurement',
     label: 'Procurement',
