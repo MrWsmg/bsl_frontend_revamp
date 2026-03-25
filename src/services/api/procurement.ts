@@ -423,6 +423,12 @@ export class ProcurementApiService extends BaseApiService {
 
   // ==================== GIN (internal) ====================
 
+  async getSimrsReadyForGin(farmId?: number): Promise<any[]> {
+    const params: Record<string, any> = {};
+    if (farmId) params.farm_id = farmId;
+    return this.get<any[]>('/procurement/internal/simr/ready-for-gin', params);
+  }
+
   async createGin(data: any): Promise<any> {
     return this.post<any>('/procurement/internal/gin', data);
   }

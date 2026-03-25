@@ -18,6 +18,17 @@ export class UsersApiService extends BaseApiService {
   }
 
   /**
+   * Get supervisors — tries farm-clerk endpoint first, falls back to manager
+   */
+  async getSupervisors(): Promise<User[]> {
+    try {
+      return await this.get<User[]>('/farm-clerk/supervisors');
+    } catch {
+      return this.get<User[]>('/manager/users');
+    }
+  }
+
+  /**
    * Create user
    */
   async createUser(userData: UserFormData): Promise<User> {

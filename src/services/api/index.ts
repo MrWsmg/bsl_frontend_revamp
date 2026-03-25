@@ -367,6 +367,10 @@ export class ApiService extends BaseApiService {
     return this.users.getManagerUsers();
   }
 
+  async getSupervisors() {
+    return this.users.getSupervisors();
+  }
+
   async getManagerPendingPayroll() {
     return this.payroll.getManagerPendingPayroll();
   }
@@ -597,6 +601,7 @@ export class ApiService extends BaseApiService {
   async createSmr(data: any) { return this.procurement.createSmr(data); }
   async getExternalChain(smrNumber: string) { return this.procurement.getExternalChain(smrNumber); }
   // GIN
+  async getSimrsReadyForGin(farmId?: number) { return this.procurement.getSimrsReadyForGin(farmId); }
   async createGin(data: any) { return this.procurement.createGin(data); }
   async getGins(filters?: Record<string, any>) { return this.procurement.getGins(filters); }
   async getGinDetail(ginId: number) { return this.procurement.getGinDetail(ginId); }

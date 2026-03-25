@@ -154,7 +154,7 @@ export const SharedGrnSection: React.FC<Props> = ({ userRole, farmId, farmName }
     if (!showCreate) return;
     setAvailableLpos([]);
     setLoadingLpos(true);
-    const ELIGIBLE_STATUSES = ['sent', 'confirmed'];
+    const ELIGIBLE_STATUSES = ['sent', 'sent_to_supplier', 'confirmed'];
     apiService.getLposForGrn(farmId)
       .then(data => {
         const list = Array.isArray(data) ? data : (data as any)?.results ?? [];

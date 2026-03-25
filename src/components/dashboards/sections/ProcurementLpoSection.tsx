@@ -21,7 +21,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Plus, Trash2, ClipboardList, AlertCircle, RefreshCw, Download, Building2, Package, FileText } from 'lucide-react';
+import { Plus, Trash2, ClipboardList, AlertCircle, RefreshCw, Download, Building2, Package, FileText, Send } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Props {
@@ -68,6 +68,22 @@ export const ProcurementLpoSection: React.FC<Props> = ({ initialSmrId, initialSm
   const [chain, setChain] = useState<any>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [loadingChain, setLoadingChain] = useState(false);
+
+  const [sending, setSending] = useState(false);
+
+  const handleSend = async (lpoId: number) => {
+    setSending(true);
+    try {
+      await apiService.sendLpoToSupplier(lpoId);
+      toast.success('LPO sent to supplier');
+      setSelected((prev: any) => prev ? { ...prev, status: 'sent_to_supplier' } : prev);
+      refetch();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || 'Failed to send LPO');
+    } finally {
+      setSending(false);
+    }
+  };
 
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -448,6 +464,37 @@ export const ProcurementLpoSection: React.FC<Props> = ({ initialSmrId, initialSm
                   </button>
                 </div>
               )}
+
+              {/* Send to Supplier */}
+              <div className="mt-6 pt-4 border-t border-gray-100">
+                {selected.status === 'approved' && (
+                  <button
+                    onClick={() => handleSend(selected.id)}
+                    disabled={sending}
+                    className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg flex items-center justify-center gap-2"
+                  >
+                    <Send className="w-4 h-4" />
+                    {sending ? 'Sending…' : 'Send LPO to Supplier'}
+                  </button>
+                )}
+                {(selected.status === 'sent_to_supplier' || selected.status === 'sent') && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-green-700 font-medium flex items-center gap-1.5">
+                      <Send className="w-3.5 h-3.5" /> Sent to supplier
+                    </span>
+                    {selected.lpo_document_url && (
+                      <a
+                        href={`${process.env.NEXT_PUBLIC_API_URL ?? ''}${selected.lpo_document_url}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-blue-600 hover:text-blue-800"
+                      >
+                        Download PDF
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
             </>
           )}
         </SheetContent>

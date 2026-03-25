@@ -249,7 +249,9 @@ export const SharedLpoSection: React.FC<Props> = ({ userRole }) => {
     try {
       await apiService.sendLpoToSupplier(selected.id);
       toast.success('LPO sent to supplier');
-      setSelected(null); refetch();
+      refetch();
+      // Keep panel open and reflect new status immediately
+      setSelected((prev: any) => prev ? { ...prev, status: 'sent_to_supplier' } : prev);
     } catch (err: any) {
       setActionError(getApiError(err, 'Failed to send LPO'));
     } finally { setActioning(null); }
@@ -539,14 +541,44 @@ export const SharedLpoSection: React.FC<Props> = ({ userRole }) => {
                 )}
 
                 {/* Send to Supplier */}
-                {canSend && selected.status?.toLowerCase() === 'approved' && (
+                {canSend && (
                   <>
                     <Separator />
-                    {actionError && <p className="text-xs text-red-600">{actionError}</p>}
-                    <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white gap-1.5" disabled={actioning !== null} onClick={handleSend}>
-                      <Send className="w-3.5 h-3.5" />
-                      {actioning === 'send' ? 'Sending…' : 'Send to Supplier'}
-                    </Button>
+                    {selected.status?.toLowerCase() === 'approved' && (
+                      <div className="space-y-2">
+                        {actionError && <p className="text-xs text-red-600">{actionError}</p>}
+                        {(detailData ?? selected).supplier?.email ? (
+                          <p className="text-xs text-gray-500">
+                            Will email to: <span className="font-mono text-gray-700">{(detailData ?? selected).supplier.email}</span>
+                          </p>
+                        ) : (
+                          <p className="text-xs text-amber-600">
+                            Supplier has no email on file — PDF will be generated but not emailed.
+                          </p>
+                        )}
+                        <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white gap-1.5" disabled={actioning !== null} onClick={handleSend}>
+                          <Send className="w-3.5 h-3.5" />
+                          {actioning === 'send' ? 'Sending…' : 'Send LPO to Supplier'}
+                        </Button>
+                      </div>
+                    )}
+                    {(selected.status?.toLowerCase() === 'sent_to_supplier' || selected.status?.toLowerCase() === 'sent') && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-green-700 font-medium flex items-center gap-1.5">
+                          <Send className="w-3.5 h-3.5" /> Sent to supplier
+                        </span>
+                        {(detailData ?? selected).lpo_document_url && (
+                          <a
+                            href={`${process.env.NEXT_PUBLIC_API_URL ?? ''}${(detailData ?? selected).lpo_document_url}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs text-blue-600 hover:text-blue-800"
+                          >
+                            Download PDF
+                          </a>
+                        )}
+                      </div>
+                    )}
                   </>
                 )}
 
