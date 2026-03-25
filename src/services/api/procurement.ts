@@ -1,11 +1,13 @@
 // Procurement API service
 import { BaseApiService } from './base';
-import { 
-  PurchaseRequest, 
-  PurchaseOrder, 
-  GoodsReceiptNote, 
+import {
+  PurchaseRequest,
+  PurchaseOrder,
+  GoodsReceiptNote,
+  GinDocument,
+  CardexSummary,
   Supplier,
-  ProcurementFilters 
+  ProcurementFilters
 } from '../../types';
 
 export class ProcurementApiService extends BaseApiService {
@@ -369,8 +371,8 @@ export class ProcurementApiService extends BaseApiService {
     return this.post<any>('/procurement/external/grn', data);
   }
 
-  async getGrns(filters?: Record<string, any>): Promise<any[]> {
-    return this.get<any[]>('/procurement/external/grn', filters);
+  async getGrns(filters?: Record<string, any>): Promise<GoodsReceiptNote[]> {
+    return this.get<GoodsReceiptNote[]>('/procurement/external/grn', filters);
   }
 
   async getGrnDetail(grnId: number): Promise<any> {
@@ -397,6 +399,14 @@ export class ProcurementApiService extends BaseApiService {
     return this.post<any>('/procurement/external/grn/direct', data);
   }
 
+  async uploadDnPhoto(grnId: number, file: File): Promise<{ grn_document_url: string }> {
+    return this.uploadFile<{ grn_document_url: string }>(
+      `/procurement/external/grn/${grnId}/upload-dn-photo`,
+      file,
+      'file'
+    );
+  }
+
   async getPriceLists(farmId?: number): Promise<any[]> {
     return this.get<any[]>('/farm-clerk/price-list', farmId ? { farm_id: farmId } : undefined);
   }
@@ -417,8 +427,8 @@ export class ProcurementApiService extends BaseApiService {
     return this.post<any>('/procurement/internal/gin', data);
   }
 
-  async getGins(filters?: Record<string, any>): Promise<any[]> {
-    return this.get<any[]>('/procurement/internal/gin', filters);
+  async getGins(filters?: Record<string, any>): Promise<GinDocument[]> {
+    return this.get<GinDocument[]>('/procurement/internal/gin', filters);
   }
 
   async getGinDetail(ginId: number): Promise<any> {
@@ -517,8 +527,8 @@ export class ProcurementApiService extends BaseApiService {
 
   // ==================== CARDEX ====================
 
-  async getCardex(farmId: number): Promise<any[]> {
-    return this.get<any[]>(`/procurement/cardex/${farmId}`);
+  async getCardex(farmId: number): Promise<CardexSummary[]> {
+    return this.get<CardexSummary[]>(`/procurement/cardex/${farmId}`);
   }
 
   async getCardexItem(farmId: number, itemName: string): Promise<any> {

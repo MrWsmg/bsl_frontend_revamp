@@ -589,6 +589,7 @@ export class ApiService extends BaseApiService {
   async patchGrnItem(grnId: number, itemId: number, data: any) { return this.procurement.patchGrnItem(grnId, itemId, data); }
   async uploadGrnDocument(grnId: number, file: File) { return this.procurement.uploadGrnDocument(grnId, file); }
   async createDirectReceipt(data: any) { return this.procurement.createDirectReceipt(data); }
+  async uploadDnPhoto(grnId: number, file: File) { return this.procurement.uploadDnPhoto(grnId, file); }
   async getPriceLists(farmId?: number) { return this.procurement.getPriceLists(farmId); }
   async getInternalTransfers(filters?: Record<string, any>) { return this.procurement.getInternalTransfers(filters); }
   async getInternalTransferDetail(transferId: number) { return this.procurement.getInternalTransferDetail(transferId); }

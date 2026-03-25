@@ -269,12 +269,16 @@ export const SharedSimrSection: React.FC<Props> = ({ userRole }) => {
       toast.success('SMR raised successfully');
       setCreatedSmr(result);
       setShowCreateSmr(false);
-      // Refresh list and update detail panel
-      refetch();
-      // Re-open detail with fresh SIMR data if still open
+      // Patch selected immediately so the Raise button disappears before refetch completes
       if (selected?.id === smrSimrSource.id) {
-        setSelected((prev: any) => ({ ...prev, status: 'pending_smr' }));
+        setSelected((prev: any) => ({
+          ...prev,
+          status:     'pending_smr',
+          smr_id:     result.id ?? result.smr_id,
+          smr_number: result.smr_number,
+        }));
       }
+      refetch();
     } catch (e: any) {
       setSmrFormError(getApiError(e, 'Failed to create SMR'));
     } finally {
@@ -506,7 +510,7 @@ export const SharedSimrSection: React.FC<Props> = ({ userRole }) => {
                 )}
 
                 {/* ── SMR action panel when stock unavailable ── */}
-                {canRaiseSmr && selected.status === 'pending_smr' && !createdSmr && (
+                {canRaiseSmr && selected.status === 'pending_smr' && (!createdSmr || selected.smr_id) && (
                   <>
                     <Separator />
                     {selected.smr_id ? (

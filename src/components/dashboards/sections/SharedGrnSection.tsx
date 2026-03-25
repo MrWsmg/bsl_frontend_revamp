@@ -26,7 +26,7 @@ import { PackageCheck, RefreshCw, Plus, AlertCircle, CheckCircle2, ChevronRight,
 import { toast } from 'sonner';
 import { DocLink } from '@/components/procurement/DocLink';
 
-interface Props { userRole: string; farmId?: number; }
+interface Props { userRole: string; farmId?: number; farmName?: string; }
 
 const CAN_CREATE         = ['farm_clerk', 'manager', 'procurement_officer', 'admin'];
 const CAN_APPROVE        = ['manager', 'admin'];
@@ -77,15 +77,16 @@ interface DirectItem {
   item_name: string;
   unit: string;
   quantity_received: string;
+  unit_price: string;
   condition: 'good' | 'damaged' | 'partial';
   notes: string;
 }
 
 const emptyDirectItem = (): DirectItem => ({
-  price_list_id: '', item_name: '', unit: '', quantity_received: '', condition: 'good', notes: '',
+  price_list_id: '', item_name: '', unit: '', quantity_received: '', unit_price: '', condition: 'good', notes: '',
 });
 
-export const SharedGrnSection: React.FC<Props> = ({ userRole, farmId }) => {
+export const SharedGrnSection: React.FC<Props> = ({ userRole, farmId, farmName }) => {
   const canCreate       = CAN_CREATE.includes(userRole);
   const canApprove      = CAN_APPROVE.includes(userRole);
   const canDirectReceipt = CAN_DIRECT_RECEIPT.includes(userRole);
@@ -126,10 +127,23 @@ export const SharedGrnSection: React.FC<Props> = ({ userRole, farmId }) => {
   const [showDirect, setShowDirect]           = useState(false);
   const [directItems, setDirectItems]         = useState<DirectItem[]>([emptyDirectItem()]);
   const [directNotes, setDirectNotes]         = useState('');
+  const [directFarmName, setDirectFarmName]   = useState('');
+  const [directSupplierName, setDirectSupplierName] = useState('');
+  const [directSupplierDnRef, setDirectSupplierDnRef] = useState('');
+  const [directQualityRating, setDirectQualityRating] = useState('');
   const [directFormError, setDirectFormError] = useState('');
   const [submittingDirect, setSubmittingDirect] = useState(false);
   const [priceLists, setPriceLists]           = useState<any[]>([]);
   const [loadingPriceLists, setLoadingPriceLists] = useState(false);
+  const [directFarms, setDirectFarms]         = useState<any[]>([]);
+  const [directSuppliers, setDirectSuppliers] = useState<any[]>([]);
+  const [loadingDirectMeta, setLoadingDirectMeta] = useState(false);
+  // Step 2: DN photo upload after direct receipt
+  const [directStep, setDirectStep]           = useState<1 | 2>(1);
+  const [directCreatedGrnId, setDirectCreatedGrnId] = useState<number | null>(null);
+  const [directCreatedGrnNumber, setDirectCreatedGrnNumber] = useState('');
+  const [directDnPhotoFile, setDirectDnPhotoFile] = useState<File | null>(null);
+  const directFileInputRef                    = React.useRef<HTMLInputElement>(null);
 
   const fetchGrns = useCallback(() => apiService.getGrns(), []);
   const { data: grns, loading, error, refetch } = useApi(fetchGrns);
@@ -140,17 +154,28 @@ export const SharedGrnSection: React.FC<Props> = ({ userRole, farmId }) => {
     if (!showCreate) return;
     setAvailableLpos([]);
     setLoadingLpos(true);
+    const ELIGIBLE_STATUSES = ['sent', 'confirmed'];
     apiService.getLposForGrn(farmId)
+      .then(data => {
+        const list = Array.isArray(data) ? data : (data as any)?.results ?? [];
+        // If primary endpoint returned nothing, fall back to filtered list
+        if (list.length === 0) {
+          return apiService.getLpos({ status: 'sent', ...(farmId ? { farm_id: farmId } : {}) });
+        }
+        return list;
+      })
       .catch(() =>
-        // fallback: if /for-grn endpoint not yet available, use filtered list
-        apiService.getLpos({ status: 'sent_to_supplier', ...(farmId ? { farm_id: farmId } : {}) })
+        apiService.getLpos({ status: 'sent', ...(farmId ? { farm_id: farmId } : {}) })
       )
-      .then(data => setAvailableLpos(Array.isArray(data) ? data : (data as any)?.results ?? []))
+      .then(data => {
+        const list = Array.isArray(data) ? data : (data as any)?.results ?? [];
+        setAvailableLpos(list.filter((lpo: any) => ELIGIBLE_STATUSES.includes(lpo.status)));
+      })
       .catch(err => toast.error(getApiError(err, 'Failed to load LPOs')))
       .finally(() => setLoadingLpos(false));
   }, [showCreate]);
 
-  // Load price list when Direct Receipt dialog opens
+  // Load farms, suppliers, and price list when Direct Receipt dialog opens
   useEffect(() => {
     if (!showDirect) return;
     setPriceLists([]);
@@ -159,6 +184,19 @@ export const SharedGrnSection: React.FC<Props> = ({ userRole, farmId }) => {
       .then(data => setPriceLists(Array.isArray(data) ? data : (data as any)?.results ?? []))
       .catch(() => {})
       .finally(() => setLoadingPriceLists(false));
+
+    setLoadingDirectMeta(true);
+    const normalize = (v: any) => Array.isArray(v) ? v : (v?.results ?? []);
+    Promise.allSettled([
+      apiService.getFarms(userRole),
+      apiService.getSuppliers(),
+    ]).then(([farmsRes, suppliersRes]) => {
+      const farms     = farmsRes.status     === 'fulfilled' ? normalize(farmsRes.value)     : [];
+      const suppliers = suppliersRes.status === 'fulfilled' ? normalize(suppliersRes.value) : [];
+      setDirectFarms(farms);
+      setDirectSuppliers(suppliers);
+      if (farmName) setDirectFarmName(farmName);
+    }).finally(() => setLoadingDirectMeta(false));
   }, [showDirect]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const updateDirectItem = (i: number, patch: Partial<DirectItem>) =>
@@ -170,34 +208,65 @@ export const SharedGrnSection: React.FC<Props> = ({ userRole, farmId }) => {
       price_list_id: plId,
       item_name: pl?.item_name ?? pl?.name ?? '',
       unit: pl?.unit ?? '',
+      unit_price: String(pl?.unit_price ?? pl?.price ?? pl?.rate ?? ''),
     });
   };
 
   const resetDirect = () => {
-    setDirectItems([emptyDirectItem()]); setDirectNotes(''); setDirectFormError('');
+    setDirectItems([emptyDirectItem()]);
+    setDirectNotes(''); setDirectFarmName(''); setDirectSupplierName('');
+    setDirectSupplierDnRef(''); setDirectQualityRating('');
+    setDirectFormError('');
+    setDirectStep(1); setDirectCreatedGrnId(null); setDirectCreatedGrnNumber('');
+    setDirectDnPhotoFile(null);
+    setDirectFarms([]); setDirectSuppliers([]);
   };
 
   const handleDirectSubmit = async () => {
     setDirectFormError('');
+    if (!directFarmName.trim()) { setDirectFormError('Farm name is required.'); return; }
+    if (!directSupplierName.trim()) { setDirectFormError('Supplier name is required.'); return; }
     const valid = directItems.filter(r => r.price_list_id && parseFloat(r.quantity_received) > 0);
     if (valid.length === 0) { setDirectFormError('Select at least one item and enter a quantity.'); return; }
     setSubmittingDirect(true);
     try {
-      await apiService.createDirectReceipt({
-        farm_id: farmId,
+      const payload: any = {
+        farm_name: directFarmName.trim(),
+        supplier_name: directSupplierName.trim(),
+        supplier_dn_reference: directSupplierDnRef.trim() || undefined,
         notes: directNotes.trim() || undefined,
         items: valid.map(r => ({
           price_list_id: parseInt(r.price_list_id),
           quantity_received: parseFloat(r.quantity_received),
+          unit_price: parseFloat(r.unit_price) || 0,
           condition: r.condition,
-          notes: r.notes.trim() || undefined,
         })),
-      });
-      toast.success('Direct receipt recorded — stock updated immediately');
-      setShowDirect(false); resetDirect(); refetch();
+      };
+      if (directQualityRating) payload.quality_rating = parseInt(directQualityRating);
+      const result = await apiService.createDirectReceipt(payload);
+      setDirectCreatedGrnId(result.id);
+      setDirectCreatedGrnNumber(result.grn_number ?? `#${result.id}`);
+      setDirectStep(2);
     } catch (err: any) {
       setDirectFormError(getApiError(err, 'Failed to create direct receipt'));
     } finally { setSubmittingDirect(false); }
+  };
+
+  const handleDirectUploadDnPhoto = async () => {
+    if (!directDnPhotoFile || directCreatedGrnId === null) return;
+    setSubmittingDirect(true);
+    try {
+      await apiService.uploadDnPhoto(directCreatedGrnId, directDnPhotoFile);
+      toast.success('DN photo uploaded');
+      setShowDirect(false); resetDirect(); refetch();
+    } catch (err: any) {
+      setDirectFormError(getApiError(err, 'Upload failed'));
+    } finally { setSubmittingDirect(false); }
+  };
+
+  const handleDirectSkipUpload = () => {
+    toast.success(`Direct receipt ${directCreatedGrnNumber} recorded — stock updated`);
+    setShowDirect(false); resetDirect(); refetch();
   };
 
   const normalizePrefill = (data: any) => ({
@@ -564,10 +633,34 @@ export const SharedGrnSection: React.FC<Props> = ({ userRole, farmId }) => {
                       <p className="font-medium text-gray-800">{selected.issued_by_name ?? selected.created_by_name}</p>
                     </div>
                   )}
-                  {selected.delivery_note_number && (
+                  {(selected.delivery_note_number || selected.supplier_dn_reference) && (
                     <div>
                       <p className="text-xs text-gray-400 mb-0.5">Delivery Note</p>
-                      <p className="text-gray-700">{selected.delivery_note_number}</p>
+                      <p className="text-gray-700">{selected.supplier_dn_reference ?? selected.delivery_note_number}</p>
+                    </div>
+                  )}
+                  {selected.grn_document_url && (
+                    <div className="col-span-2">
+                      <p className="text-xs text-gray-400 mb-1">DN Document</p>
+                      {/\.(jpg|jpeg|png|webp|gif)$/i.test(selected.grn_document_url) ? (
+                        <a href={selected.grn_document_url} target="_blank" rel="noopener noreferrer">
+                          <img
+                            src={selected.grn_document_url}
+                            alt="DN document"
+                            className="h-20 rounded border border-gray-200 object-cover hover:opacity-80 transition-opacity"
+                          />
+                        </a>
+                      ) : (
+                        <a
+                          href={selected.grn_document_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs text-amber-700 hover:text-amber-900"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          View DN document
+                        </a>
+                      )}
                     </div>
                   )}
                   {selected.carrier_name && (
@@ -1012,12 +1105,68 @@ export const SharedGrnSection: React.FC<Props> = ({ userRole, farmId }) => {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-green-600" />
-                Direct Receipt
+                {directStep === 1 ? 'Direct Receipt' : 'Upload Delivery Note Photo'}
               </DialogTitle>
             </DialogHeader>
+
+            {/* ── Step 2: DN photo upload ── */}
+            {directStep === 2 ? (
+              <div className="space-y-4 py-2">
+                <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded p-3 text-sm text-green-800">
+                  <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                  GRN <span className="font-mono font-semibold mx-1">{directCreatedGrnNumber}</span> created — stock updated immediately.
+                </div>
+                <p className="text-sm text-gray-600">Attach a photo or scan of the supplier&apos;s Delivery Note for record keeping.</p>
+                {directFormError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{directFormError}</AlertDescription>
+                  </Alert>
+                )}
+                <div
+                  className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center cursor-pointer hover:border-green-400 transition-colors"
+                  onClick={() => directFileInputRef.current?.click()}
+                >
+                  <input
+                    ref={directFileInputRef}
+                    type="file"
+                    accept="image/*,.pdf"
+                    className="hidden"
+                    onChange={e => setDirectDnPhotoFile(e.target.files?.[0] ?? null)}
+                  />
+                  {directDnPhotoFile ? (
+                    <div className="flex items-center justify-center gap-2 text-sm text-gray-700">
+                      <FileText className="w-4 h-4 text-green-600" />
+                      {directDnPhotoFile.name}
+                      <span className="text-gray-400">({(directDnPhotoFile.size / 1024).toFixed(0)} KB)</span>
+                    </div>
+                  ) : (
+                    <div className="text-gray-400">
+                      <Upload className="w-8 h-8 mx-auto mb-2 opacity-60" />
+                      <p className="text-sm">Click to select image or PDF</p>
+                    </div>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={handleDirectSkipUpload} disabled={submittingDirect}>
+                    Skip for now
+                  </Button>
+                  <Button
+                    onClick={handleDirectUploadDnPhoto}
+                    disabled={!directDnPhotoFile || submittingDirect}
+                    className="bg-green-600 hover:bg-green-700 text-white gap-1.5"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    {submittingDirect ? 'Uploading…' : 'Upload & Finish'}
+                  </Button>
+                </DialogFooter>
+              </div>
+            ) : (
+            /* ── Step 1: form ── */
+            <>
             <div className="space-y-4 py-1">
               <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2.5 text-xs text-green-800">
-                Stock is recorded immediately — no FM approval required.
+                Stock is recorded immediately — no FM approval required. You&apos;ll be able to attach the supplier&apos;s DN photo in the next step.
               </div>
               {directFormError && (
                 <Alert variant="destructive">
@@ -1025,9 +1174,53 @@ export const SharedGrnSection: React.FC<Props> = ({ userRole, farmId }) => {
                   <AlertDescription>{directFormError}</AlertDescription>
                 </Alert>
               )}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Notes <span className="text-gray-400 font-normal">(optional)</span></label>
-                <Input value={directNotes} onChange={e => setDirectNotes(e.target.value)} placeholder="Reason for direct receipt…" />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Farm Name *</label>
+                  {loadingDirectMeta ? (
+                    <div className="flex items-center gap-2 text-sm text-gray-400 h-10"><LoadingSpinner size="sm" /> Loading…</div>
+                  ) : (
+                    <Select value={directFarmName} onValueChange={setDirectFarmName}>
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Select farm…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {directFarms.map((f: any, idx: number) => (
+                          <SelectItem key={f.id ?? f.farm_id ?? idx} value={f.name}>{f.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Supplier Name *</label>
+                  {loadingDirectMeta ? (
+                    <div className="flex items-center gap-2 text-sm text-gray-400 h-10"><LoadingSpinner size="sm" /> Loading…</div>
+                  ) : (
+                    <Select value={directSupplierName} onValueChange={setDirectSupplierName}>
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Select supplier…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {directSuppliers.map((s: any, idx: number) => (
+                          <SelectItem key={s.id ?? idx} value={s.name ?? s.supplier_name}>{s.name ?? s.supplier_name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Supplier DN Reference</label>
+                  <Input value={directSupplierDnRef} onChange={e => setDirectSupplierDnRef(e.target.value)} placeholder="DN-2024-001" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Quality Rating <span className="text-gray-400 font-normal">(1–5)</span></label>
+                  <Input type="number" min="1" max="5" value={directQualityRating} onChange={e => setDirectQualityRating(e.target.value)} placeholder="1–5" />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Notes <span className="text-gray-400 font-normal">(optional)</span></label>
+                  <Input value={directNotes} onChange={e => setDirectNotes(e.target.value)} placeholder="Delivery condition, remarks…" />
+                </div>
               </div>
               <div>
                 <div className="flex items-center justify-between mb-2">
@@ -1083,14 +1276,24 @@ export const SharedGrnSection: React.FC<Props> = ({ userRole, farmId }) => {
                             <span className="text-gray-400">({row.unit})</span>
                           </div>
                         )}
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-3 gap-2">
                           <div>
-                            <label className="text-xs text-gray-500 mb-0.5 block">Quantity Received *</label>
+                            <label className="text-xs text-gray-500 mb-0.5 block">Qty Received *</label>
                             <Input
                               type="number" min="0" step="0.01"
                               value={row.quantity_received}
                               onChange={e => updateDirectItem(i, { quantity_received: e.target.value })}
                               placeholder="0"
+                              className="text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-500 mb-0.5 block">Unit Price</label>
+                            <Input
+                              type="number" min="0" step="0.01"
+                              value={row.unit_price}
+                              onChange={e => updateDirectItem(i, { unit_price: e.target.value })}
+                              placeholder="0.00"
                               className="text-sm"
                             />
                           </div>
@@ -1124,9 +1327,11 @@ export const SharedGrnSection: React.FC<Props> = ({ userRole, farmId }) => {
             <DialogFooter>
               <Button variant="outline" onClick={() => { setShowDirect(false); resetDirect(); }} disabled={submittingDirect}>Cancel</Button>
               <Button onClick={handleDirectSubmit} disabled={submittingDirect} className="bg-green-600 hover:bg-green-700 text-white">
-                {submittingDirect ? 'Recording…' : 'Record Stock'}
+                {submittingDirect ? 'Recording…' : 'Record Stock & Continue'}
               </Button>
             </DialogFooter>
+            </>
+            )}
           </DialogContent>
         </Dialog>
       )}

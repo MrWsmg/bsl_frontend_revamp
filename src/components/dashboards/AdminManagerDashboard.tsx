@@ -1295,7 +1295,12 @@ const WeeklyCalendar = () => {
 };
 
 // ============ MAIN INDEX COMPONENT ============
-const AdminManagerDashboard = () => {
+interface AdminManagerDashboardProps {
+  user?: { full_name?: string; username?: string; role?: string };
+  onLogout?: () => void;
+}
+
+const AdminManagerDashboard = ({ user, onLogout }: AdminManagerDashboardProps) => {
   const [period, setPeriod] = useState<"weekly" | "yearly">("weekly");
   const [farms, setFarms] = useState<any[]>([]);
   const [budgets, setBudgets] = useState<any[]>([]);
@@ -1388,12 +1393,25 @@ const AdminManagerDashboard = () => {
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Farm Analytics Dashboard</h1>
               <p className="text-muted-foreground mt-1">Real-time insights and data visualization</p>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-success"></span>
-              </span>
-              <span className="text-sm font-medium text-success">Live</span>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-success"></span>
+                </span>
+                <span className="text-sm font-medium text-success">Live</span>
+              </div>
+              {user && (
+                <span className="text-sm text-muted-foreground">{user.full_name || user.username}</span>
+              )}
+              {onLogout && (
+                <button
+                  onClick={onLogout}
+                  className="text-sm px-3 py-1.5 rounded-md border border-border hover:bg-muted transition-colors"
+                >
+                  Logout
+                </button>
+              )}
             </div>
           </div>
         </div>

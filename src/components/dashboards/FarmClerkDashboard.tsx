@@ -584,7 +584,7 @@ const FarmClerkDashboard: React.FC<FarmClerkDashboardProps> = ({ user, onLogout 
         {/* Procurement tabs */}
         <div className={activeTab === 'proc-pfi'      ? '' : 'hidden'}>{mountedTabs.has('proc-pfi')      && <SharedPfiSection userRole="farm_clerk" />}</div>
         <div className={activeTab === 'proc-lpo'      ? '' : 'hidden'}>{mountedTabs.has('proc-lpo')      && <SharedLpoSection userRole="farm_clerk" />}</div>
-        <div className={activeTab === 'proc-grn'      ? '' : 'hidden'}>{mountedTabs.has('proc-grn')      && <SharedGrnSection userRole="farm_clerk" />}</div>
+        <div className={activeTab === 'proc-grn'      ? '' : 'hidden'}>{mountedTabs.has('proc-grn')      && <SharedGrnSection userRole="farm_clerk" farmName={farms[0]?.name} />}</div>
         <div className={activeTab === 'proc-gin'      ? '' : 'hidden'}>{mountedTabs.has('proc-gin')      && <SharedGinSection userRole="farm_clerk" />}</div>
         <div className={activeTab === 'proc-cardex'   ? '' : 'hidden'}>{mountedTabs.has('proc-cardex')   && <SharedCardexSection userRole="farm_clerk" />}</div>
         <div className={activeTab === 'proc-tv'       ? '' : 'hidden'}>{mountedTabs.has('proc-tv')       && <SharedTransportVoucherSection userRole="farm_clerk" />}</div>

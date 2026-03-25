@@ -552,6 +552,7 @@ export interface GoodsReceiptNote {
   purchase_order_id?: number;
   purchase_order?: PurchaseOrder;
   farm_id: number;
+  farm_name?: string;
   farm?: Farm;
   receipt_date: string;
   received_by: number;
@@ -562,12 +563,16 @@ export interface GoodsReceiptNote {
   carrier_name?: string;
   vehicle_number?: string;
 
+  receipt_type: 'direct' | 'lpo_linked';
   status?: string;
   lpo_number?: string;
   smr_id?: number;
   smr_number?: string;
   simr_id?: number;
   simr_number?: string;
+  supplier_name?: string;
+  supplier_dn_reference?: string;
+  grn_document_url?: string;
 
   // Inspection details
   inspection_status: 'pending' | 'passed' | 'failed' | 'partial';
@@ -580,10 +585,11 @@ export interface GoodsReceiptNote {
   damage_photos?: string[] | string;
 
   // Summary
-  total_items_received: number;
-  total_quantity_received: number;
+  total_items_received?: number;
+  total_quantity_received?: number;
 
   created_at: string;
+  updated_at?: string;
 
   // Expanded items
   items?: GoodsReceiptItem[];
@@ -604,8 +610,11 @@ export interface GinDocument {
   gin_number: string;
   simr_id?: number;
   simr_number?: string;
+  smr_id?: number;
+  smr_number?: string;
   farm_id: number;
   farm?: Farm;
+  purpose?: string;
   status: string;
   issued_by?: number;
   issued_by_name?: string;
@@ -614,10 +623,35 @@ export interface GinDocument {
   tv_id?: number;
   tv_number?: string;
   tv_required?: boolean;
+  stock_reduced?: boolean;
+  stock_reduced_at?: string;
   approved_by?: number;
   approved_at?: string;
   created_at: string;
+  updated_at?: string;
   items?: GinItem[];
+}
+
+export interface CardexSummary {
+  id: number;
+  farm_id: number;
+  item_name: string;
+  accounting_code?: string;
+  category?: string;
+  unit: string;
+  current_balance: number;
+  current_value: number;
+  balance: number;
+  total_in: number;
+  total_out: number;
+  in_transit_balance: number;
+  last_receipt_date?: string;
+  last_issue_date?: string;
+  reorder_level?: number;
+  maximum_level?: number;
+  minimum_level?: number;
+  updated_at: string;
+  last_updated?: string;
 }
 
 export interface ChainNode {
