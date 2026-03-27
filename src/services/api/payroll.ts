@@ -257,59 +257,61 @@ export class PayrollApiService extends BaseApiService {
     return this.delete<void>(`/supervisor/payroll/${recordId}`);
   }
 
+  // ==================== PRIVATE HELPERS ====================
+
+  private async fetchBlob(endpoint: string, params?: Record<string, string>): Promise<Blob> {
+    const queryString = params ? new URLSearchParams(params).toString() : '';
+    const url = queryString
+      ? `${this.baseUrl}${endpoint}?${queryString}`
+      : `${this.baseUrl}${endpoint}`;
+    const response = await fetch(url, { headers: this.getAuthHeaders() });
+    if (!response.ok) {
+      let errorMessage = `Download failed: ${response.status}`;
+      let errorData: any = null;
+      try {
+        errorData = await response.json();
+        if (errorData.detail) errorMessage = errorData.detail;
+        else if (errorData.message) errorMessage = errorData.message;
+      } catch {
+        // Response body might not be JSON
+      }
+      const error: any = new Error(errorMessage);
+      error.response = { status: response.status, data: errorData };
+      throw error;
+    }
+    return response.blob();
+  }
+
   // ==================== WEEKLY SHEET ====================
 
   /**
    * Get weekly sheet JSON grid data
    */
   async getWeeklySheet(params: { farm_id: number; week_start: string }): Promise<any> {
-    return this.get<any>('/payroll/weekly-sheet', params as unknown as Record<string, any>);
+    return this.get<any>('/payroll/weekly-sheet', {
+      farm_id: String(params.farm_id),
+      week_start: params.week_start,
+    });
   }
 
   /**
    * Download weekly sheet as PDF (returns Blob)
    */
   async downloadWeeklySheetPdf(params: { farm_id: number; week_start: string }): Promise<Blob> {
-    const queryString = new URLSearchParams(params as unknown as Record<string, string>).toString();
-    const url = `${this.baseUrl}/payroll/weekly-sheet/pdf?${queryString}`;
-    const response = await fetch(url, { headers: this.getAuthHeaders() });
-    if (!response.ok) {
-      let errorMessage = `Download failed: ${response.status}`;
-      try {
-        const errorData = await response.json();
-        if (errorData.detail) errorMessage = errorData.detail;
-        else if (errorData.message) errorMessage = errorData.message;
-      } catch {
-        // Response body might not be JSON
-      }
-      const error: any = new Error(errorMessage);
-      error.status = response.status;
-      throw error;
-    }
-    return response.blob();
+    return this.fetchBlob('/payroll/weekly-sheet/pdf', {
+      farm_id: String(params.farm_id),
+      week_start: params.week_start,
+    });
   }
 
   /**
    * Download weekly sheet as CSV (returns Blob)
    */
   async downloadWeeklySheetCsv(params: { farm_id: number; week_start: string }): Promise<Blob> {
-    const queryString = new URLSearchParams(params as unknown as Record<string, string>).toString();
-    const url = `${this.baseUrl}/payroll/weekly-sheet/csv?${queryString}`;
-    const response = await fetch(url, { headers: this.getAuthHeaders() });
-    if (!response.ok) {
-      let errorMessage = `Download failed: ${response.status}`;
-      try {
-        const errorData = await response.json();
-        if (errorData.detail) errorMessage = errorData.detail;
-        else if (errorData.message) errorMessage = errorData.message;
-      } catch {
-        // Response body might not be JSON
-      }
-      const error: any = new Error(errorMessage);
-      error.status = response.status;
-      throw error;
-    }
-    return response.blob();
+    return this.fetchBlob('/payroll/weekly-sheet/csv', {
+      farm_id: String(params.farm_id),
+      week_start: params.week_start,
+    });
   }
 
   // ==================== PAYMENT SUMMARY ====================
@@ -318,30 +320,22 @@ export class PayrollApiService extends BaseApiService {
    * Get payment summary JSON
    */
   async getPaymentSummary(params: { farm_id: number; start_date: string; end_date: string }): Promise<any> {
-    return this.get<any>('/payroll/payment-summary/json', params as unknown as Record<string, any>);
+    return this.get<any>('/payroll/payment-summary/json', {
+      farm_id: String(params.farm_id),
+      start_date: params.start_date,
+      end_date: params.end_date,
+    });
   }
 
   /**
    * Download payment summary as PDF (returns Blob)
    */
   async downloadPaymentSummaryPdf(params: { farm_id: number; start_date: string; end_date: string }): Promise<Blob> {
-    const queryString = new URLSearchParams(params as unknown as Record<string, string>).toString();
-    const url = `${this.baseUrl}/payroll/payment-summary/pdf?${queryString}`;
-    const response = await fetch(url, { headers: this.getAuthHeaders() });
-    if (!response.ok) {
-      let errorMessage = `Download failed: ${response.status}`;
-      try {
-        const errorData = await response.json();
-        if (errorData.detail) errorMessage = errorData.detail;
-        else if (errorData.message) errorMessage = errorData.message;
-      } catch {
-        // Response body might not be JSON
-      }
-      const error: any = new Error(errorMessage);
-      error.status = response.status;
-      throw error;
-    }
-    return response.blob();
+    return this.fetchBlob('/payroll/payment-summary/pdf', {
+      farm_id: String(params.farm_id),
+      start_date: params.start_date,
+      end_date: params.end_date,
+    });
   }
 
   // ==================== PAYSLIP ====================
@@ -350,23 +344,12 @@ export class PayrollApiService extends BaseApiService {
    * Download payslip as PDF (returns Blob)
    */
   async downloadPayslipPdf(params: { worker_name: string; farm_id: number; start_date: string; end_date: string }): Promise<Blob> {
-    const queryString = new URLSearchParams(params as unknown as Record<string, string>).toString();
-    const url = `${this.baseUrl}/payroll/payslip/pdf?${queryString}`;
-    const response = await fetch(url, { headers: this.getAuthHeaders() });
-    if (!response.ok) {
-      let errorMessage = `Download failed: ${response.status}`;
-      try {
-        const errorData = await response.json();
-        if (errorData.detail) errorMessage = errorData.detail;
-        else if (errorData.message) errorMessage = errorData.message;
-      } catch {
-        // Response body might not be JSON
-      }
-      const error: any = new Error(errorMessage);
-      error.status = response.status;
-      throw error;
-    }
-    return response.blob();
+    return this.fetchBlob('/payroll/payslip/pdf', {
+      worker_name: params.worker_name,
+      farm_id: String(params.farm_id),
+      start_date: params.start_date,
+      end_date: params.end_date,
+    });
   }
 
   // ==================== WORKER PAYMENT DETAILS ====================
