@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import apiService from '../../services/api';
 import { toast } from '../ui/sonner';
 import { PhotoUploadResponse } from '../../types';
+import { resolvePhotoUrl } from '@/hooks/usePresignedUrl';
 import { addUserSchema, type AddUserFormData } from '@/lib/schemas';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -268,8 +269,12 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onUserAdde
     setPhotosLoading(true);
     try {
       const photoData = await apiService.photos.getUserPhotos(userId);
-      setExistingPhotoUrl(photoData?.photo_url || null);
-      setExistingIdUrl(photoData?.id_image_url || null);
+      const [resolvedPhoto, resolvedId] = await Promise.all([
+        resolvePhotoUrl(photoData?.photo_url),
+        resolvePhotoUrl(photoData?.id_image_url),
+      ]);
+      setExistingPhotoUrl(resolvedPhoto);
+      setExistingIdUrl(resolvedId);
     } catch {
       console.error('Error loading user photos');
     } finally {

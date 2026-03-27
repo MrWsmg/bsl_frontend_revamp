@@ -8,6 +8,7 @@ import { useApi } from '../../hooks';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
 import { PhotoUploadResponse } from '../../types';
+import { resolvePhotoUrl } from '@/hooks/usePresignedUrl';
 import { addWorkerSchema, type AddWorkerFormData } from '@/lib/schemas';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -259,8 +260,12 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
     setPhotosLoading(true);
     try {
       const photoData = await apiService.photos.getWorkerPhotos(workerId);
-      setExistingPhotoUrl(photoData?.photo_url || null);
-      setExistingIdUrl(photoData?.id_image_url || null);
+      const [resolvedPhoto, resolvedId] = await Promise.all([
+        resolvePhotoUrl(photoData?.photo_url),
+        resolvePhotoUrl(photoData?.id_image_url),
+      ]);
+      setExistingPhotoUrl(resolvedPhoto);
+      setExistingIdUrl(resolvedId);
     } catch {
       console.error('Error loading worker photos');
     } finally {
