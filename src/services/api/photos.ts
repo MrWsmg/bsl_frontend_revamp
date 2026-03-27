@@ -52,6 +52,10 @@ export class PhotosApiService extends BaseApiService {
     return this.get<PhotoInfo>(`/photos/worker-photos/${workerId}`);
   }
 
+  async getPresignedUrl(url: string, expiry: number = 3600): Promise<{ presigned_url: string }> {
+    return this.get<{ presigned_url: string }>('/photos/presigned-url', { url, expiry: String(expiry) });
+  }
+
   async deleteUserPhoto(userId: number): Promise<{ success: boolean }> {
     return this.delete<{ success: boolean }>(`/photos/user-photo/${userId}`);
   }
