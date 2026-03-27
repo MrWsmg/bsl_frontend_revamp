@@ -226,4 +226,153 @@ export class PayrollApiService extends BaseApiService {
   async approvePayrollMasterPayroll(recordId: number): Promise<PayrollRecord> {
     return this.post<PayrollRecord>(`/payroll-master/approve-payroll/${recordId}`);
   }
+
+  // ==================== SUPERVISOR CRUD ====================
+
+  /**
+   * Supervisor creates a payroll record (POST /supervisor/payroll)
+   */
+  async createSupervisorPayrollRecord(data: Partial<PayrollRecord>): Promise<PayrollRecord> {
+    return this.post<PayrollRecord>('/supervisor/payroll', data);
+  }
+
+  /**
+   * Get supervisor's own pending payroll records
+   */
+  async getSupervisorPendingPayroll(): Promise<PayrollRecord[]> {
+    return this.get<PayrollRecord[]>('/supervisor/payroll/pending');
+  }
+
+  /**
+   * Supervisor edits own payroll record (PATCH /supervisor/payroll/{id})
+   */
+  async editSupervisorPayrollRecord(recordId: number, data: Partial<PayrollRecord>): Promise<PayrollRecord> {
+    return this.patch<PayrollRecord>(`/supervisor/payroll/${recordId}`, data);
+  }
+
+  /**
+   * Supervisor deletes own payroll record (DELETE /supervisor/payroll/{id})
+   */
+  async deleteSupervisorPayrollRecord(recordId: number): Promise<void> {
+    return this.delete<void>(`/supervisor/payroll/${recordId}`);
+  }
+
+  // ==================== WEEKLY SHEET ====================
+
+  /**
+   * Get weekly sheet JSON grid data
+   */
+  async getWeeklySheet(params: { farm_id: number; week_start: string }): Promise<any> {
+    return this.get<any>('/payroll/weekly-sheet', params as unknown as Record<string, any>);
+  }
+
+  /**
+   * Download weekly sheet as PDF (returns Blob)
+   */
+  async downloadWeeklySheetPdf(params: { farm_id: number; week_start: string }): Promise<Blob> {
+    const queryString = new URLSearchParams(params as unknown as Record<string, string>).toString();
+    const url = `${this.baseUrl}/payroll/weekly-sheet/pdf?${queryString}`;
+    const response = await fetch(url, { headers: this.getAuthHeaders() });
+    if (!response.ok) {
+      throw new Error(`Download failed: ${response.status}`);
+    }
+    return response.blob();
+  }
+
+  /**
+   * Download weekly sheet as CSV (returns Blob)
+   */
+  async downloadWeeklySheetCsv(params: { farm_id: number; week_start: string }): Promise<Blob> {
+    const queryString = new URLSearchParams(params as unknown as Record<string, string>).toString();
+    const url = `${this.baseUrl}/payroll/weekly-sheet/csv?${queryString}`;
+    const response = await fetch(url, { headers: this.getAuthHeaders() });
+    if (!response.ok) {
+      throw new Error(`Download failed: ${response.status}`);
+    }
+    return response.blob();
+  }
+
+  // ==================== PAYMENT SUMMARY ====================
+
+  /**
+   * Get payment summary JSON
+   */
+  async getPaymentSummary(params: { farm_id: number; start_date: string; end_date: string }): Promise<any> {
+    return this.get<any>('/payroll/payment-summary/json', params as unknown as Record<string, any>);
+  }
+
+  /**
+   * Download payment summary as PDF (returns Blob)
+   */
+  async downloadPaymentSummaryPdf(params: { farm_id: number; start_date: string; end_date: string }): Promise<Blob> {
+    const queryString = new URLSearchParams(params as unknown as Record<string, string>).toString();
+    const url = `${this.baseUrl}/payroll/payment-summary/pdf?${queryString}`;
+    const response = await fetch(url, { headers: this.getAuthHeaders() });
+    if (!response.ok) {
+      throw new Error(`Download failed: ${response.status}`);
+    }
+    return response.blob();
+  }
+
+  // ==================== PAYSLIP ====================
+
+  /**
+   * Download payslip as PDF (returns Blob)
+   */
+  async downloadPayslipPdf(params: { worker_name: string; farm_id: number; start_date: string; end_date: string }): Promise<Blob> {
+    const queryString = new URLSearchParams(params as unknown as Record<string, string>).toString();
+    const url = `${this.baseUrl}/payroll/payslip/pdf?${queryString}`;
+    const response = await fetch(url, { headers: this.getAuthHeaders() });
+    if (!response.ok) {
+      throw new Error(`Download failed: ${response.status}`);
+    }
+    return response.blob();
+  }
+
+  // ==================== WORKER PAYMENT DETAILS ====================
+
+  /**
+   * Get worker payment details (GET /supervisor/workers/{worker_id}/payment-details)
+   */
+  async getWorkerPaymentDetails(workerId: number): Promise<any> {
+    return this.get<any>(`/supervisor/workers/${workerId}/payment-details`);
+  }
+
+  /**
+   * Update worker payment details (PATCH /supervisor/workers/{worker_id}/payment-details)
+   */
+  async updateWorkerPaymentDetails(workerId: number, data: {
+    payment_method: 'cash' | 'bank_transfer' | 'mobile_money';
+    bank_name: string | null;
+    bank_account_number: string | null;
+    mobile_money_provider: string | null;
+    mobile_money_number: string | null;
+  }): Promise<any> {
+    return this.patch<any>(`/supervisor/workers/${workerId}/payment-details`, data);
+  }
+
+  // ==================== QUICKBOOKS ====================
+
+  /**
+   * Get QuickBooks pending records (approved, not yet synced)
+   */
+  async getQuickBooksPending(): Promise<PayrollRecord[]> {
+    return this.get<PayrollRecord[]>('/payroll/quickbooks/pending');
+  }
+
+  /**
+   * Mark records as synced in QuickBooks
+   */
+  async markQuickBooksSynced(data: { record_ids: number[]; transaction_id_prefix: string }): Promise<any> {
+    return this.post<any>('/payroll/quickbooks/mark-synced', data);
+  }
+
+  // ==================== FINANCIAL CONTROLLER BULK REJECT ====================
+
+  /**
+   * Financial controller bulk rejects payroll records
+   */
+  async bulkRejectFinancialControllerPayroll(data: { record_ids: number[]; rejection_reason: string }): Promise<any> {
+    return this.post<any>('/financial-controller/bulk-reject-payroll', data);
+  }
 }
