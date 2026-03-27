@@ -1,22 +1,14 @@
 "use client";
 
-<<<<<<< HEAD
-// Payroll Records Section — read-only view for Payroll Officer role
-=======
 // Payroll Records Section — browser with status filter + detail modal, create/edit form with all fields
->>>>>>> feature/payroll-complete
 import React, { useState, useCallback, useMemo } from 'react';
 import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { PayrollRecord } from '../../../types';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
-<<<<<<< HEAD
-import { Calendar } from 'lucide-react';
-=======
 import { StatusBadge } from '../../common/StatusBadge';
 import { Plus, Edit, Check, X, Calendar, Eye } from 'lucide-react';
 import { toast } from '../../ui/sonner';
->>>>>>> feature/payroll-complete
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,8 +28,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-<<<<<<< HEAD
-=======
 import {
   Dialog,
   DialogContent,
@@ -46,6 +36,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 
 // Common task codes used on the farm
 const TASK_CODES = [
@@ -65,7 +56,6 @@ interface PayrollFormData {
   date_worked: string;
   notes?: string;
 }
->>>>>>> feature/payroll-complete
 
 const DEFAULT_FORM: PayrollFormData = {
   worker_id: 0,
@@ -80,28 +70,18 @@ const DEFAULT_FORM: PayrollFormData = {
 };
 
 export const PayrollRecordsSection: React.FC = () => {
-<<<<<<< HEAD
-=======
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingRecord, setEditingRecord] = useState<PayrollRecord | null>(null);
   const [detailRecord, setDetailRecord] = useState<PayrollRecord | null>(null);
->>>>>>> feature/payroll-complete
   const [selectedFarm, setSelectedFarm] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
-<<<<<<< HEAD
-
-  // Fetch data
-  const getFarms = useCallback(() => apiService.getPayrollFarms(), []);
-
-=======
   const [processingId, setProcessingId] = useState<number | null>(null);
   const [formData, setFormData] = useState<PayrollFormData>(DEFAULT_FORM);
 
   const getFarms = useCallback(() => apiService.getPayrollFarms(), []);
   const getWorkers = useCallback(() => apiService.getWorkers(), []);
->>>>>>> feature/payroll-complete
   const getPayrollRecords = useCallback(() => {
     const params: Record<string, any> = {};
     if (selectedFarm !== 'all') params.farm_id = parseInt(selectedFarm);
@@ -111,7 +91,8 @@ export const PayrollRecordsSection: React.FC = () => {
   }, [selectedFarm, startDate, endDate]);
 
   const { data: farms } = useApi(getFarms);
-  const { data: records, loading } = useApi(getPayrollRecords);
+  const { data: workers } = useApi(getWorkers);
+  const { data: records, loading, refetch } = useApi(getPayrollRecords);
 
   // Client-side status filter
   const filteredRecords = useMemo(() => {
@@ -124,29 +105,6 @@ export const PayrollRecordsSection: React.FC = () => {
     if (!records?.length) return { total: 0, pending: 0, approved: 0, amount: 0 };
     return {
       total: records.length,
-<<<<<<< HEAD
-      pending: records.filter((r: any) => r.approval_status === 'supervisor_pending' || r.approval_status === 'manager_approved').length,
-      approved: records.filter((r: any) => r.approval_status === 'approved').length,
-      amount: records.reduce((sum: number, r: any) => sum + (r.total_amount || 0), 0),
-    };
-  }, [records]);
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Approved</Badge>;
-      case 'supervisor_pending':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Pending Supervisor</Badge>;
-      case 'manager_approved':
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-800">Pending FC</Badge>;
-      case 'rejected':
-        return <Badge variant="destructive">Rejected</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
-  };
-
-=======
       pending: records.filter((r: PayrollRecord) => r.approval_status === 'supervisor_pending' || r.approval_status === 'pending').length,
       approved: records.filter((r: PayrollRecord) => r.approval_status === 'approved').length,
       amount: records.reduce((sum: number, r: PayrollRecord) => sum + (r.total_amount || 0), 0),
@@ -221,7 +179,6 @@ export const PayrollRecordsSection: React.FC = () => {
     setShowCreateModal(true);
   };
 
->>>>>>> feature/payroll-complete
   const clearFilters = () => {
     setSelectedFarm('all');
     setSelectedStatus('all');
@@ -253,24 +210,14 @@ export const PayrollRecordsSection: React.FC = () => {
         </Card>
         <Card>
           <CardContent className="p-4">
-<<<<<<< HEAD
-            <p className="text-sm text-muted-foreground">Total Amount (TZS)</p>
-            <p className="text-xl font-bold mt-1">{stats.amount.toLocaleString()}</p>
-=======
             <p className="text-sm text-muted-foreground">Total Amount</p>
             <p className="text-xl font-bold mt-1">TZS {stats.amount.toLocaleString()}</p>
->>>>>>> feature/payroll-complete
           </CardContent>
         </Card>
       </div>
 
       {/* Filters */}
       <Card>
-<<<<<<< HEAD
-        <CardHeader>
-          <CardTitle>Filters</CardTitle>
-          <CardDescription>Filter payroll records by farm and date</CardDescription>
-=======
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>Filters</CardTitle>
@@ -280,7 +227,6 @@ export const PayrollRecordsSection: React.FC = () => {
             <Plus className="w-4 h-4 mr-2" />
             Add Record
           </Button>
->>>>>>> feature/payroll-complete
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -352,6 +298,7 @@ export const PayrollRecordsSection: React.FC = () => {
                     <TableHead>Total</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -372,10 +319,6 @@ export const PayrollRecordsSection: React.FC = () => {
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <StatusBadge status={record.approval_status || 'pending'} />
                       </TableCell>
-<<<<<<< HEAD
-                      <TableCell>{new Date(record.date_worked).toLocaleDateString()}</TableCell>
-                      <TableCell>{getStatusBadge(record.approval_status)}</TableCell>
-=======
                       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
                           <Button variant="ghost" size="icon" onClick={() => setDetailRecord(record)} title="View detail">
@@ -398,7 +341,6 @@ export const PayrollRecordsSection: React.FC = () => {
                           </Button>
                         </div>
                       </TableCell>
->>>>>>> feature/payroll-complete
                     </TableRow>
                   ))}
                 </TableBody>
@@ -408,8 +350,6 @@ export const PayrollRecordsSection: React.FC = () => {
         </CardContent>
       </Card>
 
-<<<<<<< HEAD
-=======
       {/* Detail Modal */}
       <Dialog open={!!detailRecord} onOpenChange={(open) => { if (!open) setDetailRecord(null); }}>
         <DialogContent className="sm:max-w-[500px]">
@@ -577,7 +517,6 @@ export const PayrollRecordsSection: React.FC = () => {
           </form>
         </DialogContent>
       </Dialog>
->>>>>>> feature/payroll-complete
     </div>
   );
 };

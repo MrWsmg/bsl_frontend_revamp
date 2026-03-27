@@ -493,8 +493,6 @@ export class ApiService extends BaseApiService {
 
   async getSupervisorPendingPayroll() {
     return this.payroll.getSupervisorPendingPayroll();
-<<<<<<< HEAD
-=======
   }
 
   async editSupervisorPayrollRecord(recordId: number, data: Partial<PayrollRecord>) {
@@ -507,7 +505,6 @@ export class ApiService extends BaseApiService {
 
   async getPayrollMasterPendingPayroll() {
     return this.payroll.getPayrollMasterPendingPayroll();
->>>>>>> feature/payroll-complete
   }
 
   async createSupervisorPayrollRecord(data: Parameters<typeof this.payroll.createSupervisorPayrollRecord>[0]) {
