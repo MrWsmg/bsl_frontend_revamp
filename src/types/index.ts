@@ -63,10 +63,16 @@ export interface PayrollRecord {
   total_amount: number;
   crop_type?: string;
   farm?: Farm;
-  worker_type: 'permanent' | 'contracted';
+  worker_type?: 'permanent' | 'contracted';
   block?: string;
   date_worked: string;
-  approval_status: 'pending' | 'approved' | 'rejected';
+  approval_status: 'pending' | 'approved' | 'rejected' | 'supervisor_pending' | 'manager_approved';
+  payment_method?: 'per_task' | 'per_day';
+  rejection_reason?: string;
+  rejected_by?: string;
+  rejected_at?: string;
+  entered_by?: string;
+  farm_name?: string;
 }
 
 export interface StockRecord {
