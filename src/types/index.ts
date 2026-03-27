@@ -74,10 +74,6 @@ export interface PayrollRecord {
   crop_type?: string;
   notes?: string;
   receipt_image_url?: string;
-  farm?: Farm;
-  worker_type?: 'permanent' | 'contracted';
-  block?: string;
-  farm_name?: string;
   entered_by?: string;
   // Approval workflow
   approval_status: 'supervisor_pending' | 'manager_approved' | 'approved' | 'rejected' | 'pending';

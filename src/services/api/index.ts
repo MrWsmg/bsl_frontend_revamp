@@ -495,18 +495,6 @@ export class ApiService extends BaseApiService {
     return this.payroll.getSupervisorPendingPayroll();
   }
 
-  async editSupervisorPayrollRecord(recordId: number, data: Partial<PayrollRecord>) {
-    return this.payroll.editSupervisorPayrollRecord(recordId, data);
-  }
-
-  async deleteSupervisorPayrollRecord(recordId: number) {
-    return this.payroll.deleteSupervisorPayrollRecord(recordId);
-  }
-
-  async getPayrollMasterPendingPayroll() {
-    return this.payroll.getPayrollMasterPendingPayroll();
-  }
-
   async createSupervisorPayrollRecord(data: Parameters<typeof this.payroll.createSupervisorPayrollRecord>[0]) {
     return this.payroll.createSupervisorPayrollRecord(data);
   }
@@ -520,7 +508,7 @@ export class ApiService extends BaseApiService {
   }
 
   async bulkRejectFinancialControllerPayroll(recordIds: number[], rejectionReason: string) {
-    return this.payroll.bulkRejectFinancialControllerPayroll(recordIds, rejectionReason);
+    return this.payroll.bulkRejectFinancialControllerPayroll({ record_ids: recordIds, rejection_reason: rejectionReason });
   }
 
   async getWeeklyPayrollSheet(farmId: number, weekStart: string) {
@@ -540,19 +528,19 @@ export class ApiService extends BaseApiService {
   }
 
   async downloadPaymentSummaryPdf(farmId: number, startDate: string, endDate: string) {
-    return this.payroll.downloadPaymentSummaryPdf(farmId, startDate, endDate);
+    return this.payroll.downloadPaymentSummaryPdf({ farm_id: farmId, start_date: startDate, end_date: endDate });
   }
 
   async downloadPayslipPdf(workerName: string, farmId: number, startDate: string, endDate: string) {
-    return this.payroll.downloadPayslipPdf(workerName, farmId, startDate, endDate);
+    return this.payroll.downloadPayslipPdf({ worker_name: workerName, farm_id: farmId, start_date: startDate, end_date: endDate });
   }
 
   async getQuickBooksPending() {
     return this.payroll.getQuickBooksPending();
   }
 
-  async markQuickBooksSynced(recordIds: number[], transactionIdPrefix?: string) {
-    return this.payroll.markQuickBooksSynced(recordIds, transactionIdPrefix);
+  async markQuickBooksSynced(recordIds: number[], transactionIdPrefix: string = 'QB') {
+    return this.payroll.markQuickBooksSynced({ record_ids: recordIds, transaction_id_prefix: transactionIdPrefix });
   }
 
   async getWorkerPaymentDetails(workerId: number) {
