@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Camera, UploadCloud, Loader2, RefreshCw } from 'lucide-react';
+import { Camera, UploadCloud, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import { toast } from '../ui/sonner';
 import apiService from '../../services/api';
 import { PhotoInfo, User } from '../../types';
 import { USER_ROLES } from '../../constants';
+import { resolvePhotoUrl } from '@/hooks/usePresignedUrl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -27,8 +28,11 @@ interface PhotoPanelState {
   selectedIdPreview: string | null;
   uploadingPhoto: boolean;
   uploadingId: boolean;
+  deletingPhoto: boolean;
   inputId: string;
   activeEntityId?: number;
+  resolvedPhotoUrl: string | null;
+  resolvedIdUrl: string | null;
 }
 
 const createDefaultPanelState = (): PhotoPanelState => ({
@@ -40,8 +44,11 @@ const createDefaultPanelState = (): PhotoPanelState => ({
   selectedIdPreview: null,
   uploadingPhoto: false,
   uploadingId: false,
+  deletingPhoto: false,
   inputId: '',
   activeEntityId: undefined,
+  resolvedPhotoUrl: null,
+  resolvedIdUrl: null,
 });
 
 interface PhotoCaptureModalProps {
@@ -146,10 +153,19 @@ const PhotoCaptureModal: React.FC<PhotoCaptureModalProps> = ({ isOpen, onClose, 
           panel === 'worker'
             ? await apiService.photos.getWorkerPhotos(entityId)
             : await apiService.photos.getUserPhotos(entityId);
+
+        // Resolve presigned URLs for S3 photos
+        const [resolvedPhotoUrl, resolvedIdUrl] = await Promise.all([
+          resolvePhotoUrl(data.photo_url),
+          resolvePhotoUrl(data.id_image_url),
+        ]);
+
         updatePanelState(panel, {
           photoInfo: data,
           activeEntityId: entityId,
           inputId: entityId.toString(),
+          resolvedPhotoUrl,
+          resolvedIdUrl,
         });
         if (panel !== 'self') {
           toast.success('Latest images loaded');
@@ -241,20 +257,32 @@ const PhotoCaptureModal: React.FC<PhotoCaptureModalProps> = ({ isOpen, onClose, 
       updatePanelState(panel, kind === 'photo' ? { uploadingPhoto: true } : { uploadingId: true });
 
       try {
+        let result;
         if (panel === 'worker') {
           if (kind === 'photo') {
-            await apiService.photos.uploadWorkerPhoto({ file, workerId: entityId });
+            result = await apiService.photos.uploadWorkerPhoto({ file, workerId: entityId });
           } else {
-            await apiService.photos.uploadWorkerIdImage({ file, workerId: entityId });
+            result = await apiService.photos.uploadWorkerIdImage({ file, workerId: entityId });
           }
         } else {
           if (kind === 'photo') {
-            await apiService.photos.uploadUserPhoto({ file, userId: entityId });
+            result = await apiService.photos.uploadUserPhoto({ file, userId: entityId });
           } else {
-            await apiService.photos.uploadUserIdImage({ file, userId: entityId });
+            result = await apiService.photos.uploadUserIdImage({ file, userId: entityId });
           }
         }
-        toast.success(kind === 'photo' ? 'Photo uploaded successfully' : 'ID image uploaded successfully');
+
+        // Show face indexing status for worker photo uploads
+        if (panel === 'worker' && kind === 'photo' && result) {
+          if (result.face_indexed) {
+            toast.success('Photo uploaded and face indexed for recognition');
+          } else {
+            toast.warning('Photo uploaded but face indexing failed — manual verification may be needed');
+          }
+        } else {
+          toast.success(kind === 'photo' ? 'Photo uploaded successfully' : 'ID image uploaded successfully');
+        }
+
         handleFileChange(panel, kind, null);
         fetchPhotos(panel, entityId);
       } catch (error: any) {
@@ -264,6 +292,31 @@ const PhotoCaptureModal: React.FC<PhotoCaptureModalProps> = ({ isOpen, onClose, 
       }
     },
     [fetchPhotos, handleFileChange, panelState, resolveEntityId, updatePanelState]
+  );
+
+  const handleDeletePhoto = useCallback(
+    async (panel: PanelKey) => {
+      const entityId = resolveEntityId(panel);
+      if (!entityId) return;
+
+      // Only user photos can be deleted via the backend endpoint (not worker photos)
+      if (panel === 'worker') {
+        toast.error('Worker photo deletion is not supported');
+        return;
+      }
+
+      updatePanelState(panel, { deletingPhoto: true });
+      try {
+        await apiService.photos.deleteUserPhoto(entityId);
+        toast.success('Photo deleted successfully');
+        fetchPhotos(panel, entityId);
+      } catch (error: any) {
+        toast.error(getErrorMessage(error, 'Failed to delete photo'));
+      } finally {
+        updatePanelState(panel, { deletingPhoto: false });
+      }
+    },
+    [fetchPhotos, resolveEntityId, updatePanelState]
   );
 
   useEffect(() => {
@@ -283,22 +336,42 @@ const PhotoCaptureModal: React.FC<PhotoCaptureModalProps> = ({ isOpen, onClose, 
   const renderUploadCard = (panel: PanelKey, kind: UploadKind, title: string) => {
     const state = panelState[panel];
     const selectedPreview = kind === 'photo' ? state.selectedPhotoPreview : state.selectedIdPreview;
-    const currentUrl = kind === 'photo' ? state.photoInfo?.photo_url : state.photoInfo?.id_image_url;
+    const displayUrl = kind === 'photo' ? state.resolvedPhotoUrl : state.resolvedIdUrl;
+    const rawUrl = kind === 'photo' ? state.photoInfo?.photo_url : state.photoInfo?.id_image_url;
     const uploading = kind === 'photo' ? state.uploadingPhoto : state.uploadingId;
     const hasEntityId = !!resolveEntityId(panel);
     const inputKey = `${panel}-${kind}`;
+    const canDelete = kind === 'photo' && panel !== 'worker' && !!rawUrl;
 
     return (
       <div className="border rounded-lg p-4 bg-gray-50 flex flex-col space-y-4" key={inputKey}>
         <div className="flex items-center justify-between">
           <h4 className="text-sm font-semibold text-gray-800">{title}</h4>
-          {state.loadingInfo && <Loader2 className="w-4 h-4 animate-spin text-blue-500" />}
+          <div className="flex items-center gap-2">
+            {state.loadingInfo && <Loader2 className="w-4 h-4 animate-spin text-blue-500" />}
+            {canDelete && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-red-500 hover:text-red-700 hover:bg-red-50 h-7 px-2"
+                onClick={() => handleDeletePhoto(panel)}
+                disabled={state.deletingPhoto}
+              >
+                {state.deletingPhoto ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="w-3.5 h-3.5" />
+                )}
+              </Button>
+            )}
+          </div>
         </div>
         <div className="rounded-md border border-dashed border-gray-300 bg-white flex items-center justify-center h-48 overflow-hidden">
           {selectedPreview ? (
             <img src={selectedPreview} alt={`${title} preview`} className="object-cover w-full h-full" />
-          ) : currentUrl ? (
-            <img src={currentUrl} alt={title} className="object-cover w-full h-full" />
+          ) : displayUrl ? (
+            <img src={displayUrl} alt={title} className="object-cover w-full h-full" />
           ) : (
             <div className="text-center text-gray-400 text-sm flex flex-col items-center">
               <Camera className="w-8 h-8 mb-2" />
@@ -363,7 +436,7 @@ const PhotoCaptureModal: React.FC<PhotoCaptureModalProps> = ({ isOpen, onClose, 
           </Button>
         </div>
         <p className="text-xs text-gray-500">
-          When you tap "Capture / Upload", your device can open its native or Bluetooth camera, or let you pick an existing
+          When you tap &quot;Capture / Upload&quot;, your device can open its native or Bluetooth camera, or let you pick an existing
           image from the gallery.
         </p>
       </div>
@@ -473,4 +546,3 @@ const PhotoCaptureModal: React.FC<PhotoCaptureModalProps> = ({ isOpen, onClose, 
 };
 
 export default PhotoCaptureModal;
-
