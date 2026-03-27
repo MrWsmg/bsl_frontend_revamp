@@ -274,7 +274,17 @@ export class PayrollApiService extends BaseApiService {
     const url = `${this.baseUrl}/payroll/weekly-sheet/pdf?${queryString}`;
     const response = await fetch(url, { headers: this.getAuthHeaders() });
     if (!response.ok) {
-      throw new Error(`Download failed: ${response.status}`);
+      let errorMessage = `Download failed: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        if (errorData.detail) errorMessage = errorData.detail;
+        else if (errorData.message) errorMessage = errorData.message;
+      } catch {
+        // Response body might not be JSON
+      }
+      const error: any = new Error(errorMessage);
+      error.status = response.status;
+      throw error;
     }
     return response.blob();
   }
@@ -287,7 +297,17 @@ export class PayrollApiService extends BaseApiService {
     const url = `${this.baseUrl}/payroll/weekly-sheet/csv?${queryString}`;
     const response = await fetch(url, { headers: this.getAuthHeaders() });
     if (!response.ok) {
-      throw new Error(`Download failed: ${response.status}`);
+      let errorMessage = `Download failed: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        if (errorData.detail) errorMessage = errorData.detail;
+        else if (errorData.message) errorMessage = errorData.message;
+      } catch {
+        // Response body might not be JSON
+      }
+      const error: any = new Error(errorMessage);
+      error.status = response.status;
+      throw error;
     }
     return response.blob();
   }
@@ -309,7 +329,17 @@ export class PayrollApiService extends BaseApiService {
     const url = `${this.baseUrl}/payroll/payment-summary/pdf?${queryString}`;
     const response = await fetch(url, { headers: this.getAuthHeaders() });
     if (!response.ok) {
-      throw new Error(`Download failed: ${response.status}`);
+      let errorMessage = `Download failed: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        if (errorData.detail) errorMessage = errorData.detail;
+        else if (errorData.message) errorMessage = errorData.message;
+      } catch {
+        // Response body might not be JSON
+      }
+      const error: any = new Error(errorMessage);
+      error.status = response.status;
+      throw error;
     }
     return response.blob();
   }
@@ -324,7 +354,17 @@ export class PayrollApiService extends BaseApiService {
     const url = `${this.baseUrl}/payroll/payslip/pdf?${queryString}`;
     const response = await fetch(url, { headers: this.getAuthHeaders() });
     if (!response.ok) {
-      throw new Error(`Download failed: ${response.status}`);
+      let errorMessage = `Download failed: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        if (errorData.detail) errorMessage = errorData.detail;
+        else if (errorData.message) errorMessage = errorData.message;
+      } catch {
+        // Response body might not be JSON
+      }
+      const error: any = new Error(errorMessage);
+      error.status = response.status;
+      throw error;
     }
     return response.blob();
   }
