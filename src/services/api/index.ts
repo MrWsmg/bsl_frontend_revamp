@@ -503,6 +503,18 @@ export class ApiService extends BaseApiService {
     return this.payroll.resubmitSupervisorPayroll(recordId);
   }
 
+  async getSupervisorPendingPayroll() {
+    return this.payroll.getSupervisorPendingPayroll();
+  }
+
+  async editSupervisorPayrollRecord(recordId: number, data: any) {
+    return this.payroll.editSupervisorPayrollRecord(recordId, data);
+  }
+
+  async deleteSupervisorPayrollRecord(recordId: number) {
+    return this.payroll.deleteSupervisorPayrollRecord(recordId);
+  }
+
   async getPayrollMasterPendingPayroll() {
     return this.payroll.getPayrollMasterPendingPayroll();
   }
