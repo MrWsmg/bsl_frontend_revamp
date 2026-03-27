@@ -20,6 +20,7 @@ export interface PhotoUploadResponse {
   message: string;
   user_id?: number | null;
   worker_id?: number | null;
+  face_indexed?: boolean | null;
 }
 
 export interface Farm {
@@ -717,8 +718,7 @@ export interface FaceVerificationResult {
 }
 
 export interface WorkerPhotoUploadResponse extends PhotoUploadResponse {
-  face_indexed?: boolean;
-  face_id?: string;
+  face_indexed?: boolean | null;
 }
 
 // ===========================
