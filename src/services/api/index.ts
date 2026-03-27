@@ -1,4 +1,5 @@
 // Main API service that combines all API services
+import { PayrollRecord } from '../types';
 import { BaseApiService } from './base';
 import { AuthApiService } from './auth';
 import { FarmsApiService } from './farms';
@@ -507,7 +508,7 @@ export class ApiService extends BaseApiService {
     return this.payroll.getSupervisorPendingPayroll();
   }
 
-  async editSupervisorPayrollRecord(recordId: number, data: any) {
+  async editSupervisorPayrollRecord(recordId: number, data: Partial<PayrollRecord>) {
     return this.payroll.editSupervisorPayrollRecord(recordId, data);
   }
 

@@ -4,6 +4,7 @@
 import React, { useCallback, useState } from 'react';
 import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
+import { PayrollRecord } from '../../../types';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { AlertCircle, RotateCcw, Pencil, Trash2, Clock, X, Check } from 'lucide-react';
 import { toast } from '../../ui/sonner';
@@ -12,21 +13,6 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-interface PayrollRecord {
-  id: number;
-  worker_name?: string;
-  worker_type?: string;
-  task_code?: string;
-  block?: string;
-  quantity?: number;
-  rate?: number;
-  total_amount?: number;
-  date_worked?: string;
-  approval_status?: string;
-  rejection_reason?: string;
-  rejected_at?: string;
-}
 
 interface EditFormState {
   task_code: string;
@@ -72,7 +58,7 @@ const EditModal: React.FC<EditModalProps> = ({ record, onClose, onSaved }) => {
         quantity: parseFloat(form.quantity),
         rate: parseFloat(form.rate),
         date_worked: form.date_worked,
-      } as Partial<PayrollRecord>);
+      });
       toast.success('Payroll record updated successfully');
       onSaved();
     } catch (error: any) {
@@ -359,14 +345,14 @@ export const SupervisorPayrollSection: React.FC = () => {
                                 {record.approval_status === 'supervisor_pending' && (
                                   <div className="flex items-center justify-end gap-2">
                                     <button
-                                      onClick={() => setEditingRecord(record)}
+                                      onClick={() => { setEditingRecord(record); setConfirmDeleteId(null); }}
                                       className="flex items-center gap-1 px-2 py-1.5 text-xs bg-blue-50 text-blue-700 border border-blue-200 rounded hover:bg-blue-100 transition-colors"
                                     >
                                       <Pencil className="w-3 h-3" />
                                       Edit
                                     </button>
                                     <button
-                                      onClick={() => setConfirmDeleteId(record.id)}
+                                      onClick={() => { setConfirmDeleteId(record.id); setEditingRecord(null); }}
                                       className="flex items-center gap-1 px-2 py-1.5 text-xs bg-red-50 text-red-700 border border-red-200 rounded hover:bg-red-100 transition-colors"
                                     >
                                       <Trash2 className="w-3 h-3" />
