@@ -1,6 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  transpilePackages: [
+    '@fullcalendar/react',
+    '@fullcalendar/daygrid',
+    '@fullcalendar/timegrid',
+    '@fullcalendar/list',
+    '@fullcalendar/interaction',
+    '@fullcalendar/core',
+  ],
   async rewrites() {
     return [
       {

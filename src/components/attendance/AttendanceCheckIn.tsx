@@ -112,7 +112,7 @@ export const AttendanceCheckIn: React.FC<AttendanceCheckInProps> = ({ farms }) =
         notes: notes || undefined,
       };
 
-      await apiService.createAttendance(data);
+      await apiService.attendance.manualCheckIn(data);
 
       setLastCheckIn({
         success: true,

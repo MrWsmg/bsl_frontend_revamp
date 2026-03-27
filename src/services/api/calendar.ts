@@ -25,6 +25,7 @@ export interface CalendarEventPayload {
   event_type: string;   // custom | reminder | meeting | deadline
   farm_id?: number;
   visibility: string;   // private | farm | all
+  recurrence?: string;  // none | weekly | monthly | quarterly | annually
 }
 
 export interface CalendarEventsParams {
