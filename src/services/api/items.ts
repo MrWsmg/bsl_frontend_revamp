@@ -1,20 +1,13 @@
 // Items API service
 import { BaseApiService } from './base';
-import { ItemRequest, InventoryItem, SimrRequest, SimrItem, SimrRequestPayload } from '../../types';
+import { ItemRequest, InventoryItem, SimrRequest, SimrRequestPayload } from '../../types';
 
 export class ItemsApiService extends BaseApiService {
   /**
-   * Request item — creates ItemRequest that goes through Manager L1 → Farm Clerk L2 approval
-   */
-  async requestItem(data: any): Promise<ItemRequest> {
-    return this.post<ItemRequest>('/supervisor/request-item', data);
-  }
-
-  /**
-   * Create SIMR request — creates ItemRequest that goes through Manager L1 → Farm Clerk L2 approval
+   * Create SIMR request — creates SIMR that goes through Manager L1 → Farm Clerk L2 approval
    */
   async createSimrRequest(data: SimrRequestPayload): Promise<SimrRequest> {
-    return this.post<SimrRequest>('/supervisor/request-item', data);
+    return this.post<SimrRequest>('/supervisor/simrs', data);
   }
 
   /**
@@ -30,56 +23,14 @@ export class ItemsApiService extends BaseApiService {
    * Get SIMR requests for supervisor
    */
   async getSimrRequests(): Promise<SimrRequest[]> {
-    return this.get<SimrRequest[]>('/supervisor/item-requests');
+    return this.get<SimrRequest[]>('/supervisor/simrs');
   }
 
   /**
-   * Get all SIMR requests (admin view)
+   * Get all SIMR requests (admin/manager view)
    */
   async getAllSimrRequests(): Promise<SimrRequest[]> {
-    return this.get<SimrRequest[]>('/supervisor/all-item-requests');
-  }
-
-  /**
-   * Get supervisor item requests (legacy)
-   */
-  async getSupervisorItemRequests(): Promise<ItemRequest[]> {
-    return this.get<ItemRequest[]>('/supervisor/item-requests');
-  }
-
-  /**
-   * Get all item requests (legacy)
-   */
-  async getAllItemRequests(): Promise<ItemRequest[]> {
-    return this.get<ItemRequest[]>('/supervisor/all-item-requests');
-  }
-
-  /**
-   * Get pending item requests (legacy)
-   */
-  async getPendingItemRequests(): Promise<ItemRequest[]> {
-    return this.get<ItemRequest[]>('/farm-clerk/pending-requests');
-  }
-
-  /**
-   * Get manager item requests
-   */
-  async getManagerItemRequests(): Promise<ItemRequest[]> {
-    return this.get<ItemRequest[]>('/manager/item-requests');
-  }
-
-  /**
-   * Approve item request (Manager endpoint - legacy)
-   */
-  async approveItemRequest(requestId: number): Promise<ItemRequest> {
-    return this.post<ItemRequest>(`/manager/approve-item-request/${requestId}`);
-  }
-
-  /**
-   * Reject item request (Manager endpoint - legacy)
-   */
-  async rejectItemRequest(requestId: number): Promise<ItemRequest> {
-    return this.post<ItemRequest>(`/manager/reject-item-request/${requestId}`);
+    return this.get<SimrRequest[]>('/supervisor/simrs/all');
   }
 
   /**
@@ -100,7 +51,7 @@ export class ItemsApiService extends BaseApiService {
    * Get requests pending farm clerk approval
    */
   async getFarmClerkPendingRequests(): Promise<ItemRequest[]> {
-    return this.get<ItemRequest[]>('/farm-clerk/pending-requests');
+    return this.get<ItemRequest[]>('/farm-clerk/simrs');
   }
 
   /**

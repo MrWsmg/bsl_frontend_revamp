@@ -79,8 +79,12 @@ export class ApiService extends BaseApiService {
     return this.payroll.getPayrollFarms();
   }
 
-  async getPayrollRecords(params?: { farm_id?: number; start_date?: string; end_date?: string }) {
+  async getPayrollRecords(params?: { farm_id?: number; start_date?: string; end_date?: string; status?: string }) {
     return this.payroll.getPayrollRecords(params);
+  }
+
+  async getPayrollRecord(recordId: number) {
+    return this.payroll.getPayrollRecord(recordId);
   }
 
   async createPayrollRecord(data: any) {
@@ -227,10 +231,6 @@ export class ApiService extends BaseApiService {
     return this.payroll.getPendingPayrollRecords(params);
   }
 
-  async requestItem(data: any) {
-    return this.items.requestItem(data);
-  }
-
   async createSimrRequest(data: any) {
     return this.items.createSimrRequest(data);
   }
@@ -247,14 +247,6 @@ export class ApiService extends BaseApiService {
     return this.items.getAllSimrRequests();
   }
 
-  async getSupervisorItemRequests() {
-    return this.items.getSupervisorItemRequests();
-  }
-
-  async getAllItemRequests() {
-    return this.items.getAllItemRequests();
-  }
-
   async getPendingItemRequests() {
     return this.items.getFarmClerkPendingRequests();
   }
@@ -265,14 +257,6 @@ export class ApiService extends BaseApiService {
 
   async rejectFarmClerkRequest(requestId: number) {
     return this.items.rejectFarmClerkRequest(requestId);
-  }
-
-  async approveItemRequest(requestId: number) {
-    return this.items.approveItemRequest(requestId);
-  }
-
-  async rejectItemRequest(requestId: number) {
-    return this.items.rejectItemRequest(requestId);
   }
 
   async getPendingIssuances() {
@@ -391,10 +375,6 @@ export class ApiService extends BaseApiService {
     return this.payroll.rejectManagerPayroll(recordId, rejectionReason);
   }
 
-  async getManagerItemRequests() {
-    return this.items.getManagerItemRequests();
-  }
-
   async getManagerWorkers() {
     return this.workers.getManagerWorkers();
   }
@@ -471,14 +451,6 @@ export class ApiService extends BaseApiService {
     return this.management.createManagerStorage(data);
   }
 
-  async getAccountManagerPendingPayroll() {
-    return this.payroll.getAccountManagerPendingPayroll();
-  }
-
-  async approveAccountManagerPayroll(recordId: number) {
-    return this.payroll.approveAccountManagerPayroll(recordId);
-  }
-
   async getFinancialControllerPendingPayroll() {
     return this.payroll.getFinancialControllerPendingPayroll();
   }
@@ -503,12 +475,64 @@ export class ApiService extends BaseApiService {
     return this.payroll.resubmitSupervisorPayroll(recordId);
   }
 
-  async getPayrollMasterPendingPayroll() {
-    return this.payroll.getPayrollMasterPendingPayroll();
+  async getSupervisorPendingPayroll() {
+    return this.payroll.getSupervisorPendingPayroll();
   }
 
-  async approvePayrollMasterPayroll(recordId: number) {
-    return this.payroll.approvePayrollMasterPayroll(recordId);
+  async createSupervisorPayrollRecord(data: Parameters<typeof this.payroll.createSupervisorPayrollRecord>[0]) {
+    return this.payroll.createSupervisorPayrollRecord(data);
+  }
+
+  async updateSupervisorPayrollRecord(recordId: number, data: any) {
+    return this.payroll.updateSupervisorPayrollRecord(recordId, data);
+  }
+
+  async deleteSupervisorPayrollRecord(recordId: number) {
+    return this.payroll.deleteSupervisorPayrollRecord(recordId);
+  }
+
+  async bulkRejectFinancialControllerPayroll(recordIds: number[], rejectionReason: string) {
+    return this.payroll.bulkRejectFinancialControllerPayroll(recordIds, rejectionReason);
+  }
+
+  async getWeeklyPayrollSheet(farmId: number, weekStart: string) {
+    return this.payroll.getWeeklyPayrollSheet(farmId, weekStart);
+  }
+
+  async downloadWeeklyPayrollSheetPdf(farmId: number, weekStart: string) {
+    return this.payroll.downloadWeeklyPayrollSheetPdf(farmId, weekStart);
+  }
+
+  async downloadWeeklyPayrollSheetCsv(farmId: number, weekStart: string) {
+    return this.payroll.downloadWeeklyPayrollSheetCsv(farmId, weekStart);
+  }
+
+  async getPaymentSummaryJson(farmId: number, startDate: string, endDate: string) {
+    return this.payroll.getPaymentSummaryJson(farmId, startDate, endDate);
+  }
+
+  async downloadPaymentSummaryPdf(farmId: number, startDate: string, endDate: string) {
+    return this.payroll.downloadPaymentSummaryPdf(farmId, startDate, endDate);
+  }
+
+  async downloadPayslipPdf(workerName: string, farmId: number, startDate: string, endDate: string) {
+    return this.payroll.downloadPayslipPdf(workerName, farmId, startDate, endDate);
+  }
+
+  async getQuickBooksPending() {
+    return this.payroll.getQuickBooksPending();
+  }
+
+  async markQuickBooksSynced(recordIds: number[], transactionIdPrefix?: string) {
+    return this.payroll.markQuickBooksSynced(recordIds, transactionIdPrefix);
+  }
+
+  async getWorkerPaymentDetails(workerId: number) {
+    return this.payroll.getWorkerPaymentDetails(workerId);
+  }
+
+  async updateWorkerPaymentDetails(workerId: number, data: Parameters<typeof this.payroll.updateWorkerPaymentDetails>[1]) {
+    return this.payroll.updateWorkerPaymentDetails(workerId, data);
   }
 
   async getAnalyticsData(params?: Record<string, any>) {

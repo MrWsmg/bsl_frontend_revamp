@@ -57,17 +57,36 @@ export interface Worker {
 
 export interface PayrollRecord {
   id: number;
+  // Core data
+  farm_id?: number;
+  farm?: Farm;
+  farm_name?: string;
   worker_name: string;
+  worker_type: 'permanent' | 'contracted';
   task_code: string;
+  block?: string;
+  block_id?: number;
+  payment_method?: 'per_task' | 'per_day';
   quantity: number;
   rate: number;
   total_amount: number;
-  crop_type?: string;
-  farm?: Farm;
-  worker_type: 'permanent' | 'contracted';
-  block?: string;
   date_worked: string;
-  approval_status: 'pending' | 'approved' | 'rejected';
+  crop_type?: string;
+  notes?: string;
+  receipt_image_url?: string;
+  // Approval workflow
+  approval_status: 'supervisor_pending' | 'manager_approved' | 'approved' | 'rejected' | 'pending';
+  approval_level?: 1 | 2 | 3;
+  manager_approved_by?: string | null;
+  manager_approved_at?: string | null;
+  financial_approved_by?: string | null;
+  financial_approved_at?: string | null;
+  rejection_reason?: string | null;
+  rejected_by?: string | null;
+  rejected_at?: string | null;
+  // QuickBooks
+  quickbooks_synced?: boolean;
+  quickbooks_transaction_id?: string | null;
 }
 
 export interface StockRecord {

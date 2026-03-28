@@ -5,7 +5,7 @@ import React, { useCallback, useState } from 'react';
 import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
-import { StatusBadge } from '../../common/StatusBadge';
+import { ApprovalStatusBadge } from '../../common/ApprovalStatusBadge';
 import { Check, X, DollarSign, Clock, CheckSquare } from 'lucide-react';
 import { toast } from '../../ui/sonner';
 
@@ -288,7 +288,7 @@ export const ManagerPayrollSection: React.FC = () => {
                         {new Date(record.date_worked).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <StatusBadge status={record.approval_status} />
+                        <ApprovalStatusBadge status={record.approval_status} />
                       </td>
                       {activeTab === 'pending' && (
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

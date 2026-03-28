@@ -15,7 +15,7 @@ export const ManagerOverviewSection: React.FC = () => {
   const getWorkers = useCallback(() => apiService.getManagerWorkers(), []);
   const getPendingPayroll = useCallback(() => apiService.getManagerPendingPayroll(), []);
   const getTaskAssignments = useCallback(() => apiService.getManagerTaskAssignments(), []);
-  const getItemRequests = useCallback(() => apiService.getManagerItemRequests(), []);
+  const getItemRequests = useCallback(() => apiService.getManagerPendingSimrs(), []);
 
   const { data: farms, loading: farmsLoading } = useApi(getFarms);
   const { data: users, loading: usersLoading } = useApi(getUsers);

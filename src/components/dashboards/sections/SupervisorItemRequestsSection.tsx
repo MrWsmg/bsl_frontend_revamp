@@ -71,8 +71,8 @@ export const SupervisorItemRequestsSection: React.FC = () => {
   const dropdownRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   // Fetch data
-  const getMyRequests  = useCallback(() => apiService.getSupervisorItemRequests(), []);
-  const getAllRequests  = useCallback(() => apiService.getAllItemRequests(), []);
+  const getMyRequests  = useCallback(() => apiService.getSimrRequests(), []);
+  const getAllRequests  = useCallback(() => apiService.getAllSimrRequests(), []);
   const getFarms       = useCallback(() => apiService.getFarms('supervisor'), []);
 
   const { data: myRequests,  loading: loadingMyRequests,  refetch: refetchMyRequests }  = useApi(getMyRequests);

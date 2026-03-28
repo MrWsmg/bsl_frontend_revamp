@@ -13,6 +13,8 @@ import apiService from '../../services/api';
 import AddWorkerModal from '../shared/AddWorkerModal';
 import { SupervisorTasksSection, SupervisorItemRequestsSection, SupervisorAttendanceSection } from './sections';
 import { SupervisorPayrollSection } from './sections/SupervisorPayrollSection';
+import { SupervisorPayrollEntrySection } from './sections/SupervisorPayrollEntrySection';
+import { SupervisorPayrollPendingSection } from './sections/SupervisorPayrollPendingSection';
 import {
   SupervisorSimrSection,
   SharedGinSection,
@@ -45,9 +47,11 @@ const SUPERVISOR_NAV_ITEMS = [
     label: 'Work',
     icon: ClipboardList,
     children: [
-      { id: 'tasks', label: 'Tasks', icon: ClipboardList },
-      { id: 'item_requests', label: 'Item Requests', icon: Package },
-      { id: 'payroll', label: 'Payroll', icon: DollarSign },
+      { id: 'tasks',          label: 'Tasks',          icon: ClipboardList },
+      { id: 'item_requests',  label: 'Item Requests',  icon: Package       },
+      { id: 'payroll_entry',  label: 'New Payroll',    icon: DollarSign    },
+      { id: 'payroll_pending', label: 'Pending',       icon: Clock         },
+      { id: 'payroll',        label: 'Rejected',       icon: AlertCircle   },
     ],
   },
   {
@@ -109,7 +113,7 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
     () => apiService.getSupervisorWorkHistory(dateRange.startDate, dateRange.endDate),
     [dateRange.startDate, dateRange.endDate]
   );
-  const getItemRequests = useCallback(() => apiService.getSupervisorItemRequests(), []);
+  const getItemRequests = useCallback(() => apiService.getSimrRequests(), []);
   const getWorkers = useCallback(() => apiService.getWorkers(), []);
   const getFarms = useCallback(() => apiService.getFarms('supervisor'), []);
   const getTaskAssignments = useCallback(() => apiService.getManagerTaskAssignments(), []);
@@ -631,6 +635,12 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
         </div>
         <div className={activeTab === 'item_requests' ? '' : 'hidden'}>
           {mountedTabs.has('item_requests') && <SupervisorItemRequestsSection />}
+        </div>
+        <div className={activeTab === 'payroll_entry' ? '' : 'hidden'}>
+          {mountedTabs.has('payroll_entry') && <SupervisorPayrollEntrySection />}
+        </div>
+        <div className={activeTab === 'payroll_pending' ? '' : 'hidden'}>
+          {mountedTabs.has('payroll_pending') && <SupervisorPayrollPendingSection />}
         </div>
         <div className={activeTab === 'payroll' ? '' : 'hidden'}>
           {mountedTabs.has('payroll') && <SupervisorPayrollSection />}

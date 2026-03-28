@@ -13,13 +13,20 @@ import {
   FileText,
   NotebookPen,
   Boxes,
-  Wallet
+  Wallet,
+  CalendarDays,
+  ReceiptText,
+  Link2,
 } from 'lucide-react';
 import {
   PayrollOverviewSection,
   PayrollRecordsSection,
   PayrollSummarySection,
-  PayrollPickingSection
+  PayrollPickingSection,
+  SharedWeeklySheetSection,
+  SharedPaymentSummarySection,
+  SharedPayslipSection,
+  PayrollQuickBooksSection,
 } from './sections';
 
 interface PayrollDashboardProps {
@@ -28,10 +35,14 @@ interface PayrollDashboardProps {
 }
 
 const TAB_COMPONENTS: Record<string, React.FC> = {
-  overview: PayrollOverviewSection,
-  records: PayrollRecordsSection,
-  summary: PayrollSummarySection,
-  picking: PayrollPickingSection,
+  overview:        PayrollOverviewSection,
+  records:         PayrollRecordsSection,
+  summary:         PayrollSummarySection,
+  picking:         PayrollPickingSection,
+  weekly_sheet:    SharedWeeklySheetSection,
+  payment_summary: SharedPaymentSummarySection,
+  payslip:         SharedPayslipSection,
+  quickbooks:      PayrollQuickBooksSection,
 };
 
 export const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ user, onLogout }) => {
@@ -45,8 +56,12 @@ export const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ user, onLogo
       label: 'Payroll',
       icon: Wallet,
       children: [
-        { id: 'records', label: 'Records', icon: ClipboardList },
-        { id: 'summary', label: 'Summary', icon: NotebookPen },
+        { id: 'records',         label: 'Records',          icon: ClipboardList  },
+        { id: 'summary',         label: 'Summary',          icon: NotebookPen    },
+        { id: 'weekly_sheet',    label: 'Weekly Sheet',     icon: CalendarDays   },
+        { id: 'payment_summary', label: 'Payment Summary',  icon: ReceiptText    },
+        { id: 'payslip',         label: 'Payslip',          icon: FileText       },
+        { id: 'quickbooks',      label: 'QuickBooks Sync',  icon: Link2          },
       ]
     },
     {
@@ -54,11 +69,10 @@ export const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ user, onLogo
       label: 'Workforce',
       icon: Boxes,
       children: [
-        { id: 'workers', label: 'Workers', icon: Users },
+        { id: 'workers', label: 'Workers',         icon: Users      },
         { id: 'picking', label: 'Picking Records', icon: TrendingUp },
       ]
     },
-    { id: 'reports', label: 'Reports', icon: FileText },
   ];
 
   const handleTabChange = (tabId: string) => {
@@ -74,7 +88,7 @@ export const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ user, onLogo
         sidebarItems={sidebarItems}
         activeTab={activeTab}
         onTabChange={handleTabChange}
-        title="BSL Farm Tracking - Payroll"
+        title="AGENTIC Farm Tracking - Payroll"
       >
         {Object.entries(TAB_COMPONENTS).map(([tabId, Component]) => (
           <div

@@ -5,10 +5,10 @@ import React, { useCallback, useState } from 'react';
 import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
+import { ApprovalStatusBadge } from '../../common/ApprovalStatusBadge';
 import { AlertCircle, RotateCcw } from 'lucide-react';
 import { toast } from '../../ui/sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 
 export const SupervisorPayrollSection: React.FC = () => {
   const [resubmittingId, setResubmittingId] = useState<number | null>(null);
@@ -63,8 +63,8 @@ export const SupervisorPayrollSection: React.FC = () => {
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-semibold text-gray-900">{record.worker_name}</span>
-                        <Badge variant="secondary">{record.worker_type}</Badge>
-                        <Badge variant="destructive">Rejected</Badge>
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{record.worker_type}</span>
+                        <ApprovalStatusBadge status={record.approval_status} />
                       </div>
 
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm text-gray-700">

@@ -1,18 +1,16 @@
 "use client";
 
-// Payroll Records Section
+// Payroll Records Section — read-only view for Payroll Officer role
 import React, { useState, useCallback, useMemo } from 'react';
 import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
-import { Plus, Edit, Check, X, Calendar } from 'lucide-react';
-import { toast } from '../../ui/sonner';
+import { Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -28,45 +26,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-
-interface PayrollFormData {
-  worker_id: number;
-  farm_id: number;
-  task_code: string;
-  quantity: number;
-  rate: number;
-  date_worked: string;
-  notes?: string;
-}
 
 export const PayrollRecordsSection: React.FC = () => {
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<any | null>(null);
   const [selectedFarm, setSelectedFarm] = useState<string>('all');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
-  const [processingId, setProcessingId] = useState<number | null>(null);
-
-  const [formData, setFormData] = useState<PayrollFormData>({
-    worker_id: 0,
-    farm_id: 0,
-    task_code: '',
-    quantity: 0,
-    rate: 0,
-    date_worked: new Date().toISOString().split('T')[0],
-  });
 
   // Fetch data
   const getFarms = useCallback(() => apiService.getPayrollFarms(), []);
-  const getWorkers = useCallback(() => apiService.getWorkers(), []);
 
   const getPayrollRecords = useCallback(() => {
     const params: any = {};
@@ -77,98 +44,27 @@ export const PayrollRecordsSection: React.FC = () => {
   }, [selectedFarm, startDate, endDate]);
 
   const { data: farms } = useApi(getFarms);
-  const { data: workers } = useApi(getWorkers);
-  const { data: records, loading, refetch } = useApi(getPayrollRecords);
+  const { data: records, loading } = useApi(getPayrollRecords);
 
   const stats = useMemo(() => {
     if (!records?.length) return { total: 0, pending: 0, approved: 0, amount: 0 };
 
     return {
       total: records.length,
-      pending: records.filter((r: any) => r.approval_status === 'pending').length,
+      pending: records.filter((r: any) => r.approval_status === 'supervisor_pending' || r.approval_status === 'manager_approved').length,
       approved: records.filter((r: any) => r.approval_status === 'approved').length,
       amount: records.reduce((sum: number, r: any) => sum + (r.total_amount || 0), 0),
     };
   }, [records]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    try {
-      if (editingRecord) {
-        await apiService.updatePayrollRecord(editingRecord.id, formData);
-        toast.success('Payroll record updated successfully');
-      } else {
-        await apiService.createPayrollRecord(formData);
-        toast.success('Payroll record created successfully');
-      }
-
-      setShowCreateModal(false);
-      setEditingRecord(null);
-      resetForm();
-      refetch();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to save payroll record');
-    }
-  };
-
-  const handleApprove = async (recordId: number) => {
-    setProcessingId(recordId);
-    try {
-      await apiService.approvePayrollRecord(recordId);
-      toast.success('Payroll record approved');
-      refetch();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to approve record');
-    } finally {
-      setProcessingId(null);
-    }
-  };
-
-  const handleReject = async (recordId: number) => {
-    setProcessingId(recordId);
-    try {
-      await apiService.rejectPayrollRecord(recordId);
-      toast.success('Payroll record rejected');
-      refetch();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to reject record');
-    } finally {
-      setProcessingId(null);
-    }
-  };
-
-  const handleEdit = (record: any) => {
-    setEditingRecord(record);
-    setFormData({
-      worker_id: record.worker_id,
-      farm_id: record.farm_id,
-      task_code: record.task_code,
-      quantity: record.quantity,
-      rate: record.rate,
-      date_worked: record.date_worked?.split('T')[0] || '',
-      notes: record.notes || '',
-    });
-    setShowCreateModal(true);
-  };
-
-  const resetForm = () => {
-    setFormData({
-      worker_id: 0,
-      farm_id: 0,
-      task_code: '',
-      quantity: 0,
-      rate: 0,
-      date_worked: new Date().toISOString().split('T')[0],
-    });
-  };
-
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'approved':
         return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Approved</Badge>;
-      case 'pending':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+      case 'supervisor_pending':
+        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Pending Supervisor</Badge>;
+      case 'manager_approved':
+        return <Badge variant="secondary" className="bg-blue-100 text-blue-800">Pending FC</Badge>;
       case 'rejected':
         return <Badge variant="destructive">Rejected</Badge>;
       default:
@@ -194,7 +90,7 @@ export const PayrollRecordsSection: React.FC = () => {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Pending</p>
+            <p className="text-sm text-muted-foreground">In Progress</p>
             <p className="text-2xl font-bold text-yellow-600 mt-1">{stats.pending}</p>
           </CardContent>
         </Card>
@@ -206,27 +102,17 @@ export const PayrollRecordsSection: React.FC = () => {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Total Amount</p>
-            <p className="text-xl font-bold mt-1">${stats.amount.toLocaleString()}</p>
+            <p className="text-sm text-muted-foreground">Total Amount (TZS)</p>
+            <p className="text-xl font-bold mt-1">{stats.amount.toLocaleString()}</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Actions & Filters */}
+      {/* Filters */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Filters</CardTitle>
-            <CardDescription>Filter payroll records by farm and date</CardDescription>
-          </div>
-          <Button onClick={() => {
-            resetForm();
-            setEditingRecord(null);
-            setShowCreateModal(true);
-          }}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Record
-          </Button>
+        <CardHeader>
+          <CardTitle>Filters</CardTitle>
+          <CardDescription>Filter payroll records by farm and date</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -300,7 +186,6 @@ export const PayrollRecordsSection: React.FC = () => {
                     <TableHead>Total</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -316,43 +201,6 @@ export const PayrollRecordsSection: React.FC = () => {
                       </TableCell>
                       <TableCell>{new Date(record.date_worked).toLocaleDateString()}</TableCell>
                       <TableCell>{getStatusBadge(record.approval_status)}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {record.approval_status === 'pending' && (
-                            <>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleApprove(record.id)}
-                                disabled={processingId === record.id}
-                                className="text-green-600 hover:text-green-900 hover:bg-green-50"
-                              >
-                                {processingId === record.id ? (
-                                  <LoadingSpinner size="sm" />
-                                ) : (
-                                  <Check className="w-4 h-4" />
-                                )}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleReject(record.id)}
-                                disabled={processingId === record.id}
-                                className="text-destructive hover:text-destructive hover:bg-red-50"
-                              >
-                                <X className="w-4 h-4" />
-                              </Button>
-                            </>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(record)}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -362,129 +210,6 @@ export const PayrollRecordsSection: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Create/Edit Dialog */}
-      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>{editingRecord ? 'Edit Payroll Record' : 'Add Payroll Record'}</DialogTitle>
-            <DialogDescription>
-              {editingRecord ? 'Update the payroll record details' : 'Create a new payroll entry'}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Worker *</Label>
-                <Select
-                  value={formData.worker_id.toString()}
-                  onValueChange={(value) => setFormData({ ...formData, worker_id: parseInt(value) })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select worker" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {workers?.filter((worker: any) => worker.id != null).map((worker: any) => (
-                      <SelectItem key={worker.id} value={worker.id.toString()}>
-                        {worker.full_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Farm *</Label>
-                <Select
-                  value={formData.farm_id.toString()}
-                  onValueChange={(value) => setFormData({ ...formData, farm_id: parseInt(value) })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select farm" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {farms?.filter((farm: any) => farm.id != null).map((farm: any) => (
-                      <SelectItem key={farm.id} value={farm.id.toString()}>
-                        {farm.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Task Code *</Label>
-                <Input
-                  required
-                  value={formData.task_code}
-                  onChange={(e) => setFormData({ ...formData, task_code: e.target.value })}
-                  placeholder="e.g., PICK, PRUNE"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Date Worked *</Label>
-                <Input
-                  type="date"
-                  required
-                  value={formData.date_worked}
-                  onChange={(e) => setFormData({ ...formData, date_worked: e.target.value })}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Quantity *</Label>
-                <Input
-                  type="number"
-                  required
-                  step="0.01"
-                  value={formData.quantity}
-                  onChange={(e) => setFormData({ ...formData, quantity: parseFloat(e.target.value) })}
-                  placeholder="0.00"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Rate (USD) *</Label>
-                <Input
-                  type="number"
-                  required
-                  step="0.01"
-                  value={formData.rate}
-                  onChange={(e) => setFormData({ ...formData, rate: parseFloat(e.target.value) })}
-                  placeholder="0.00"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Notes</Label>
-              <Textarea
-                value={formData.notes || ''}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Additional notes..."
-                rows={3}
-              />
-            </div>
-
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setShowCreateModal(false);
-                  setEditingRecord(null);
-                  resetForm();
-                }}
-              >
-                Cancel
-              </Button>
-              <Button type="submit">
-                {editingRecord ? 'Update' : 'Create'} Record
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

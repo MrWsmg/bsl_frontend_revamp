@@ -37,7 +37,6 @@ interface ApiService {
   getPayrollPayrollSummary(): Promise<any>;
   getPendingPayrollRecords(params?: Record<string, any>): Promise<any[]>;
   // Store Management
-  requestItem(data: any): Promise<any>;
   createSimrRequest(data: any): Promise<any>;
   getSimrRequests(): Promise<any[]>;
   getAllSimrRequests(): Promise<any[]>;
@@ -45,11 +44,7 @@ interface ApiService {
   approveSimrRequest(requestId: number, notes?: string): Promise<any>;
   rejectSimrRequest(requestId: number, reason: string): Promise<any>;
   collectSimrRequest(requestId: number): Promise<any>;
-  getSupervisorItemRequests(): Promise<any[]>;
-  getAllItemRequests(): Promise<any[]>;
   getPendingItemRequests(): Promise<any[]>;
-  approveItemRequest(requestId: number): Promise<any>;
-  rejectItemRequest(requestId: number): Promise<any>;
   issueItemRequest(requestId: number): Promise<any>;
   confirmReceipt(requestId: number, receivedStatus: "received" | "not_received"): Promise<any>;
   getStockMovements(params?: Record<string, any>): Promise<any[]>;
@@ -67,7 +62,6 @@ interface ApiService {
   getManagerPendingPayroll(): Promise<any[]>;
   getManagerAllPayroll(): Promise<any[]>;
   approveManagerPayroll(recordId: number): Promise<any>;
-  getManagerItemRequests(): Promise<any[]>;
   getManagerWorkers(): Promise<any[]>;
   getManagerTaskAssignments(): Promise<any[]>;
   getManagerCompletedTasks(): Promise<any[]>;
@@ -86,13 +80,6 @@ interface ApiService {
   createManagerEquipment(data: any): Promise<any>;
   getManagerStorage(): Promise<any[]>;
   createManagerStorage(data: any): Promise<any>;
-  // New approval role endpoints
-  getAccountManagerPendingPayroll(): Promise<any[]>;
-  approveAccountManagerPayroll(recordId: number): Promise<any>;
-  getFinancialControllerPendingPayroll(): Promise<any[]>;
-  approveFinancialControllerPayroll(recordId: number): Promise<any>;
-  getPayrollMasterPendingPayroll(): Promise<any[]>;
-  approvePayrollMasterPayroll(recordId: number): Promise<any>;
   // Analytics endpoints
   getAnalyticsData(params?: Record<string, any>): Promise<any>;
   // Admin Manager Dashboard endpoints
@@ -646,26 +633,19 @@ class ApiServiceImpl implements ApiService {
   }
 
   // Store Management
-  async requestItem(data: any): Promise<any> {
-    return this.request('/supervisor/request-item', {
-      method: 'POST',
-      body: data,
-    });
-  }
-
   async createSimrRequest(data: any): Promise<any> {
-    return this.request('/supervisor/request-item', {
+    return this.request('/supervisor/simrs', {
       method: 'POST',
       body: data,
     });
   }
 
   async getSimrRequests(): Promise<any[]> {
-    return this.request('/supervisor/item-requests');
+    return this.request('/supervisor/simrs');
   }
 
   async getAllSimrRequests(): Promise<any[]> {
-    return this.request('/supervisor/all-item-requests');
+    return this.request('/supervisor/simrs/all');
   }
 
   async getPendingSimrRequests(): Promise<any[]> {
@@ -692,28 +672,8 @@ class ApiServiceImpl implements ApiService {
     });
   }
 
-  async getSupervisorItemRequests(): Promise<any[]> {
-    return this.request('/supervisor/item-requests');
-  }
-
-  async getAllItemRequests(): Promise<any[]> {
-    return this.request('/supervisor/all-item-requests');
-  }
-
   async getPendingItemRequests(): Promise<any[]> {
-    return this.request('/farm-clerk/pending-requests');
-  }
-
-  async approveItemRequest(requestId: number): Promise<any> {
-    return this.request(`/farm-clerk/approve-request/${requestId}`, {
-      method: 'POST',
-    });
-  }
-
-  async rejectItemRequest(requestId: number): Promise<any> {
-    return this.request(`/farm-clerk/reject-request/${requestId}`, {
-      method: 'POST',
-    });
+    return this.request('/farm-clerk/simrs');
   }
 
   async issueItemRequest(requestId: number): Promise<any> {
@@ -793,10 +753,6 @@ class ApiServiceImpl implements ApiService {
     return this.request(`/manager/approve-payroll/${recordId}`, {
       method: 'POST',
     });
-  }
-
-  async getManagerItemRequests(): Promise<any[]> {
-    return this.request('/manager/item-requests');
   }
 
   async getManagerWorkers(): Promise<any[]> {
@@ -889,36 +845,6 @@ class ApiServiceImpl implements ApiService {
     });
   }
 
-  // New approval role endpoints
-  async getAccountManagerPendingPayroll(): Promise<any[]> {
-    return this.request('/account-manager/pending-payroll');
-  }
-
-  async approveAccountManagerPayroll(recordId: number): Promise<any> {
-    return this.request(`/account-manager/approve-payroll/${recordId}`, {
-      method: 'POST',
-    });
-  }
-
-  async getFinancialControllerPendingPayroll(): Promise<any[]> {
-    return this.request('/financial-controller/pending-payroll');
-  }
-
-  async approveFinancialControllerPayroll(recordId: number): Promise<any> {
-    return this.request(`/financial-controller/approve-payroll/${recordId}`, {
-      method: 'POST',
-    });
-  }
-
-  async getPayrollMasterPendingPayroll(): Promise<any[]> {
-    return this.request('/payroll-master/pending-payroll');
-  }
-
-  async approvePayrollMasterPayroll(recordId: number): Promise<any> {
-    return this.request(`/payroll-master/approve-payroll/${recordId}`, {
-      method: 'POST',
-    });
-  }
 
   // Analytics endpoints
   async getAnalyticsData(params: Record<string, any> = {}): Promise<any> {
