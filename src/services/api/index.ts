@@ -1,5 +1,5 @@
 // Main API service that combines all API services
-import { PayrollRecord } from '../types';
+import { PayrollRecord } from '../../types';
 import { BaseApiService } from './base';
 import { AuthApiService } from './auth';
 import { FarmsApiService } from './farms';

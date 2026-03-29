@@ -14,8 +14,10 @@ export const FinancialControllerPayrollSection: React.FC = () => {
   const [rejectingId, setRejectingId] = useState<number | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [isBulkReject, setIsBulkReject] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [bulkApproving, setBulkApproving] = useState(false);
+  const [bulkRejecting, setBulkRejecting] = useState(false);
 
   const getPendingPayroll = useCallback(() => apiService.getFinancialControllerPendingPayroll(), []);
 
@@ -53,21 +55,47 @@ export const FinancialControllerPayrollSection: React.FC = () => {
   };
 
   const openRejectModal = (recordId: number) => {
+    setIsBulkReject(false);
     setRejectingId(recordId);
     setRejectReason('');
     setShowRejectModal(true);
   };
 
+  const openBulkRejectModal = () => {
+    if (selectedIds.length === 0) return;
+    setIsBulkReject(true);
+    setRejectingId(null);
+    setRejectReason('');
+    setShowRejectModal(true);
+  };
+
   const handleReject = async () => {
-    if (!rejectingId || !rejectReason.trim()) return;
-    try {
-      await apiService.rejectFinancialControllerPayroll(rejectingId, rejectReason.trim());
-      toast.success('Payroll record rejected and returned to supervisor');
-      setShowRejectModal(false);
-      setRejectingId(null);
-      await refetch();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to reject payroll record');
+    if (!rejectReason.trim()) return;
+    if (isBulkReject) {
+      if (selectedIds.length === 0) return;
+      setBulkRejecting(true);
+      try {
+        await apiService.bulkRejectFinancialControllerPayroll({ record_ids: selectedIds, rejection_reason: rejectReason.trim() });
+        toast.success(`${selectedIds.length} records rejected`);
+        setSelectedIds([]);
+        setShowRejectModal(false);
+        await refetch();
+      } catch (error: any) {
+        toast.error(error.message || 'Bulk rejection failed');
+      } finally {
+        setBulkRejecting(false);
+      }
+    } else {
+      if (!rejectingId) return;
+      try {
+        await apiService.rejectFinancialControllerPayroll(rejectingId, rejectReason.trim());
+        toast.success('Payroll record rejected and returned to supervisor');
+        setShowRejectModal(false);
+        setRejectingId(null);
+        await refetch();
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to reject payroll record');
+      }
     }
   };
 
@@ -136,6 +164,14 @@ export const FinancialControllerPayrollSection: React.FC = () => {
             >
               {bulkApproving ? <LoadingSpinner size="sm" /> : <CheckSquare className="w-4 h-4" />}
               Approve All Selected
+            </button>
+            <button
+              onClick={openBulkRejectModal}
+              disabled={bulkRejecting}
+              className="flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50"
+            >
+              <X className="w-4 h-4" />
+              Reject All Selected
             </button>
             <button
               onClick={() => setSelectedIds([])}
@@ -240,8 +276,14 @@ export const FinancialControllerPayrollSection: React.FC = () => {
       {showRejectModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">Reject Payroll Record</h3>
-            <p className="text-sm text-gray-500 mb-4">The record will be returned to the supervisor with your reason. All approval history will be cleared.</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">
+              {isBulkReject ? `Reject ${selectedIds.length} Records` : 'Reject Payroll Record'}
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">
+              {isBulkReject
+                ? `All ${selectedIds.length} selected records will be returned to their supervisors with your reason.`
+                : 'The record will be returned to the supervisor with your reason. All approval history will be cleared.'}
+            </p>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Reason for rejection <span className="text-red-500">*</span>
             </label>
