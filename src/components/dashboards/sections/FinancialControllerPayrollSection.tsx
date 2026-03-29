@@ -14,8 +14,11 @@ export const FinancialControllerPayrollSection: React.FC = () => {
   const [rejectingId, setRejectingId] = useState<number | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
+<<<<<<< HEAD
   const [bulkRejectModal, setBulkRejectModal] = useState(false);
   const [bulkRejectReason, setBulkRejectReason] = useState('');
+=======
+>>>>>>> 8c92f07 (feat(payroll): add document generation and enhance management)
   const [isBulkReject, setIsBulkReject] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [bulkApproving, setBulkApproving] = useState(false);
@@ -56,23 +59,6 @@ export const FinancialControllerPayrollSection: React.FC = () => {
     }
   };
 
-  const handleBulkReject = async () => {
-    if (selectedIds.length === 0 || !bulkRejectReason.trim()) return;
-    setBulkRejecting(true);
-    try {
-      await apiService.bulkRejectFinancialControllerPayroll(selectedIds, bulkRejectReason.trim());
-      toast.success(`${selectedIds.length} records rejected`);
-      setSelectedIds([]);
-      setBulkRejectModal(false);
-      setBulkRejectReason('');
-      await refetch();
-    } catch (error: any) {
-      toast.error(error.message || 'Bulk rejection failed');
-    } finally {
-      setBulkRejecting(false);
-    }
-  };
-
   const openRejectModal = (recordId: number) => {
     setIsBulkReject(false);
     setRejectingId(recordId);
@@ -94,7 +80,11 @@ export const FinancialControllerPayrollSection: React.FC = () => {
       if (selectedIds.length === 0) return;
       setBulkRejecting(true);
       try {
+<<<<<<< HEAD
         await apiService.bulkRejectFinancialControllerPayroll(selectedIds, rejectReason.trim());
+=======
+        await apiService.bulkRejectFinancialControllerPayroll({ record_ids: selectedIds, rejection_reason: rejectReason.trim() });
+>>>>>>> 8c92f07 (feat(payroll): add document generation and enhance management)
         toast.success(`${selectedIds.length} records rejected`);
         setSelectedIds([]);
         setShowRejectModal(false);
@@ -185,8 +175,9 @@ export const FinancialControllerPayrollSection: React.FC = () => {
               Approve Selected
             </button>
             <button
-              onClick={() => { setBulkRejectReason(''); setBulkRejectModal(true); }}
-              className="flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-sm rounded hover:bg-red-700"
+              onClick={openBulkRejectModal}
+              disabled={bulkRejecting}
+              className="flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50"
             >
               <X className="w-4 h-4" />
               Reject Selected
@@ -329,46 +320,11 @@ export const FinancialControllerPayrollSection: React.FC = () => {
               </button>
               <button
                 onClick={handleReject}
-                disabled={!rejectReason.trim()}
-                className="px-4 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
-              >
-                Reject
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Bulk Reject Modal */}
-      {bulkRejectModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">Bulk Reject ({selectedIds.length} records)</h3>
-            <p className="text-sm text-gray-500 mb-4">All selected records will be returned to their supervisors with this reason.</p>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Reason for rejection <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              value={bulkRejectReason}
-              onChange={(e) => setBulkRejectReason(e.target.value)}
-              rows={3}
-              placeholder="Enter rejection reason..."
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
-            />
-            <div className="flex justify-end gap-3 mt-4">
-              <button
-                onClick={() => setBulkRejectModal(false)}
-                className="px-4 py-2 text-sm text-gray-700 border rounded hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleBulkReject}
-                disabled={!bulkRejectReason.trim() || bulkRejecting}
+                disabled={!rejectReason.trim() || bulkRejecting}
                 className="flex items-center gap-2 px-4 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
               >
                 {bulkRejecting && <LoadingSpinner size="sm" />}
-                Reject All
+                Reject
               </button>
             </div>
           </div>

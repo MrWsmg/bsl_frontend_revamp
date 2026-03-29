@@ -1,4 +1,8 @@
 // Main API service that combines all API services
+<<<<<<< HEAD
+=======
+import { PayrollRecord } from '../../types';
+>>>>>>> 8c92f07 (feat(payroll): add document generation and enhance management)
 import { BaseApiService } from './base';
 import { AuthApiService } from './auth';
 import { FarmsApiService } from './farms';
