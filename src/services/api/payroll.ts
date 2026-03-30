@@ -159,6 +159,13 @@ export class PayrollApiService extends BaseApiService {
   }
 
   /**
+   * Bulk reject manager payroll
+   */
+  async bulkRejectManagerPayroll(recordIds: number[], rejectionReason: string): Promise<any> {
+    return this.post<any>('/manager/bulk-reject-payroll', { record_ids: recordIds, rejection_reason: rejectionReason });
+  }
+
+  /**
    * Reject manager payroll
    */
   async rejectManagerPayroll(recordId: number, rejectionReason: string): Promise<PayrollRecord> {

@@ -26,7 +26,7 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Boxes, RefreshCw, Plus, AlertCircle, CheckCircle2, XCircle,
-  ChevronRight, Package, FileText, Truck, Clock, ArrowRightLeft, Trash2,
+  ChevronRight, Package, FileText, Truck, Clock, ArrowRightLeft, Trash2, PackageCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -212,9 +212,10 @@ export const SupervisorSimrSection: React.FC = () => {
 
   // ── list ──
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selected, setSelected]         = useState<any>(null);
-  const [detailData, setDetailData]     = useState<any>(null);
+  const [selected, setSelected]           = useState<any>(null);
+  const [detailData, setDetailData]       = useState<any>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [confirmingId, setConfirmingId]   = useState<number | null>(null);
 
   // ── farms ──
   const getFarms = useCallback(() => apiService.getFarms('supervisor'), []);
@@ -282,6 +283,22 @@ export const SupervisorSimrSection: React.FC = () => {
       setDetailData(null);
     } finally {
       setLoadingDetail(false);
+    }
+  };
+
+  // ── confirm receipt ──
+  const handleConfirmReceipt = async (simrId: number) => {
+    setConfirmingId(simrId);
+    try {
+      await apiService.confirmReceipt(simrId, 'received');
+      toast.success('Receipt confirmed');
+      setSelected(null);
+      setDetailData(null);
+      refetch();
+    } catch (err: any) {
+      toast.error(getApiError(err, 'Failed to confirm receipt'));
+    } finally {
+      setConfirmingId(null);
     }
   };
 
@@ -605,6 +622,28 @@ export const SupervisorSimrSection: React.FC = () => {
                   )}
                 </div>
               )}
+
+              {/* Confirm receipt — shown when items are ready for collection */}
+              {(() => {
+                const s = (detailData ?? selected)?.status?.toLowerCase();
+                return (s === 'gin_prepared' || s === 'collected') ? (
+                  <>
+                    <Separator />
+                    <Button
+                      className="w-full bg-green-600 hover:bg-green-700 text-white"
+                      disabled={confirmingId === selected.id}
+                      onClick={() => handleConfirmReceipt(selected.id)}
+                    >
+                      {confirmingId === selected.id ? (
+                        <LoadingSpinner size="sm" />
+                      ) : (
+                        <PackageCheck className="w-4 h-4 mr-2" />
+                      )}
+                      Confirm Receipt of Items
+                    </Button>
+                  </>
+                ) : null;
+              })()}
             </>
           )}
         </SheetContent>

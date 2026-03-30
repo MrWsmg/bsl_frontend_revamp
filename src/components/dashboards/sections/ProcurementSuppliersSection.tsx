@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/sheet';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
-  Building2, Plus, RefreshCw, AlertCircle, Pencil, Eye, ChevronRight, Phone, Mail, MapPin, FileText, CheckCircle2, XCircle,
+  Building2, Plus, RefreshCw, AlertCircle, Pencil, Eye, Phone, Mail, MapPin, FileText, CheckCircle2, XCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -242,7 +242,7 @@ export const ProcurementSuppliersSection: React.FC = () => {
                     </div>
                   </div>
                 ) : null)}
-                <div className="pt-2">
+                <div className="pt-1">
                   <Button
                     className="w-full gap-2"
                     variant="outline"

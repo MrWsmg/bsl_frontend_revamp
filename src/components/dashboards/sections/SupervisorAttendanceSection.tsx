@@ -60,6 +60,7 @@ export function SupervisorAttendanceSection() {
     date: today,
     status: 'present' as 'present' | 'absent' | 'late' | 'half_day',
     check_in_time: '',
+    check_out_time: '',
     notes: '',
   });
   const [savingManual, setSavingManual] = useState(false);
@@ -131,11 +132,14 @@ export function SupervisorAttendanceSection() {
         check_in_time: manualForm.check_in_time
           ? `${manualForm.date}T${manualForm.check_in_time}:00`
           : undefined,
+        check_out_time: manualForm.check_out_time
+          ? `${manualForm.date}T${manualForm.check_out_time}:00`
+          : undefined,
         status: manualForm.status,
         notes: manualForm.notes || undefined,
       });
       toast.success('Manual attendance recorded.');
-      setManualForm({ worker_id: '', date: today, status: 'present' as const, check_in_time: '', notes: '' });
+      setManualForm({ worker_id: '', date: today, status: 'present' as const, check_in_time: '', check_out_time: '', notes: '' });
       refetchAttendance();
     } catch (err: any) {
       toast.error(err?.response?.data?.detail || err?.message || 'Failed to record attendance.');
@@ -470,13 +474,23 @@ export function SupervisorAttendanceSection() {
                     </div>
                   </div>
 
-                  <div>
-                    <Label className="text-sm mb-1 block">Check-in Time (optional)</Label>
-                    <Input
-                      type="time"
-                      value={manualForm.check_in_time}
-                      onChange={(e) => setManualForm({ ...manualForm, check_in_time: e.target.value })}
-                    />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm mb-1 block">Check-in Time (optional)</Label>
+                      <Input
+                        type="time"
+                        value={manualForm.check_in_time}
+                        onChange={(e) => setManualForm({ ...manualForm, check_in_time: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm mb-1 block">Check-out Time (optional)</Label>
+                      <Input
+                        type="time"
+                        value={manualForm.check_out_time}
+                        onChange={(e) => setManualForm({ ...manualForm, check_out_time: e.target.value })}
+                      />
+                    </div>
                   </div>
 
                   <div>

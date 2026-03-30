@@ -126,7 +126,7 @@ export const ManagerTasksSection: React.FC = () => {
                     <TableRow>
                       <TableHead>Worker</TableHead>
                       <TableHead>Task Code</TableHead>
-                      <TableHead>Farm ID</TableHead>
+                      <TableHead>Farm</TableHead>
                       <TableHead>Quantity</TableHead>
                       <TableHead>Total Amount</TableHead>
                       <TableHead>Date Worked</TableHead>
@@ -141,9 +141,9 @@ export const ManagerTasksSection: React.FC = () => {
                           {task.worker?.name || task.worker?.full_name || task.worker_name || 'N/A'}
                         </TableCell>
                         <TableCell>{task.task_code}</TableCell>
-                        <TableCell>{task.farm_id}</TableCell>
+                        <TableCell>{task.farm?.name || task.farm_name || `Farm #${task.farm_id}`}</TableCell>
                         <TableCell>{task.quantity}</TableCell>
-                        <TableCell>{task.total_amount}</TableCell>
+                        <TableCell>TZS {task.total_amount?.toLocaleString() ?? 0}</TableCell>
                         <TableCell>{new Date(task.date_worked).toLocaleDateString()}</TableCell>
                         <TableCell>{getStatusBadge(task.status)}</TableCell>
                         {activeTab === 'completed' && (

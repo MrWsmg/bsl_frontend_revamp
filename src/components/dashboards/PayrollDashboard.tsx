@@ -27,6 +27,7 @@ import {
   SharedPaymentSummarySection,
   SharedPayslipSection,
   PayrollQuickBooksSection,
+  SharedCalendarSection,
 } from './sections';
 
 interface PayrollDashboardProps {
@@ -73,6 +74,7 @@ export const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ user, onLogo
         { id: 'picking', label: 'Picking Records', icon: TrendingUp },
       ]
     },
+    { id: 'calendar', label: 'Calendar', icon: CalendarDays },
   ];
 
   const handleTabChange = (tabId: string) => {
@@ -113,6 +115,9 @@ export const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ user, onLogo
             <p>Coming Soon</p>
           </div>
         )}
+        <div className={activeTab === 'calendar' ? '' : 'hidden'}>
+          {mountedTabs.has('calendar') && <SharedCalendarSection userRole="payroll" />}
+        </div>
       </Layout>
     </ErrorBoundary>
   );

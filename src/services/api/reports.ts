@@ -60,4 +60,12 @@ export class ReportsApiService extends BaseApiService {
     const filename = `daily_report_${date}.pdf`;
     return this.downloadFile('/admin/daily-report/pdf', filename, params);
   }
+
+  async getMonthlyReport(farmId: number, year: number, month: number): Promise<any> {
+    return this.get<any>(`/reports/monthly/${farmId}/${year}/${month}`);
+  }
+
+  async getSystemWideReport(): Promise<any> {
+    return this.get<any>('/admin/reports/system-wide');
+  }
 }

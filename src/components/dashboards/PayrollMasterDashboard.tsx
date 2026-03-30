@@ -5,7 +5,7 @@ import React, { useState, useCallback } from 'react';
 import { Layout } from '../layout/Layout';
 import { ErrorBoundary } from '../common/ErrorBoundary';
 import { User } from '../../types';
-import { BarChart3, ClipboardList, Users, TrendingUp, DollarSign, FileText, CheckCircle } from 'lucide-react';
+import { BarChart3, ClipboardList, Users, TrendingUp, DollarSign, FileText, CheckCircle, CalendarDays } from 'lucide-react';
 import { useApi } from '../../hooks';
 import apiService from '../../services/api';
 import { LoadingSpinner } from '../common/LoadingSpinner';
@@ -14,7 +14,8 @@ import {
   PayrollOverviewSection,
   PayrollRecordsSection,
   PayrollSummarySection,
-  PayrollPickingSection
+  PayrollPickingSection,
+  SharedCalendarSection,
 } from './sections';
 import { Check, X } from 'lucide-react';
 import { toast } from '../ui/sonner';
@@ -188,6 +189,7 @@ export const PayrollMasterDashboard: React.FC<PayrollMasterDashboardProps> = ({ 
     { id: 'summary', label: 'Summary', icon: DollarSign },
     { id: 'reports', label: 'Reports', icon: FileText },
     { id: 'picking', label: 'Picking Records', icon: TrendingUp },
+    { id: 'calendar', label: 'Calendar', icon: CalendarDays },
   ];
 
   const handleTabChange = (tabId: string) => {
@@ -216,6 +218,9 @@ export const PayrollMasterDashboard: React.FC<PayrollMasterDashboardProps> = ({ 
         {/* Placeholder tabs */}
         {activeTab === 'workers' && <div className="p-6">Workers Management Section - Coming Soon</div>}
         {activeTab === 'reports' && <div className="p-6">Payroll Reports Section - Coming Soon</div>}
+        <div className={activeTab === 'calendar' ? '' : 'hidden'}>
+          {mountedTabs.has('calendar') && <SharedCalendarSection userRole="payroll_master" />}
+        </div>
       </Layout>
     </ErrorBoundary>
   );

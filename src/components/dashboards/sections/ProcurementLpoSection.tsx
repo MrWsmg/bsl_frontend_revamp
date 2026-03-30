@@ -21,7 +21,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Plus, Trash2, ClipboardList, AlertCircle, RefreshCw, Download, Building2, Package, FileText, Send } from 'lucide-react';
+import { Plus, Trash2, ClipboardList, AlertCircle, RefreshCw, Download, Building2, Package, FileText, Send, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Props {
@@ -86,6 +86,7 @@ export const ProcurementLpoSection: React.FC<Props> = ({ initialSmrId, initialSm
   };
 
   const [showForm, setShowForm] = useState(false);
+  const [editingLpoId, setEditingLpoId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [smrId, setSmrId] = useState('');
   const [smrNumber, setSmrNumber] = useState('');
@@ -184,9 +185,40 @@ export const ProcurementLpoSection: React.FC<Props> = ({ initialSmrId, initialSm
   }, 0);
 
   const resetForm = () => {
+    setEditingLpoId(null);
     setSmrId(''); setSmrNumber(''); setSupplierId(''); setFarmId(''); setFarmName('');
     setDeliveryAddress(''); setDeliveryDate(''); setPaymentTerms(''); setCurrency('TZS');
     setItems([emptyItem()]); setFormError('');
+  };
+
+  const openEdit = async (lpo: any) => {
+    resetForm();
+    setEditingLpoId(lpo.id);
+    setSupplierId(String(lpo.supplier_id ?? lpo.supplier?.id ?? ''));
+    setFarmId(String(lpo.farm_id ?? lpo.farm?.id ?? ''));
+    setFarmName(lpo.farm?.name ?? '');
+    setDeliveryDate(lpo.delivery_date ? lpo.delivery_date.split('T')[0] : '');
+    setPaymentTerms(lpo.payment_terms ?? '');
+    setDeliveryAddress(lpo.delivery_address ?? '');
+    setCurrency(lpo.currency ?? 'TZS');
+    setSmrId(String(lpo.smr_id ?? lpo.smr?.id ?? ''));
+    setSmrNumber(lpo.smr?.smr_number ?? lpo.smr?.pr_number ?? lpo.smr_number ?? '');
+    // Load full detail to get items
+    loadSuppliers();
+    try {
+      const detail = await apiService.getLpoDetail(lpo.id);
+      if (Array.isArray(detail?.items) && detail.items.length > 0) {
+        setItems(detail.items.map((it: any) => ({
+          item_name: it.item_name ?? it.name ?? '',
+          quantity: String(it.quantity_ordered ?? it.quantity ?? ''),
+          unit: it.unit ?? 'kg',
+          unit_price: String(it.unit_price ?? ''),
+          description: it.description ?? '',
+          accounting_code: it.accounting_code ?? '',
+        })));
+      }
+    } catch { /* prefill best-effort */ }
+    setShowForm(true);
   };
 
   const handleClose = () => {
@@ -201,36 +233,52 @@ export const ProcurementLpoSection: React.FC<Props> = ({ initialSmrId, initialSm
     const validItems = items.filter(r => r.item_name.trim() && r.quantity && r.unit_price);
     if (validItems.length === 0) { setFormError('Add at least one item with price.'); return; }
 
+    const itemsPayload = validItems.map(r => ({
+      item_name: r.item_name.trim(),
+      description: r.description.trim() || undefined,
+      quantity_ordered: parseFloat(r.quantity),
+      unit: r.unit,
+      unit_price: parseFloat(r.unit_price),
+      total_price: parseFloat(r.quantity) * parseFloat(r.unit_price),
+      ...(r.accounting_code.trim() ? { accounting_code: r.accounting_code.trim() } : {}),
+    }));
+
     setSubmitting(true);
     try {
-      await apiService.createLpo({
-        ...(smrId ? { smr_id: parseInt(smrId) } : {}),
-        supplier_id: parseInt(supplierId),
-        ...(farmId ? { farm_id: parseInt(farmId) } : {}),
-        delivery_address: deliveryAddress.trim() || undefined,
-        delivery_date: deliveryDate || undefined,
-        payment_terms: paymentTerms.trim() || undefined,
-        currency,
-        total_amount: totalAmount,
-        items: validItems.map(r => ({
-          item_name: r.item_name.trim(),
-          description: r.description.trim() || undefined,
-          quantity_ordered: parseFloat(r.quantity),
-          unit: r.unit,
-          unit_price: parseFloat(r.unit_price),
-          total_price: parseFloat(r.quantity) * parseFloat(r.unit_price),
-          ...(r.accounting_code.trim() ? { accounting_code: r.accounting_code.trim() } : {}),
-        })),
-      });
-      toast.success('LPO created successfully');
-      // Mark the source SMR as ordered so no further LPOs can be raised against it
-      if (smrId) {
-        apiService.markSmrOrdered(parseInt(smrId)).catch(() => { /* non-critical */ });
+      if (editingLpoId) {
+        // PATCH — edit draft LPO
+        await apiService.patchLpo(editingLpoId, {
+          supplier_id: parseInt(supplierId),
+          delivery_address: deliveryAddress.trim() || undefined,
+          delivery_date: deliveryDate || undefined,
+          payment_terms: paymentTerms.trim() || undefined,
+          currency,
+          items: itemsPayload,
+        });
+        toast.success('LPO updated');
+      } else {
+        // POST — create new LPO
+        await apiService.createLpo({
+          ...(smrId ? { smr_id: parseInt(smrId) } : {}),
+          supplier_id: parseInt(supplierId),
+          ...(farmId ? { farm_id: parseInt(farmId) } : {}),
+          delivery_address: deliveryAddress.trim() || undefined,
+          delivery_date: deliveryDate || undefined,
+          payment_terms: paymentTerms.trim() || undefined,
+          currency,
+          total_amount: totalAmount,
+          items: itemsPayload,
+        });
+        toast.success('LPO created successfully');
+        // Mark the source SMR as ordered so no further LPOs can be raised against it
+        if (smrId) {
+          apiService.markSmrOrdered(parseInt(smrId)).catch(() => { /* non-critical */ });
+        }
       }
       handleClose();
       refetch();
     } catch (err: any) {
-      setFormError(err?.response?.data?.detail || err?.message || 'Failed to create LPO');
+      setFormError(err?.response?.data?.detail || err?.message || (editingLpoId ? 'Failed to update LPO' : 'Failed to create LPO'));
     } finally {
       setSubmitting(false);
     }
@@ -276,7 +324,7 @@ export const ProcurementLpoSection: React.FC<Props> = ({ initialSmrId, initialSm
           ) : (
             <div className="space-y-3">
               {lpos.map((lpo: any) => (
-                <div key={lpo.id} className="border border-gray-100 rounded-lg p-4 hover:shadow-sm transition-shadow cursor-pointer" onClick={() => openDetail(lpo)}>
+                <div key={lpo.id} className="border border-gray-100 rounded-lg p-4 hover:shadow-sm transition-shadow cursor-pointer relative" onClick={() => openDetail(lpo)}>
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -321,6 +369,18 @@ export const ProcurementLpoSection: React.FC<Props> = ({ initialSmrId, initialSm
                         className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
                       >
                         <Download className="w-3 h-3" /> Download LPO PDF
+                      </button>
+                    </div>
+                  )}
+                  {/* Edit button — draft only */}
+                  {lpo.status?.toLowerCase() === 'draft' && (
+                    <div className="mt-2 pt-2 border-t border-gray-50 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={e => { e.stopPropagation(); openEdit(lpo); }}
+                        className="flex items-center gap-1 text-xs text-amber-700 hover:text-amber-900"
+                      >
+                        <Pencil className="w-3 h-3" /> Edit Draft LPO
                       </button>
                     </div>
                   )}
@@ -506,8 +566,8 @@ export const ProcurementLpoSection: React.FC<Props> = ({ initialSmrId, initialSm
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ClipboardList className="w-4 h-4 text-amber-600" />
-              Create Local Purchase Order
-              {smrId && (
+              {editingLpoId ? 'Edit Draft LPO' : 'Create Local Purchase Order'}
+              {smrId && !editingLpoId && (
                 <span className="font-mono text-sm text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
                   SMR #{smrId}
                 </span>
@@ -677,7 +737,7 @@ export const ProcurementLpoSection: React.FC<Props> = ({ initialSmrId, initialSm
           <DialogFooter>
             <Button variant="outline" onClick={handleClose} disabled={submitting}>Cancel</Button>
             <Button onClick={handleSubmit} disabled={submitting} className="bg-amber-600 hover:bg-amber-700 text-white">
-              {submitting ? 'Creating…' : 'Create LPO'}
+              {submitting ? (editingLpoId ? 'Saving…' : 'Creating…') : (editingLpoId ? 'Save Changes' : 'Create LPO')}
             </Button>
           </DialogFooter>
         </DialogContent>

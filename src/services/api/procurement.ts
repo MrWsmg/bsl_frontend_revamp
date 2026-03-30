@@ -315,6 +315,10 @@ export class ProcurementApiService extends BaseApiService {
     return this.patch<any>(`/procurement/external/smr/${smrId}`, { status: 'lpo_created' });
   }
 
+  async cancelSmr(smrId: number): Promise<any> {
+    return this.patch<any>(`/procurement/external/smr/${smrId}`, { status: 'cancelled' });
+  }
+
   // ==================== PFI ====================
 
   async createPfi(data: any): Promise<any> {
@@ -361,8 +365,20 @@ export class ProcurementApiService extends BaseApiService {
     return this.post<any>(`/procurement/external/lpo/${lpoId}/reject`, { notes });
   }
 
+  async patchLpo(lpoId: number, data: Record<string, any>): Promise<any> {
+    return this.patch<any>(`/procurement/external/lpo/${lpoId}`, data);
+  }
+
   async sendLpoToSupplier(lpoId: number): Promise<any> {
     return this.post<any>(`/procurement/external/lpo/${lpoId}/send`, {});
+  }
+
+  async poApproveLpo(lpoId: number, notes?: string): Promise<any> {
+    return this.post<any>(`/procurement/external/lpo/${lpoId}/po-approve`, { notes });
+  }
+
+  async poRejectLpo(lpoId: number, notes: string): Promise<any> {
+    return this.post<any>(`/procurement/external/lpo/${lpoId}/po-reject`, { notes });
   }
 
   // ==================== GRN ====================
@@ -419,6 +435,10 @@ export class ProcurementApiService extends BaseApiService {
 
   async getExternalChain(smrNumber: string): Promise<any> {
     return this.get<any>(`/procurement/external/chain/${smrNumber}`);
+  }
+
+  async getGrnChain(grnNumber: string): Promise<any> {
+    return this.get<any>(`/procurement/external/grn/${grnNumber}/chain`);
   }
 
   // ==================== GIN (internal) ====================
@@ -503,6 +523,10 @@ export class ProcurementApiService extends BaseApiService {
 
   async signDeliveryNote(dnId: number, data?: any): Promise<any> {
     return this.post<any>(`/procurement/delivery-note/${dnId}/sign`, data ?? {});
+  }
+
+  async rejectDeliveryNote(dnId: number, reason: string): Promise<any> {
+    return this.post<any>(`/procurement/delivery-note/${dnId}/reject`, { reason });
   }
 
   // ==================== GATE PASS ====================

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import apiService from "../../services/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,8 +11,30 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Building2, Users, DollarSign, CheckCircle2, Calendar, CalendarDays, LucideIcon, TrendingUp, TrendingDown, ChevronLeft, ChevronRight, Plus, CalendarRange, Bell, Clock, X, FileText } from "lucide-react";
+import { Building2, Users, DollarSign, CheckCircle2, Calendar, CalendarDays, LucideIcon, TrendingUp, TrendingDown, ChevronLeft, ChevronRight, Plus, CalendarRange, Bell, Clock, X, FileText, TrendingUp as TrendUp, BarChart3, ClipboardList, ShoppingCart, Package, Truck, ArrowLeftRight, BookOpen, CreditCard, Receipt, UserCog, LogOut, LayoutDashboard, ChevronDown, ChevronUp } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine, LineChart, Line, PieChart, Pie, Cell, AreaChart, Area } from "recharts";
+import {
+  MdStrategicFinancialSection,
+  MdPerformanceReviewSection,
+  MdReportsMeetingsSection,
+  SharedSmrSection,
+  SharedLpoSection,
+  SharedGrnSection,
+  SharedSimrSection,
+  SharedGinSection,
+  SharedTransportVoucherSection,
+  SharedDeliveryNoteSection,
+  SharedTransferSection,
+  SharedCardexSection,
+  SharedGatePassSection,
+  SharedWeeklySheetSection,
+  SharedPaymentSummarySection,
+  SharedPayslipSection,
+  SharedCalendarSection,
+  UsersSection,
+  AdminAuditLogsSection,
+  ActivitiesSection,
+} from './sections';
 
 // ============ METRIC CARD COMPONENT ============
 interface MetricCardProps {
@@ -1294,13 +1316,8 @@ const WeeklyCalendar = () => {
   );
 };
 
-// ============ MAIN INDEX COMPONENT ============
-interface AdminManagerDashboardProps {
-  user?: { full_name?: string; username?: string; role?: string };
-  onLogout?: () => void;
-}
-
-const AdminManagerDashboard = ({ user, onLogout }: AdminManagerDashboardProps) => {
+// ============ MD OVERVIEW TAB ============
+const MdOverviewTab = () => {
   const [period, setPeriod] = useState<"weekly" | "yearly">("weekly");
   const [farms, setFarms] = useState<any[]>([]);
   const [budgets, setBudgets] = useState<any[]>([]);
@@ -1312,56 +1329,46 @@ const AdminManagerDashboard = ({ user, onLogout }: AdminManagerDashboardProps) =
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const currentBudgets = period === "weekly" ? budgets.filter(b => b.period === 'weekly') : budgets.filter(b => b.period === 'yearly');
+  const currentBudgets = period === "weekly"
+    ? budgets.filter(b => b.period === 'weekly')
+    : budgets.filter(b => b.period === 'yearly');
 
-  // Load data on component mount and when period changes
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
         setError(null);
-
-        const [
-          farmsData,
-          budgetsData,
-          payrollData,
-          stockData,
-          workerData,
-          expensesData,
-          activitiesData
-        ] = await Promise.all([
+        const [farmsData, budgetsData, payrollD, stockD, workerD, expensesD, activitiesD] = await Promise.all([
           apiService.getAdminManagerFarms(),
           apiService.getAdminManagerBudgets(period),
           apiService.getAdminManagerPayrollData(),
           apiService.getAdminManagerStockData(),
           apiService.getAdminManagerWorkerData(),
           apiService.getAdminManagerExpensesData(),
-          apiService.getAdminManagerActivities()
+          apiService.getAdminManagerActivities(),
         ]);
-
         setFarms(farmsData);
         setBudgets(budgetsData);
-        setPayrollData(payrollData);
-        setStockData(stockData);
-        setWorkerData(workerData);
-        setExpensesData(expensesData);
-        setActivities(activitiesData);
+        setPayrollData(payrollD);
+        setStockData(stockD);
+        setWorkerData(workerD);
+        setExpensesData(expensesD);
+        setActivities(activitiesD);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
       } finally {
         setLoading(false);
       }
     };
-
     loadData();
   }, [period]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex items-center justify-center py-24">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading dashboard data...</p>
+          <p className="text-muted-foreground">Loading overview data…</p>
         </div>
       </div>
     );
@@ -1369,7 +1376,7 @@ const AdminManagerDashboard = ({ user, onLogout }: AdminManagerDashboardProps) =
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex items-center justify-center py-24">
         <div className="text-center">
           <p className="text-destructive mb-4">Error: {error}</p>
           <button
@@ -1384,122 +1391,310 @@ const AdminManagerDashboard = ({ user, onLogout }: AdminManagerDashboardProps) =
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="p-6 space-y-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold">Financial Overview</h2>
+          <p className="text-sm text-muted-foreground">Track budgets and spending across all farms</p>
+        </div>
+        <PeriodToggle period={period} onPeriodChange={setPeriod} />
+      </div>
+
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        <MetricCard title="Total Farms" value="12" icon={Building2} trend={{ value: "2 new this month", isPositive: true }} iconColor="text-primary" />
+        <MetricCard title="Active Workers" value="156" icon={Users} trend={{ value: "8% increase", isPositive: true }} iconColor="text-accent" />
+        <MetricCard
+          title={period === "weekly" ? "Weekly Budget" : "Yearly Budget"}
+          value={period === "weekly" ? "$19.7K" : "$1.076M"}
+          icon={DollarSign}
+          trend={{ value: period === "weekly" ? "$1.2K over" : "$29K over", isPositive: false }}
+          iconColor="text-success"
+        />
+        <MetricCard title="Pending Approvals" value="24" icon={CheckCircle2} trend={{ value: "6 urgent", isPositive: false }} iconColor="text-warning" />
+      </div>
+
+      <div>
+        <h2 className="text-xl sm:text-2xl font-bold mb-4">Budget Status by Farm</h2>
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+          {budgets.map((budget) => (
+            <BudgetCard key={budget.farmName} {...budget} period={period} />
+          ))}
+        </div>
+      </div>
+
+      <BudgetOverviewChart period={period} weeklyBudgets={currentBudgets} yearlyBudgets={currentBudgets} />
+      <WeeklyCalendar />
+
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+        <PayrollChart payrollData={payrollData} />
+        <StockChart stockData={stockData} />
+      </div>
+
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+        <WorkerDistribution workerData={workerData} />
+        <ExpensesChart expensesData={expensesData} />
+      </div>
+
+      <ActivityTable activities={activities} />
+
+      <div>
+        <h2 className="text-xl sm:text-2xl font-bold mb-4">Farm Overview</h2>
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+          {farms.map((farm) => (
+            <FarmCard key={farm.name} {...farm} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============ MAIN INDEX COMPONENT ============
+type MdTab =
+  | 'overview' | 'strategic-financial' | 'performance' | 'reports-meetings'
+  | 'smr' | 'lpo' | 'grn' | 'simr' | 'gin' | 'tv' | 'dn' | 'gate-pass' | 'transfers' | 'cardex'
+  | 'weekly-sheet' | 'payment-summary' | 'payslip'
+  | 'calendar' | 'users' | 'audit-logs' | 'activities';
+
+interface SidebarGroup {
+  label: string;
+  icon: LucideIcon;
+  items: { id: MdTab; label: string; icon: LucideIcon }[];
+}
+
+interface AdminManagerDashboardProps {
+  user?: { full_name?: string; username?: string; role?: string };
+  onLogout?: () => void;
+}
+
+const AdminManagerDashboard = ({ user, onLogout }: AdminManagerDashboardProps) => {
+  const [activeTab, setActiveTab] = useState<MdTab>('overview');
+  const mountedTabs = useRef<Set<MdTab>>(new Set(['overview']));
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(['strategic', 'procurement', 'payroll']));
+
+  const toggleGroup = (key: string) => {
+    setOpenGroups(prev => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  };
+
+  const goTo = (tab: MdTab) => {
+    mountedTabs.current.add(tab);
+    setActiveTab(tab);
+  };
+
+  const groups: SidebarGroup[] = [
+    {
+      label: 'Strategic',
+      icon: LayoutDashboard,
+      items: [
+        { id: 'overview',            label: 'Overview',            icon: LayoutDashboard },
+        { id: 'strategic-financial', label: 'Strategic Financial', icon: BarChart3 },
+        { id: 'performance',         label: 'Performance Review',  icon: TrendUp },
+        { id: 'reports-meetings',    label: 'Reports & Meetings',  icon: FileText },
+      ],
+    },
+    {
+      label: 'Procurement',
+      icon: ShoppingCart,
+      items: [
+        { id: 'smr',       label: 'SMR',              icon: ClipboardList },
+        { id: 'lpo',       label: 'LPO',              icon: ShoppingCart },
+        { id: 'grn',       label: 'GRN',              icon: Package },
+        { id: 'simr',      label: 'SIMR',             icon: ClipboardList },
+        { id: 'gin',       label: 'GIN',              icon: Package },
+        { id: 'tv',        label: 'Transport Voucher', icon: Truck },
+        { id: 'dn',        label: 'Delivery Note',    icon: Truck },
+        { id: 'gate-pass', label: 'Gate Pass',        icon: ArrowLeftRight },
+        { id: 'transfers', label: 'Transfers',        icon: ArrowLeftRight },
+        { id: 'cardex',    label: 'CARDEX',           icon: BookOpen },
+      ],
+    },
+    {
+      label: 'Payroll',
+      icon: CreditCard,
+      items: [
+        { id: 'weekly-sheet',    label: 'Weekly Sheet',    icon: Receipt },
+        { id: 'payment-summary', label: 'Payment Summary', icon: CreditCard },
+        { id: 'payslip',         label: 'Payslip',         icon: FileText },
+      ],
+    },
+  ];
+
+  const flatItems: { id: MdTab; label: string; icon: LucideIcon }[] = [
+    { id: 'calendar',   label: 'Calendar',   icon: CalendarDays },
+    { id: 'activities', label: 'Activities', icon: Bell },
+    { id: 'users',      label: 'Users',      icon: UserCog },
+    { id: 'audit-logs', label: 'Audit Logs', icon: ClipboardList },
+  ];
+
+  const allItems = [...groups.flatMap(g => g.items), ...flatItems];
+  const activeLabel = allItems.find(i => i.id === activeTab)?.label ?? 'Overview';
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/30">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
+      <header className="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/30 flex-shrink-0">
+        <div className="px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-8 bg-blue-600 rounded-full" />
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Farm Analytics Dashboard</h1>
-              <p className="text-muted-foreground mt-1">Real-time insights and data visualization</p>
+              <h1 className="text-lg font-bold tracking-tight">Managing Director</h1>
+              <p className="text-xs text-muted-foreground">{activeLabel}</p>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <span className="relative flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-success"></span>
-                </span>
-                <span className="text-sm font-medium text-success">Live</span>
-              </div>
-              {user && (
-                <span className="text-sm text-muted-foreground">{user.full_name || user.username}</span>
-              )}
-              {onLogout && (
-                <button
-                  onClick={onLogout}
-                  className="text-sm px-3 py-1.5 rounded-md border border-border hover:bg-muted transition-colors"
-                >
-                  Logout
-                </button>
-              )}
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+              </span>
+              <span className="text-xs font-medium text-green-600">Live</span>
             </div>
+            {user && <span className="text-sm text-muted-foreground">{user.full_name || user.username}</span>}
+            {onLogout && (
+              <button
+                onClick={onLogout}
+                className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md border border-border hover:bg-muted transition-colors"
+              >
+                <LogOut className="w-3.5 h-3.5" /> Logout
+              </button>
+            )}
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 space-y-8">
-        {/* Period Toggle */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold">Financial Overview</h2>
-            <p className="text-sm text-muted-foreground">Track budgets and spending across all farms</p>
-          </div>
-          <PeriodToggle period={period} onPeriodChange={setPeriod} />
-        </div>
-
-        {/* Metrics Grid */}
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard
-            title="Total Farms"
-            value="12"
-            icon={Building2}
-            trend={{ value: "2 new this month", isPositive: true }}
-            iconColor="text-primary"
-          />
-          <MetricCard
-            title="Active Workers"
-            value="156"
-            icon={Users}
-            trend={{ value: "8% increase", isPositive: true }}
-            iconColor="text-accent"
-          />
-          <MetricCard
-            title={period === "weekly" ? "Weekly Budget" : "Yearly Budget"}
-            value={period === "weekly" ? "$19.7K" : "$1.076M"}
-            icon={DollarSign}
-            trend={{ value: period === "weekly" ? "$1.2K over" : "$29K over", isPositive: false }}
-            iconColor="text-success"
-          />
-          <MetricCard
-            title="Pending Approvals"
-            value="24"
-            icon={CheckCircle2}
-            trend={{ value: "6 urgent", isPositive: false }}
-            iconColor="text-warning"
-          />
-        </div>
-
-        {/* Budget Cards */}
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold mb-4">Budget Status by Farm</h2>
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-            {budgets.map((budget) => (
-              <BudgetCard key={budget.farmName} {...budget} period={period} />
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <aside className="w-56 flex-shrink-0 border-r bg-gray-50 overflow-y-auto">
+          <nav className="p-3 space-y-1">
+            {/* Grouped sections */}
+            {groups.map(group => (
+              <div key={group.label}>
+                <button
+                  onClick={() => toggleGroup(group.label)}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-md text-xs font-semibold text-gray-500 uppercase tracking-wide hover:bg-gray-100 transition-colors"
+                >
+                  <span className="flex items-center gap-2">
+                    <group.icon className="w-3.5 h-3.5" />
+                    {group.label}
+                  </span>
+                  {openGroups.has(group.label)
+                    ? <ChevronUp className="w-3.5 h-3.5" />
+                    : <ChevronDown className="w-3.5 h-3.5" />
+                  }
+                </button>
+                {openGroups.has(group.label) && (
+                  <div className="ml-2 mt-0.5 space-y-0.5">
+                    {group.items.map(item => (
+                      <button
+                        key={item.id}
+                        onClick={() => goTo(item.id)}
+                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
+                          activeTab === item.id
+                            ? 'bg-white text-gray-900 shadow-sm font-medium'
+                            : 'text-gray-600 hover:bg-white hover:text-gray-900'
+                        }`}
+                      >
+                        <item.icon className="w-3.5 h-3.5 flex-shrink-0" />
+                        <span className="truncate">{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             ))}
-          </div>
-        </div>
 
-        {/* Budget Overview Chart */}
-        <BudgetOverviewChart period={period} weeklyBudgets={currentBudgets} yearlyBudgets={currentBudgets} />
+            {/* Divider */}
+            <div className="border-t border-gray-200 my-2" />
 
-        {/* Weekly Activities Calendar */}
-        <WeeklyCalendar />
-
-        {/* Charts Row 1 */}
-        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-          <PayrollChart payrollData={payrollData} />
-          <StockChart stockData={stockData} />
-        </div>
-
-        {/* Charts Row 2 */}
-        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-          <WorkerDistribution workerData={workerData} />
-          <ExpensesChart expensesData={expensesData} />
-        </div>
-
-        {/* Activity Table */}
-        <ActivityTable activities={activities} />
-
-        {/* Farm Cards */}
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold mb-4">Farm Overview</h2>
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-            {farms.map((farm) => (
-              <FarmCard key={farm.name} {...farm} />
+            {/* Flat items */}
+            {flatItems.map(item => (
+              <button
+                key={item.id}
+                onClick={() => goTo(item.id)}
+                className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
+                  activeTab === item.id
+                    ? 'bg-white text-gray-900 shadow-sm font-medium'
+                    : 'text-gray-600 hover:bg-white hover:text-gray-900'
+                }`}
+              >
+                <item.icon className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="truncate">{item.label}</span>
+              </button>
             ))}
+          </nav>
+        </aside>
+
+        {/* Main content */}
+        <main className="flex-1 overflow-y-auto">
+          <div hidden={activeTab !== 'overview'}>
+            {mountedTabs.current.has('overview') && <MdOverviewTab />}
           </div>
-        </div>
-      </main>
+          <div hidden={activeTab !== 'strategic-financial'}>
+            {mountedTabs.current.has('strategic-financial') && <MdStrategicFinancialSection />}
+          </div>
+          <div hidden={activeTab !== 'performance'}>
+            {mountedTabs.current.has('performance') && <MdPerformanceReviewSection />}
+          </div>
+          <div hidden={activeTab !== 'reports-meetings'}>
+            {mountedTabs.current.has('reports-meetings') && <MdReportsMeetingsSection />}
+          </div>
+          <div hidden={activeTab !== 'smr'}>
+            {mountedTabs.current.has('smr') && <SharedSmrSection userRole="managing_director" />}
+          </div>
+          <div hidden={activeTab !== 'lpo'}>
+            {mountedTabs.current.has('lpo') && <SharedLpoSection userRole="managing_director" />}
+          </div>
+          <div hidden={activeTab !== 'grn'}>
+            {mountedTabs.current.has('grn') && <SharedGrnSection userRole="managing_director" />}
+          </div>
+          <div hidden={activeTab !== 'simr'}>
+            {mountedTabs.current.has('simr') && <SharedSimrSection userRole="managing_director" />}
+          </div>
+          <div hidden={activeTab !== 'gin'}>
+            {mountedTabs.current.has('gin') && <SharedGinSection userRole="managing_director" />}
+          </div>
+          <div hidden={activeTab !== 'tv'}>
+            {mountedTabs.current.has('tv') && <SharedTransportVoucherSection userRole="managing_director" />}
+          </div>
+          <div hidden={activeTab !== 'dn'}>
+            {mountedTabs.current.has('dn') && <SharedDeliveryNoteSection userRole="managing_director" />}
+          </div>
+          <div hidden={activeTab !== 'gate-pass'}>
+            {mountedTabs.current.has('gate-pass') && <SharedGatePassSection userRole="managing_director" />}
+          </div>
+          <div hidden={activeTab !== 'transfers'}>
+            {mountedTabs.current.has('transfers') && <SharedTransferSection userRole="managing_director" />}
+          </div>
+          <div hidden={activeTab !== 'cardex'}>
+            {mountedTabs.current.has('cardex') && <SharedCardexSection userRole="managing_director" />}
+          </div>
+          <div hidden={activeTab !== 'weekly-sheet'}>
+            {mountedTabs.current.has('weekly-sheet') && <SharedWeeklySheetSection />}
+          </div>
+          <div hidden={activeTab !== 'payment-summary'}>
+            {mountedTabs.current.has('payment-summary') && <SharedPaymentSummarySection />}
+          </div>
+          <div hidden={activeTab !== 'payslip'}>
+            {mountedTabs.current.has('payslip') && <SharedPayslipSection />}
+          </div>
+          <div hidden={activeTab !== 'calendar'}>
+            {mountedTabs.current.has('calendar') && <SharedCalendarSection userRole="managing_director" />}
+          </div>
+          <div hidden={activeTab !== 'activities'}>
+            {mountedTabs.current.has('activities') && <ActivitiesSection />}
+          </div>
+          <div hidden={activeTab !== 'users'}>
+            {mountedTabs.current.has('users') && <UsersSection />}
+          </div>
+          <div hidden={activeTab !== 'audit-logs'}>
+            {mountedTabs.current.has('audit-logs') && <AdminAuditLogsSection />}
+          </div>
+        </main>
+      </div>
     </div>
   );
 };

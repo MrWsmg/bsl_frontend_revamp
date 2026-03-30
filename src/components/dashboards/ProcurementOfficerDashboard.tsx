@@ -24,17 +24,11 @@ import { ProcurementLpoSection } from './sections/ProcurementLpoSection';
 import { ProcurementGrnSection } from './sections/ProcurementGrnSection';
 import { ProcurementStoreSection } from './sections/ProcurementStoreSection';
 import { ProcurementSuppliersSection } from './sections/ProcurementSuppliersSection';
-import {
-  SharedTransportVoucherSection,
-  SharedDeliveryNoteSection,
-  SharedTransferSection,
-  SharedCardexSection,
-  SharedGatePassSection,
-} from './sections';
+import { SharedTransferSection } from './sections';
 import { User } from '../../types';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 
-type Tab = 'overview' | 'smr' | 'lpo' | 'grn' | 'store' | 'transfers' | 'tv' | 'dn' | 'cardex' | 'gatepass' | 'suppliers';
+type Tab = 'overview' | 'smr' | 'lpo' | 'grn' | 'store' | 'transfers' | 'suppliers';
 
 interface Props {
   user: User;
@@ -54,26 +48,8 @@ const SIDEBAR_ITEMS = [
       { id: 'grn',  label: 'GRN', icon: PackageCheck },
     ],
   },
-  {
-    id: 'internal',
-    label: 'Internal',
-    icon: Warehouse,
-    children: [
-      { id: 'store', label: 'Store',  icon: Warehouse },
-      { id: 'cardex',label: 'CARDEX', icon: Warehouse },
-    ],
-  },
-  {
-    id: 'logistics',
-    label: 'Logistics',
-    icon: Truck,
-    children: [
-      { id: 'tv',       label: 'Transport', icon: Truck },
-      { id: 'dn',       label: 'Delivery',  icon: Truck },
-      { id: 'transfers',label: 'Transfers', icon: Truck },
-      { id: 'gatepass', label: 'Gate Pass', icon: Truck },
-    ],
-  },
+  { id: 'store',     label: 'Store',     icon: Warehouse },
+  { id: 'transfers', label: 'Transfers', icon: Truck },
 ];
 
 const WORKFLOW_STEPS = [
@@ -113,11 +89,7 @@ export const ProcurementOfficerDashboard: React.FC<Props> = ({ user, onLogout })
           {activeTab === 'lpo'        && <ProcurementLpoSection initialSmrId={lpoSmrId} initialSmrNumber={lpoSmrNumber} initialSmrItems={lpoSmrItems} onSmrConsumed={() => { setLpoSmrId(undefined); setLpoSmrNumber(undefined); setLpoSmrItems([]); }} />}
           {activeTab === 'grn'        && <ProcurementGrnSection />}
           {activeTab === 'store'      && <ProcurementStoreSection />}
-          {activeTab === 'cardex'     && <SharedCardexSection userRole="procurement_officer" />}
-          {activeTab === 'tv'         && <SharedTransportVoucherSection userRole="procurement_officer" />}
-          {activeTab === 'dn'         && <SharedDeliveryNoteSection userRole="procurement_officer" />}
           {activeTab === 'transfers'  && <SharedTransferSection userRole="procurement_officer" />}
-          {activeTab === 'gatepass'   && <SharedGatePassSection userRole="procurement_officer" />}
         </div>
       </Layout>
     </ErrorBoundary>

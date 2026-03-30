@@ -122,4 +122,38 @@ export class ManagementApiService extends BaseApiService {
   async getManagerPerformance(filters?: PerformanceFilters): Promise<PerformanceMetrics[]> {
     return this.get<PerformanceMetrics[]>('/manager/performance', filters as any);
   }
+
+  // ─── Farm Clerk: Climate Reports ──────────────────────────────────────────
+
+  async getClimateReports(params?: Record<string, any>): Promise<any[]> {
+    return this.get<any[]>('/farm-clerk/climate-reports', params);
+  }
+
+  async createClimateReport(data: Record<string, any>): Promise<any> {
+    return this.post<any>('/farm-clerk/climate-reports', data);
+  }
+
+  async updateClimateReport(reportId: number, data: Record<string, any>): Promise<any> {
+    return this.put<any>(`/farm-clerk/climate-reports/${reportId}`, data);
+  }
+
+  // ─── Farm Clerk: SMART Recommendations ────────────────────────────────────
+
+  async getFarmClerkRecommendations(): Promise<any[]> {
+    return this.get<any[]>('/farm-clerk/recommendations');
+  }
+
+  async getFarmClerkThresholds(): Promise<any> {
+    return this.get<any>('/farm-clerk/thresholds');
+  }
+
+  // ─── Farm Clerk: Workers ──────────────────────────────────────────────────
+
+  async getFarmClerkWorkers(): Promise<any[]> {
+    return this.get<any[]>('/farm-clerk/workers');
+  }
+
+  async getFarmClerkWorker(workerId: number): Promise<any> {
+    return this.get<any>(`/farm-clerk/workers/${workerId}`);
+  }
 }

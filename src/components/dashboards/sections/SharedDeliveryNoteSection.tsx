@@ -20,13 +20,14 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { FileCheck, RefreshCw, Plus, AlertCircle, ChevronRight, CheckCircle2, Send, PenLine, Trash2 } from 'lucide-react';
+import { FileCheck, RefreshCw, Plus, AlertCircle, ChevronRight, CheckCircle2, Send, PenLine, Trash2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Props { userRole: string; }
 
 const CAN_CREATE   = ['farm_clerk', 'admin'];
 const CAN_APPROVE  = ['manager', 'admin'];
+const CAN_REJECT   = ['manager', 'admin'];
 const CAN_DISPATCH = ['farm_clerk', 'admin'];
 const CAN_SIGN     = ['supervisor', 'admin'];
 
@@ -60,15 +61,19 @@ const emptyForm = (): DnForm => ({
 export const SharedDeliveryNoteSection: React.FC<Props> = ({ userRole }) => {
   const canCreate   = CAN_CREATE.includes(userRole);
   const canApprove  = CAN_APPROVE.includes(userRole);
+  const canReject   = CAN_REJECT.includes(userRole);
   const canDispatch = CAN_DISPATCH.includes(userRole);
   const canSign     = CAN_SIGN.includes(userRole);
 
-  const [selected, setSelected]     = useState<any>(null);
-  const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm]             = useState<DnForm>(emptyForm());
-  const [submitting, setSubmitting] = useState(false);
-  const [actionBusy, setActionBusy] = useState<number | null>(null);
-  const [formError, setFormError]   = useState('');
+  const [selected, setSelected]         = useState<any>(null);
+  const [showCreate, setShowCreate]     = useState(false);
+  const [form, setForm]                 = useState<DnForm>(emptyForm());
+  const [submitting, setSubmitting]     = useState(false);
+  const [actionBusy, setActionBusy]     = useState<number | null>(null);
+  const [formError, setFormError]       = useState('');
+  const [rejectTargetId, setRejectTargetId] = useState<number | null>(null);
+  const [rejectReason, setRejectReason]     = useState('');
+  const [rejecting, setRejecting]           = useState(false);
 
   const fetchDNs = useCallback(() => apiService.getDeliveryNotes(), []);
   const { data: dns, loading, error, refetch } = useApi(fetchDNs);
@@ -107,6 +112,23 @@ export const SharedDeliveryNoteSection: React.FC<Props> = ({ userRole }) => {
       setShowCreate(false); setForm(emptyForm()); refetch();
     } catch (e: any) { setFormError(getApiError(e, 'Failed to create')); }
     finally { setSubmitting(false); }
+  };
+
+  const handleReject = async () => {
+    if (!rejectTargetId || !rejectReason.trim()) return;
+    setRejecting(true);
+    try {
+      await apiService.rejectDeliveryNote(rejectTargetId, rejectReason.trim());
+      toast.success('Delivery note rejected');
+      setRejectTargetId(null);
+      setRejectReason('');
+      setSelected(null);
+      refetch();
+    } catch (e: any) {
+      toast.error(getApiError(e, 'Failed to reject delivery note'));
+    } finally {
+      setRejecting(false);
+    }
   };
 
   return (
@@ -172,6 +194,12 @@ export const SharedDeliveryNoteSection: React.FC<Props> = ({ userRole }) => {
                             <Button size="sm" variant="outline" className="text-xs h-7 text-green-700 border-green-200 hover:bg-green-50" disabled={actionBusy === dn.id}
                               onClick={() => act(() => apiService.approveDeliveryNote(dn.id), 'DN approved', dn.id)}>
                               {actionBusy === dn.id ? '…' : '✓ Approve'}
+                            </Button>
+                          )}
+                          {canReject && s === 'pending' && (
+                            <Button size="sm" variant="outline" className="text-xs h-7 text-red-700 border-red-200 hover:bg-red-50 gap-1" disabled={actionBusy === dn.id}
+                              onClick={() => { setRejectTargetId(dn.id); setRejectReason(''); }}>
+                              <XCircle className="w-3 h-3" /> Reject
                             </Button>
                           )}
                           {canDispatch && s === 'approved' && (
@@ -242,6 +270,12 @@ export const SharedDeliveryNoteSection: React.FC<Props> = ({ userRole }) => {
                       <CheckCircle2 className="w-4 h-4 mr-1.5" /> Approve
                     </Button>
                   )}
+                  {canReject && selected.status?.toLowerCase() === 'pending' && (
+                    <Button className="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm" disabled={actionBusy === selected.id}
+                      onClick={() => { setRejectTargetId(selected.id); setRejectReason(''); setSelected(null); }}>
+                      <XCircle className="w-4 h-4 mr-1.5" /> Reject
+                    </Button>
+                  )}
                   {canDispatch && selected.status?.toLowerCase() === 'approved' && (
                     <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm" disabled={actionBusy === selected.id}
                       onClick={() => { act(() => apiService.dispatchDeliveryNote(selected.id), 'DN dispatched', selected.id); setSelected(null); }}>
@@ -260,6 +294,40 @@ export const SharedDeliveryNoteSection: React.FC<Props> = ({ userRole }) => {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Reject DN Dialog */}
+      <Dialog open={rejectTargetId !== null} onOpenChange={open => { if (!open) { setRejectTargetId(null); setRejectReason(''); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-700">
+              <XCircle className="w-4 h-4" /> Reject Delivery Note
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Reason for rejection <span className="text-red-500">*</span>
+            </label>
+            <Textarea
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)}
+              placeholder="Describe why this delivery note is being rejected…"
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setRejectTargetId(null); setRejectReason(''); }} disabled={rejecting}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleReject}
+              disabled={rejecting || !rejectReason.trim()}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {rejecting ? 'Rejecting…' : 'Confirm Reject'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Create DN Dialog */}
       {canCreate && (

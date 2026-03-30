@@ -17,6 +17,7 @@ import { AnalyticsApiService } from './analytics';
 import { PhotosApiService } from './photos';
 import { ProcurementApiService } from './procurement';
 import { AttendanceApiService } from './attendance';
+import { CalendarApiService } from './calendar';
 
 export class ApiService extends BaseApiService {
   public auth: AuthApiService;
@@ -36,6 +37,7 @@ export class ApiService extends BaseApiService {
   public photos: PhotosApiService;
   public procurement: ProcurementApiService;
   public attendance: AttendanceApiService;
+  public calendar: CalendarApiService;
 
   constructor() {
     super();
@@ -56,6 +58,7 @@ export class ApiService extends BaseApiService {
     this.photos = new PhotosApiService();
     this.procurement = new ProcurementApiService();
     this.attendance = new AttendanceApiService();
+    this.calendar = new CalendarApiService();
   }
 
   // Legacy methods for backward compatibility
@@ -371,6 +374,10 @@ export class ApiService extends BaseApiService {
     return this.payroll.bulkApproveManagerPayroll(recordIds);
   }
 
+  async bulkRejectManagerPayroll(recordIds: number[], rejectionReason: string) {
+    return this.payroll.bulkRejectManagerPayroll(recordIds, rejectionReason);
+  }
+
   async rejectManagerPayroll(recordId: number, rejectionReason: string) {
     return this.payroll.rejectManagerPayroll(recordId, rejectionReason);
   }
@@ -587,6 +594,15 @@ export class ApiService extends BaseApiService {
     return this.procurement.receiveInterFarmTransfer(transferId);
   }
 
+  // ── Budgets ───────────────────────────────────────────────────────────────
+  async getBudgets(period: 'weekly' | 'yearly') { return this.analytics.getBudgets(period); }
+  async createBudget(data: { farm_id: number; period: string; budget_allocated: number }) { return this.analytics.createBudget(data); }
+  async updateBudget(budgetId: number, data: { budget_allocated: number }) { return this.analytics.updateBudget(budgetId, data); }
+
+  // ── Warnings ──────────────────────────────────────────────────────────────
+  async getWarnings(params?: Record<string, any>) { return this.analytics.getWarnings(params); }
+  async signWarning(warningId: number) { return this.analytics.signWarning(warningId); }
+
   // ── Procurement Officer ───────────────────────────────────────────────────
   async getStores() { return this.procurement.getStores(); }
   async getStoreDetail(farmId: number) { return this.procurement.getStoreDetail(farmId); }
@@ -609,6 +625,8 @@ export class ApiService extends BaseApiService {
   async approveLpo(lpoId: number, notes?: string) { return this.procurement.approveLpo(lpoId, notes); }
   async rejectLpo(lpoId: number, notes: string) { return this.procurement.rejectLpo(lpoId, notes); }
   async sendLpoToSupplier(lpoId: number) { return this.procurement.sendLpoToSupplier(lpoId); }
+  async poApproveLpo(lpoId: number, notes?: string) { return this.procurement.poApproveLpo(lpoId, notes); }
+  async poRejectLpo(lpoId: number, notes: string) { return this.procurement.poRejectLpo(lpoId, notes); }
   async createGrn(data: any) { return this.procurement.createGrn(data); }
   async getGrns(filters?: Record<string, any>) { return this.procurement.getGrns(filters); }
   async getGrnDetail(grnId: number) { return this.procurement.getGrnDetail(grnId); }
@@ -622,6 +640,9 @@ export class ApiService extends BaseApiService {
   async getInternalTransfers(filters?: Record<string, any>) { return this.procurement.getInternalTransfers(filters); }
   async getInternalTransferDetail(transferId: number) { return this.procurement.getInternalTransferDetail(transferId); }
   // SMR create + chain
+  async cancelSmr(smrId: number) { return this.procurement.cancelSmr(smrId); }
+  async patchLpo(lpoId: number, data: Record<string, any>) { return this.procurement.patchLpo(lpoId, data); }
+  async getGrnChain(grnNumber: string) { return this.procurement.getGrnChain(grnNumber); }
   async createSmr(data: any) { return this.procurement.createSmr(data); }
   async getExternalChain(smrNumber: string) { return this.procurement.getExternalChain(smrNumber); }
   // GIN
@@ -1204,6 +1225,50 @@ export class ApiService extends BaseApiService {
   async getHarvestReport(farmId: number, seasonYear: number) {
     return this.get<any>(`/harvest/report/${farmId}`, { season_year: String(seasonYear) });
   }
+
+  // ===========================
+  // Farm Clerk: Climate Reports
+  // ===========================
+
+  async getClimateReports(params?: Record<string, any>) { return this.management.getClimateReports(params); }
+  async createClimateReport(data: Record<string, any>) { return this.management.createClimateReport(data); }
+  async updateClimateReport(reportId: number, data: Record<string, any>) { return this.management.updateClimateReport(reportId, data); }
+
+  // ===========================
+  // Farm Clerk: SMART Recommendations
+  // ===========================
+
+  async getFarmClerkRecommendations() { return this.management.getFarmClerkRecommendations(); }
+  async getFarmClerkThresholds() { return this.management.getFarmClerkThresholds(); }
+
+  // ===========================
+  // Farm Clerk: Workers View
+  // ===========================
+
+  async getFarmClerkWorkers() { return this.management.getFarmClerkWorkers(); }
+  async getFarmClerkWorker(workerId: number) { return this.management.getFarmClerkWorker(workerId); }
+
+  // ===========================
+  // Admin-exclusive
+  // ===========================
+
+  async getAuditLogs(params?: Record<string, any>) { return this.activities.getAuditLogs(params); }
+  async getMonthlyReport(farmId: number, year: number, month: number) { return this.reports.getMonthlyReport(farmId, year, month); }
+  async getSystemWideReport() { return this.reports.getSystemWideReport(); }
+  async createTaskCode(data: Record<string, any>) { return this.tasks.createTaskCode(data); }
+
+  // ===========================
+  // MD-exclusive
+  // ===========================
+
+  async getMdStrategicExpenditure(params?: Record<string, any>) { return this.analytics.getMdStrategicExpenditure(params); }
+  async getMdStrategicCombined() { return this.analytics.getMdStrategicCombined(); }
+  async getMdStrategicQuickbooks() { return this.analytics.getMdStrategicQuickbooks(); }
+  async getMdPerformanceReview(params?: Record<string, any>) { return this.analytics.getMdPerformanceReview(params); }
+  async postMdFinancialRequest(data: Record<string, any>) { return this.analytics.postMdFinancialRequest(data); }
+  async postMdInitiateReport(data: Record<string, any>) { return this.analytics.postMdInitiateReport(data); }
+  async getMdReports() { return this.analytics.getMdReports(); }
+  async postMdMeeting(data: Record<string, any>) { return this.analytics.postMdMeeting(data); }
 }
 
 // Create and export a singleton instance

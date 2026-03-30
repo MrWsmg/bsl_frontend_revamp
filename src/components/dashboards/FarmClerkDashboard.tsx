@@ -20,6 +20,11 @@ import {
   Settings,
   Tag,
   PackageOpen,
+  CalendarDays,
+  CloudRain,
+  Lightbulb,
+  Plus,
+  X,
 } from 'lucide-react';
 import { useApi } from '../../hooks';
 import { LoadingSpinner } from '../common/LoadingSpinner';
@@ -31,6 +36,7 @@ import ItemRequests from '../ItemRequests';
 import { Layout } from '../layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { toast } from '../ui/sonner';
 
 // New feature components
 import { DailyStock, YtdStock } from '../stock';
@@ -47,6 +53,10 @@ import {
   SharedDeliveryNoteSection,
   SharedTransferSection,
   SharedGatePassSection,
+  SharedCalendarSection,
+  FarmClerkClimateSection,
+  FarmClerkRecommendationsSection,
+  FarmClerkWorkersSection,
 } from './sections';
 
 interface User {
@@ -122,6 +132,10 @@ const sidebarItems = [
     ],
   },
   { id: 'expenses', label: 'Expenses', icon: DollarSign },
+  { id: 'climate', label: 'Climate Reports', icon: CloudRain },
+  { id: 'recommendations', label: 'Recommendations', icon: Lightbulb },
+  { id: 'farm-workers', label: 'Workers', icon: Users },
+  { id: 'calendar', label: 'Calendar', icon: CalendarDays },
 ];
 
 const FarmClerkDashboard: React.FC<FarmClerkDashboardProps> = ({ user, onLogout }) => {
@@ -148,7 +162,37 @@ const FarmClerkDashboard: React.FC<FarmClerkDashboardProps> = ({ user, onLogout 
   const { data: transfers, loading: loadingTransfers } = useApi(getTransfers);
   const { data: pendingRequests, loading: loadingRequests } = useApi(getPendingRequests);
   const { data: stockMovements, loading: loadingMovements } = useApi(getStockMovements);
-  const { data: expenses, loading: loadingExpenses } = useApi(getExpenses);
+  const { data: expenses, loading: loadingExpenses, refetch: refetchExpenses } = useApi(getExpenses);
+
+  // Expense create modal state
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [savingExpense, setSavingExpense] = useState(false);
+  const [expenseForm, setExpenseForm] = useState({ description: '', amount: '', date_recorded: new Date().toISOString().split('T')[0], crop_type: '' });
+
+  const handleCreateExpense = async () => {
+    if (!expenseForm.description || !expenseForm.amount) {
+      toast.error('Description and amount are required');
+      return;
+    }
+    setSavingExpense(true);
+    try {
+      await apiService.createExpenseRecord({
+        description: expenseForm.description,
+        amount: Number(expenseForm.amount),
+        date_recorded: expenseForm.date_recorded,
+        crop_type: expenseForm.crop_type || undefined,
+        farm_id: farms[0]?.id,
+      });
+      toast.success('Expense logged');
+      setShowExpenseModal(false);
+      setExpenseForm({ description: '', amount: '', date_recorded: new Date().toISOString().split('T')[0], crop_type: '' });
+      refetchExpenses();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to log expense');
+    } finally {
+      setSavingExpense(false);
+    }
+  };
 
   // Calculate overview statistics
   const overviewStats = useMemo(() => {
@@ -438,6 +482,14 @@ const FarmClerkDashboard: React.FC<FarmClerkDashboardProps> = ({ user, onLogout 
 
   const renderExpenses = () => (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <button
+          onClick={() => setShowExpenseModal(true)}
+          className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+        >
+          <Plus className="w-4 h-4" /> Log Expense
+        </button>
+      </div>
       <Card>
         <CardHeader>
           <CardTitle>Store Expenses</CardTitle>
@@ -485,6 +537,42 @@ const FarmClerkDashboard: React.FC<FarmClerkDashboardProps> = ({ user, onLogout 
           )}
         </CardContent>
       </Card>
+
+      {/* Create Expense Modal */}
+      {showExpenseModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Log Expense</h3>
+              <button onClick={() => setShowExpenseModal(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description <span className="text-red-500">*</span></label>
+                <input type="text" value={expenseForm.description} onChange={e => setExpenseForm(f => ({ ...f, description: e.target.value }))} placeholder="e.g. Fertiliser purchase" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Amount (TZS) <span className="text-red-500">*</span></label>
+                <input type="number" min="0" value={expenseForm.amount} onChange={e => setExpenseForm(f => ({ ...f, amount: e.target.value }))} placeholder="0" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                <input type="date" value={expenseForm.date_recorded} onChange={e => setExpenseForm(f => ({ ...f, date_recorded: e.target.value }))} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Crop Type</label>
+                <input type="text" value={expenseForm.crop_type} onChange={e => setExpenseForm(f => ({ ...f, crop_type: e.target.value }))} placeholder="e.g. Coffee" className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm" />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-5">
+              <button onClick={() => setShowExpenseModal(false)} className="px-4 py-2 text-sm text-gray-700 border rounded hover:bg-gray-50">Cancel</button>
+              <button onClick={handleCreateExpense} disabled={savingExpense} className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
+                {savingExpense ? 'Saving...' : 'Log Expense'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -504,6 +592,9 @@ const FarmClerkDashboard: React.FC<FarmClerkDashboardProps> = ({ user, onLogout 
       transfers: 'Transfers',
       'price-list': 'Price List',
       expenses: 'Expenses',
+      climate: 'Climate Reports',
+      recommendations: 'Recommendations',
+      'farm-workers': 'Workers',
       'proc-pfi':      'PFI',
       'proc-lpo':      'LPO',
       'proc-grn':      'GRN',
@@ -584,13 +675,17 @@ const FarmClerkDashboard: React.FC<FarmClerkDashboardProps> = ({ user, onLogout 
         {/* Procurement tabs */}
         <div className={activeTab === 'proc-pfi'      ? '' : 'hidden'}>{mountedTabs.has('proc-pfi')      && <SharedPfiSection userRole="farm_clerk" />}</div>
         <div className={activeTab === 'proc-lpo'      ? '' : 'hidden'}>{mountedTabs.has('proc-lpo')      && <SharedLpoSection userRole="farm_clerk" />}</div>
-        <div className={activeTab === 'proc-grn'      ? '' : 'hidden'}>{mountedTabs.has('proc-grn')      && <SharedGrnSection userRole="farm_clerk" farmName={farms[0]?.name} />}</div>
+        <div className={activeTab === 'proc-grn'      ? '' : 'hidden'}>{mountedTabs.has('proc-grn')      && <SharedGrnSection userRole="farm_clerk" farmName={farms[0]?.name ?? ''} />}</div>
         <div className={activeTab === 'proc-gin'      ? '' : 'hidden'}>{mountedTabs.has('proc-gin')      && <SharedGinSection userRole="farm_clerk" />}</div>
         <div className={activeTab === 'proc-cardex'   ? '' : 'hidden'}>{mountedTabs.has('proc-cardex')   && <SharedCardexSection userRole="farm_clerk" />}</div>
         <div className={activeTab === 'proc-tv'       ? '' : 'hidden'}>{mountedTabs.has('proc-tv')       && <SharedTransportVoucherSection userRole="farm_clerk" />}</div>
         <div className={activeTab === 'proc-dn'       ? '' : 'hidden'}>{mountedTabs.has('proc-dn')       && <SharedDeliveryNoteSection userRole="farm_clerk" />}</div>
         <div className={activeTab === 'proc-transfer' ? '' : 'hidden'}>{mountedTabs.has('proc-transfer') && <SharedTransferSection userRole="farm_clerk" />}</div>
         <div className={activeTab === 'proc-gatepass' ? '' : 'hidden'}>{mountedTabs.has('proc-gatepass') && <SharedGatePassSection userRole="farm_clerk" />}</div>
+        <div className={activeTab === 'climate'         ? '' : 'hidden'}>{mountedTabs.has('climate')         && <FarmClerkClimateSection />}</div>
+        <div className={activeTab === 'recommendations' ? '' : 'hidden'}>{mountedTabs.has('recommendations') && <FarmClerkRecommendationsSection />}</div>
+        <div className={activeTab === 'farm-workers'    ? '' : 'hidden'}>{mountedTabs.has('farm-workers')    && <FarmClerkWorkersSection />}</div>
+        <div className={activeTab === 'calendar'        ? '' : 'hidden'}>{mountedTabs.has('calendar')        && <SharedCalendarSection userRole="farm_clerk" />}</div>
       </Layout>
     </ErrorBoundary>
   );

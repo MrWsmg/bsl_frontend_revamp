@@ -111,19 +111,23 @@ export const SupervisorPayrollPendingSection: React.FC = () => {
                       <td className="px-4 py-3 text-sm font-semibold text-gray-900">{Number(r.total_amount).toLocaleString()}</td>
                       <td className="px-4 py-3"><ApprovalStatusBadge status={r.approval_status} /></td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => openEdit(r)} title="Edit" className="text-blue-600 hover:text-blue-800">
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(r.id)}
-                            disabled={deletingId === r.id}
-                            title="Delete"
-                            className="text-red-500 hover:text-red-700 disabled:text-gray-400"
-                          >
-                            {deletingId === r.id ? <LoadingSpinner size="sm" /> : <Trash2 className="w-4 h-4" />}
-                          </button>
-                        </div>
+                        {r.approval_status === 'supervisor_pending' ? (
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => openEdit(r)} title="Edit" className="text-blue-600 hover:text-blue-800">
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(r.id)}
+                              disabled={deletingId === r.id}
+                              title="Delete"
+                              className="text-red-500 hover:text-red-700 disabled:text-gray-400"
+                            >
+                              {deletingId === r.id ? <LoadingSpinner size="sm" /> : <Trash2 className="w-4 h-4" />}
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400 italic">Read-only</span>
+                        )}
                       </td>
                     </tr>
                   ))}

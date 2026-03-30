@@ -703,6 +703,7 @@ export const SharedGinSection: React.FC<Props> = ({ userRole }) => {
                               <Input
                                 value={row.item_name}
                                 onChange={e => updateItem(i, { item_name: e.target.value, stock_balance: null })}
+                                onBlur={() => { if (row.item_name.trim() && farmId) checkStock(i); }}
                                 placeholder="Item name *"
                                 className="flex-1 text-sm"
                                 readOnly={dialogMode === 'simr-form'}
@@ -750,6 +751,12 @@ export const SharedGinSection: React.FC<Props> = ({ userRole }) => {
                                 placeholder="0"
                                 className="text-sm"
                               />
+                              {row.stock_balance !== null && row.stock_balance !== undefined && row.quantity_issued &&
+                                parseFloat(row.quantity_issued) > row.stock_balance && (
+                                <p className="text-xs text-amber-600 mt-0.5">
+                                  Exceeds available stock ({row.stock_balance} {row.unit || 'units'})
+                                </p>
+                              )}
                             </div>
                             <div>
                               <label className="text-xs text-gray-500 mb-0.5 block">Unit Cost <span className="text-gray-400">(optional)</span></label>

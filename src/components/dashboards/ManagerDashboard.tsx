@@ -10,6 +10,7 @@ import {
   BarChart3, ClipboardList, CheckSquare, User as UserIcon, Package, Wrench,
   TrendingUp, Calendar, Truck, FileText, Receipt, PackageCheck, ArrowLeftRight,
   PackageOpen, SendHorizontal, ShieldCheck, LayoutGrid, CalendarDays, ReceiptText, Wallet,
+  Leaf, ShieldAlert, Warehouse,
 } from 'lucide-react';
 
 // Import dashboard sections
@@ -38,6 +39,11 @@ import {
   SharedWeeklySheetSection,
   SharedPaymentSummarySection,
   SharedPayslipSection,
+  SharedCalendarSection,
+  ManagerHarvestSection,
+  ManagerBudgetsSection,
+  ManagerWarningsSection,
+  ManagerStoreSection,
 } from './sections';
 import { ManagerInterFarmSection } from './sections/ManagerInterFarmSection';
 
@@ -75,11 +81,15 @@ const TAB_COMPONENTS: Record<string, React.FC> = {
   equipment:       ManagerEquipmentSection,
   reports:         ManagerReportsSection,
   blocks:          ManagerBlocksSection,
+  harvest:         ManagerHarvestSection,
+  budgets:         ManagerBudgetsSection,
+  warnings:        ManagerWarningsSection,
+  store:           ManagerStoreSection,
 };
 
 const PROCUREMENT_GROUP = {
   id: 'procurement',
-  label: 'Procurement',
+  label: 'Item Requests',
   icon: FileText,
   children: [
     { id: 'proc-smr',      label: 'SMR',          icon: FileText },
@@ -122,7 +132,12 @@ const MANAGER_SIDEBAR = (() => {
     if (i === overviewIdx) result.push(PAYROLL_GROUP as any);
     if (i === tasksIdx) result.push(PROCUREMENT_GROUP as any);
   });
-  result.push({ id: 'blocks', label: 'Blocks', icon: LayoutGrid });
+  result.push({ id: 'harvest',   label: 'Harvest Plans', icon: Leaf       });
+  result.push({ id: 'budgets',   label: 'Budgets',       icon: Wallet     });
+  result.push({ id: 'warnings',  label: 'Warnings',      icon: ShieldAlert });
+  result.push({ id: 'store',     label: 'Store',         icon: Warehouse  });
+  result.push({ id: 'blocks',    label: 'Blocks',        icon: LayoutGrid });
+  result.push({ id: 'calendar',  label: 'Calendar',      icon: Calendar   });
   return result;
 })();
 
@@ -165,6 +180,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ user, onLogo
         <div className={activeTab === 'proc-transfer' ? '' : 'hidden'}>{mountedTabs.has('proc-transfer') && <SharedTransferSection userRole={ROLE} />}</div>
         <div className={activeTab === 'proc-cardex'   ? '' : 'hidden'}>{mountedTabs.has('proc-cardex')   && <SharedCardexSection userRole={ROLE} />}</div>
         <div className={activeTab === 'proc-gatepass' ? '' : 'hidden'}>{mountedTabs.has('proc-gatepass') && <SharedGatePassSection userRole={ROLE} />}</div>
+        <div className={activeTab === 'calendar' ? '' : 'hidden'}>{mountedTabs.has('calendar') && <SharedCalendarSection userRole={ROLE} />}</div>
       </Layout>
     </ErrorBoundary>
   );

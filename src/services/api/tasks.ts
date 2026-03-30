@@ -37,4 +37,8 @@ export class TasksApiService extends BaseApiService {
   async getManagerCompletedTasks(): Promise<TaskAssignment[]> {
     return this.get<TaskAssignment[]>('/manager/tasks-completed');
   }
+
+  async createTaskCode(data: Record<string, any>): Promise<any> {
+    return this.post<any>('/admin/task-codes', data);
+  }
 }

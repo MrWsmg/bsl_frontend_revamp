@@ -7,13 +7,12 @@ import { ErrorBoundary } from '../common/ErrorBoundary';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { Pagination } from '../common/Pagination';
 import { User } from '../../types';
-import { BarChart3, Users, ClipboardList, TrendingUp, Calendar, CheckCircle, Clock, AlertCircle, Package, UserCheck, LayoutDashboard, FileText, DollarSign } from 'lucide-react';
+import { BarChart3, Users, ClipboardList, TrendingUp, Calendar, CheckCircle, Clock, AlertCircle, Package, UserCheck, LayoutDashboard, FileText } from 'lucide-react';
 import { useApi } from '../../hooks';
 import apiService from '../../services/api';
 import AddWorkerModal from '../shared/AddWorkerModal';
-import { SupervisorTasksSection, SupervisorItemRequestsSection, SupervisorAttendanceSection } from './sections';
+import { SupervisorTasksSection, SupervisorAttendanceSection } from './sections';
 import { SupervisorPayrollSection } from './sections/SupervisorPayrollSection';
-import { SupervisorPayrollEntrySection } from './sections/SupervisorPayrollEntrySection';
 import { SupervisorPayrollPendingSection } from './sections/SupervisorPayrollPendingSection';
 import {
   SupervisorSimrSection,
@@ -21,6 +20,7 @@ import {
   SharedTransportVoucherSection,
   SharedDeliveryNoteSection,
   SharedCardexSection,
+  SharedCalendarSection,
 } from './sections';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -47,16 +47,14 @@ const SUPERVISOR_NAV_ITEMS = [
     label: 'Work',
     icon: ClipboardList,
     children: [
-      { id: 'tasks',          label: 'Tasks',          icon: ClipboardList },
-      { id: 'item_requests',  label: 'Item Requests',  icon: Package       },
-      { id: 'payroll_entry',  label: 'New Payroll',    icon: DollarSign    },
-      { id: 'payroll_pending', label: 'Pending',       icon: Clock         },
-      { id: 'payroll',        label: 'Rejected',       icon: AlertCircle   },
+      { id: 'tasks',           label: 'Tasks',    icon: ClipboardList },
+      { id: 'payroll_pending', label: 'Pending',  icon: Clock         },
+      { id: 'payroll',         label: 'Rejected', icon: AlertCircle   },
     ],
   },
   {
     id: 'procurement',
-    label: 'Procurement',
+    label: 'Item Requests',
     icon: Package,
     children: [
       { id: 'proc-simr',   label: 'SIMR',      icon: ClipboardList },
@@ -357,7 +355,7 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-base">Recent Item Requests</CardTitle>
-            <Button variant="link" size="sm" onClick={() => handleTabChange('item_requests')}>
+            <Button variant="link" size="sm" onClick={() => handleTabChange('proc-simr')}>
               View All
             </Button>
           </CardHeader>
@@ -370,23 +368,31 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
               <p className="text-muted-foreground text-center py-4">No item requests</p>
             ) : (
               <div className="space-y-3">
-                {itemRequests.slice(0, 5).map((request: any) => (
-                  <div key={request.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                    <div className="flex-1">
-                      <h4 className="font-medium">{request.item_name}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {request.requested_by || 'Unknown'} - {request.quantity} {request.unit} - {new Date(request.created_at).toLocaleDateString()}
-                      </p>
+                {itemRequests.slice(0, 5).map((request: any) => {
+                  const firstItem = request.items?.[0];
+                  const itemLabel = firstItem
+                    ? `${firstItem.item_name}${request.items.length > 1 ? ` +${request.items.length - 1} more` : ''}`
+                    : request.simr_number || '—';
+                  const qty = firstItem ? `${firstItem.quantity_requested} ${firstItem.unit}` : '';
+                  const requester = request.requester_name || request.purpose || '—';
+                  return (
+                    <div key={request.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <div className="flex-1">
+                        <h4 className="font-medium">{itemLabel}</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {requester}{qty ? ` - ${qty}` : ''} - {new Date(request.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <Badge variant={
+                        request.status === 'approved' ? 'default' :
+                        request.status === 'issued' || request.status === 'received' ? 'default' :
+                        request.status === 'rejected' ? 'destructive' : 'secondary'
+                      }>
+                        {request.status.charAt(0).toUpperCase() + request.status.slice(1).replace(/_/g, ' ')}
+                      </Badge>
                     </div>
-                    <Badge variant={
-                      request.status === 'approved' ? 'default' :
-                      request.status === 'issued' || request.status === 'received' ? 'default' :
-                      request.status === 'rejected' ? 'destructive' : 'secondary'
-                    }>
-                      {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                    </Badge>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>
@@ -633,27 +639,14 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
         <div className={activeTab === 'tasks' ? '' : 'hidden'}>
           {mountedTabs.has('tasks') && <SupervisorTasksSection />}
         </div>
-        <div className={activeTab === 'item_requests' ? '' : 'hidden'}>
-          {mountedTabs.has('item_requests') && <SupervisorItemRequestsSection />}
-        </div>
-        <div className={activeTab === 'payroll_entry' ? '' : 'hidden'}>
-          {mountedTabs.has('payroll_entry') && <SupervisorPayrollEntrySection />}
-        </div>
-        <div className={activeTab === 'payroll_pending' ? '' : 'hidden'}>
+<div className={activeTab === 'payroll_pending' ? '' : 'hidden'}>
           {mountedTabs.has('payroll_pending') && <SupervisorPayrollPendingSection />}
         </div>
         <div className={activeTab === 'payroll' ? '' : 'hidden'}>
           {mountedTabs.has('payroll') && <SupervisorPayrollSection />}
         </div>
         <div className={activeTab === 'calendar' ? '' : 'hidden'}>
-          {mountedTabs.has('calendar') && (
-            <Card>
-              <CardContent className="p-6">
-                <h2 className="text-xl font-bold mb-4">Calendar View</h2>
-                <p className="text-muted-foreground">Coming soon</p>
-              </CardContent>
-            </Card>
-          )}
+          {mountedTabs.has('calendar') && <SharedCalendarSection userRole="supervisor" />}
         </div>
         <div className={activeTab === 'reports' ? '' : 'hidden'}>
           {mountedTabs.has('reports') && renderReports()}

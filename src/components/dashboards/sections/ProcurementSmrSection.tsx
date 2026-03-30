@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, FileText, AlertCircle, RefreshCw, Plus } from 'lucide-react';
+import { Search, FileText, AlertCircle, RefreshCw, Plus, XCircle } from 'lucide-react';
+import { toast } from 'sonner';
 
 const statusColor: Record<string, string> = {
   draft:               'bg-gray-100 text-gray-700',
@@ -33,12 +34,27 @@ interface Props { onCreateLpo?: (smrId: number, smrNumber: string, smrItems: any
 export const ProcurementSmrSection: React.FC<Props> = ({ onCreateLpo }) => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
 
   const getSmrs = useCallback(
     () => apiService.getProcurementSmrs(statusFilter ? { status: statusFilter } : undefined),
     [statusFilter],
   );
   const { data: smrs, loading, error, refetch } = useApi(getSmrs);
+
+  const handleCancel = async (smrId: number) => {
+    if (!window.confirm('Cancel this SMR? This cannot be undone.')) return;
+    setCancellingId(smrId);
+    try {
+      await apiService.cancelSmr(smrId);
+      toast.success('SMR cancelled');
+      refetch();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || err?.message || 'Failed to cancel SMR');
+    } finally {
+      setCancellingId(null);
+    }
+  };
 
   const filtered = Array.isArray(smrs)
     ? smrs.filter((s: any) =>
@@ -153,21 +169,37 @@ export const ProcurementSmrSection: React.FC<Props> = ({ onCreateLpo }) => {
                       )}
                     </div>
                   )}
-                  {onCreateLpo && (
-                    <div className="mt-3 pt-3 border-t border-gray-50 flex justify-end">
-                      {smr.status?.toLowerCase() === 'lpo_created' ? (
-                        <span className="text-xs text-blue-600 font-medium">LPO Raised</span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => onCreateLpo(smr.id, smr.smr_number ?? smr.pr_number ?? `SMR #${smr.id}`, Array.isArray(smr.items) ? smr.items : [])}
-                          className="flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
-                        >
-                          <Plus className="w-3.5 h-3.5" /> Create LPO
-                        </button>
+                  <div className="mt-3 pt-3 border-t border-gray-50 flex items-center justify-between gap-2">
+                    {/* Cancel action — available when not already terminal */}
+                    {!['cancelled', 'lpo_created', 'ordered'].includes(smr.status?.toLowerCase()) && (
+                      <button
+                        type="button"
+                        onClick={() => handleCancel(smr.id)}
+                        disabled={cancellingId === smr.id}
+                        className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 disabled:opacity-50"
+                      >
+                        <XCircle className="w-3.5 h-3.5" />
+                        {cancellingId === smr.id ? 'Cancelling…' : 'Cancel SMR'}
+                      </button>
+                    )}
+                    <div className="ml-auto">
+                      {onCreateLpo && (
+                        smr.status?.toLowerCase() === 'lpo_created' ? (
+                          <span className="text-xs text-blue-600 font-medium">LPO Raised</span>
+                        ) : smr.status?.toLowerCase() === 'cancelled' ? (
+                          <span className="text-xs text-gray-400 italic">Cancelled</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => onCreateLpo(smr.id, smr.smr_number ?? smr.pr_number ?? `SMR #${smr.id}`, Array.isArray(smr.items) ? smr.items : [])}
+                            className="flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
+                          >
+                            <Plus className="w-3.5 h-3.5" /> Create LPO
+                          </button>
+                        )
                       )}
                     </div>
-                  )}
+                  </div>
                 </div>
               ))}
             </div>

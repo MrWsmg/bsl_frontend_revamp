@@ -15,6 +15,10 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Plus, Trash2, PackageCheck, AlertCircle, RefreshCw, CheckCircle2, Upload, FileText, ExternalLink } from 'lucide-react';
+import {
+  Sheet,
+  SheetContent,
+} from '@/components/ui/sheet';
 import { toast } from 'sonner';
 
 // ─── Linked-mode item ────────────────────────────────────────────────────────
@@ -75,13 +79,19 @@ export const ProcurementGrnSection: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
 
-  // Step tracking for direct mode (1 = create, 2 = upload DN photo)
+  // Step tracking (1 = create, 2 = upload document)
   const [step, setStep] = useState<1 | 2>(1);
   const [createdGrnId, setCreatedGrnId] = useState<number | null>(null);
   const [createdGrnNumber, setCreatedGrnNumber] = useState('');
   const [dnPhotoFile, setDnPhotoFile] = useState<File | null>(null);
   const [dnPhotoUrl, setDnPhotoUrl] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Detail sheet
+  const [selectedGrn, setSelectedGrn] = useState<any>(null);
+  const [grnDetail, setGrnDetail] = useState<any>(null);
+  const [grnChain, setGrnChain] = useState<any>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
 
   // Shared
   const [mode, setMode] = useState<'linked' | 'direct'>('linked');
@@ -167,11 +177,10 @@ export const ProcurementGrnSection: React.FC = () => {
           ...(r.lpo_item_id ? { lpo_item_id: parseInt(r.lpo_item_id) } : {}),
         }));
 
-        await apiService.createGrn(payload);
-        toast.success('GRN created — CARDEX updated');
-        setShowForm(false);
-        resetForm();
-        refetch();
+        const result = await apiService.createGrn(payload);
+        setCreatedGrnId(result.id ?? result.grn_id ?? null);
+        setCreatedGrnNumber(result.grn_number ?? `#${result.id ?? ''}`);
+        setStep(2);
       } catch (err: any) {
         setFormError(err?.response?.data?.detail || err?.message || 'Failed to create GRN');
       } finally {
@@ -218,9 +227,13 @@ export const ProcurementGrnSection: React.FC = () => {
     if (!dnPhotoFile || createdGrnId === null) return;
     setSubmitting(true);
     try {
-      const result = await apiService.uploadDnPhoto(createdGrnId, dnPhotoFile);
-      setDnPhotoUrl(result.grn_document_url);
-      toast.success('DN photo uploaded');
+      if (mode === 'linked') {
+        await apiService.uploadGrnDocument(createdGrnId, dnPhotoFile);
+      } else {
+        const result = await apiService.uploadDnPhoto(createdGrnId, dnPhotoFile);
+        setDnPhotoUrl(result.grn_document_url);
+      }
+      toast.success('Document uploaded');
       setShowForm(false);
       resetForm();
       refetch();
@@ -236,6 +249,22 @@ export const ProcurementGrnSection: React.FC = () => {
     setShowForm(false);
     resetForm();
     refetch();
+  };
+
+  const openGrnDetail = async (grn: any) => {
+    setSelectedGrn(grn);
+    setGrnDetail(null);
+    setGrnChain(null);
+    setLoadingDetail(true);
+    try {
+      const [detail, chain] = await Promise.allSettled([
+        apiService.getGrnDetail(grn.id),
+        grn.grn_number ? apiService.getGrnChain(grn.grn_number) : Promise.resolve(null),
+      ]);
+      if (detail.status === 'fulfilled') setGrnDetail(detail.value);
+      if (chain.status === 'fulfilled') setGrnChain(chain.value);
+    } catch { /* non-critical */ }
+    finally { setLoadingDetail(false); }
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -278,7 +307,7 @@ export const ProcurementGrnSection: React.FC = () => {
           ) : (
             <div className="space-y-3">
               {grns.map((grn: any) => (
-                <div key={grn.id} className="border border-gray-100 rounded-lg p-4 hover:shadow-sm transition-shadow">
+                <div key={grn.id} className="border border-gray-100 rounded-lg p-4 hover:shadow-sm transition-shadow cursor-pointer" onClick={() => openGrnDetail(grn)}>
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -361,6 +390,123 @@ export const ProcurementGrnSection: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* GRN Detail Sheet */}
+      <Sheet open={!!selectedGrn} onOpenChange={open => { if (!open) { setSelectedGrn(null); setGrnDetail(null); setGrnChain(null); } }}>
+        <SheetContent className="w-[480px] sm:max-w-[480px] overflow-y-auto">
+          {selectedGrn && (
+            <div className="mt-2 space-y-5">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-amber-50 rounded-lg">
+                    <PackageCheck className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wide">Goods Received Note</p>
+                    <h2 className="text-lg font-bold font-mono text-gray-900">{selectedGrn.grn_number ?? `#${selectedGrn.id}`}</h2>
+                  </div>
+                </div>
+                <span className={`text-xs px-2 py-1 rounded-full ${grnStatusColor[selectedGrn.status] ?? 'bg-gray-100 text-gray-700'}`}>
+                  {selectedGrn.status?.replace(/_/g, ' ')}
+                </span>
+              </div>
+
+              {loadingDetail ? (
+                <div className="flex justify-center py-8"><LoadingSpinner size="md" /></div>
+              ) : (
+                <>
+                  {/* Meta */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { label: 'Farm', value: (grnDetail ?? selectedGrn).farm_name ?? (grnDetail ?? selectedGrn).farm?.name },
+                      { label: 'Supplier', value: (grnDetail ?? selectedGrn).supplier_name },
+                      { label: 'DN Reference', value: (grnDetail ?? selectedGrn).supplier_dn_reference ?? (grnDetail ?? selectedGrn).delivery_note_number },
+                      { label: 'Carrier', value: (grnDetail ?? selectedGrn).carrier_name },
+                      { label: 'Vehicle', value: (grnDetail ?? selectedGrn).vehicle_number },
+                      { label: 'Quality Rating', value: (grnDetail ?? selectedGrn).quality_rating },
+                      { label: 'Inspection', value: (grnDetail ?? selectedGrn).inspection_status },
+                      { label: 'Date', value: selectedGrn.created_at ? new Date(selectedGrn.created_at).toLocaleDateString() : null },
+                    ].filter(f => f.value != null).map(({ label, value }) => (
+                      <div key={label} className="bg-gray-50 rounded-lg px-3 py-2">
+                        <p className="text-xs text-gray-400 mb-0.5">{label}</p>
+                        <p className="text-sm font-medium text-gray-800 capitalize">{String(value)}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Items */}
+                  <div>
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Items Received</h3>
+                    {((grnDetail ?? selectedGrn).items ?? []).length === 0 ? (
+                      <p className="text-sm text-gray-400">No items</p>
+                    ) : (
+                      <div className="space-y-1">
+                        {((grnDetail ?? selectedGrn).items ?? []).map((item: any, i: number) => (
+                          <div key={i} className="flex items-center justify-between bg-gray-50 rounded px-3 py-2 text-xs">
+                            <span className="font-medium text-gray-800">{item.item_name ?? `Item #${item.price_list_id}`}</span>
+                            <div className="text-right text-gray-500">
+                              <span>rcvd {item.quantity_received} {item.unit ?? ''}</span>
+                              {item.condition && item.condition !== 'good' && (
+                                <span className="ml-1 text-red-600">· {item.condition}</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Notes */}
+                  {(grnDetail ?? selectedGrn).inspection_notes && (
+                    <div>
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Inspection Notes</h3>
+                      <p className="text-sm text-gray-700 bg-gray-50 rounded p-3">{(grnDetail ?? selectedGrn).inspection_notes}</p>
+                    </div>
+                  )}
+
+                  {/* Document Chain */}
+                  <div>
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Document Chain</h3>
+                    {grnChain ? (
+                      <div className="space-y-1">
+                        {(['smr', 'lpo', 'grn'] as const).map(key => {
+                          const doc = (grnChain as any)[key];
+                          if (!doc) return null;
+                          return (
+                            <div key={key} className="flex items-center justify-between bg-gray-50 rounded px-3 py-2 text-xs">
+                              <span className="uppercase font-semibold text-gray-500 w-10">{key}</span>
+                              <span className="font-mono text-amber-700">
+                                {doc.smr_number ?? doc.lpo_number ?? doc.grn_number ?? doc.number ?? `#${doc.id}`}
+                              </span>
+                              <span className={`px-2 py-0.5 rounded-full ${grnStatusColor[doc.status?.toLowerCase()] ?? 'bg-gray-100 text-gray-700'}`}>
+                                {doc.status?.replace(/_/g, ' ')}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-400">Chain data unavailable</p>
+                    )}
+                  </div>
+
+                  {/* Document link */}
+                  {(grnDetail ?? selectedGrn).grn_document_url && (
+                    <a
+                      href={(grnDetail ?? selectedGrn).grn_document_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-sm text-amber-700 hover:text-amber-900"
+                    >
+                      <FileText className="w-4 h-4" /> View GRN Document <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
 
       {/* Create GRN Dialog */}
       <Dialog open={showForm} onOpenChange={open => { if (!open) { setShowForm(false); resetForm(); } }}>

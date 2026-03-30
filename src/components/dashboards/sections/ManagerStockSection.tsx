@@ -68,7 +68,7 @@ export const ManagerStockSection: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Payment</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">${stockStats.totalPayment.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-gray-900 mt-2">TZS {stockStats.totalPayment.toLocaleString()}</p>
               </div>
               <div className="bg-purple-500 p-3 rounded-lg">
                 <TrendingUp className="w-6 h-6 text-white" />
@@ -235,7 +235,7 @@ export const ManagerStockSection: React.FC = () => {
                         {record.quantity_kg?.toFixed(2) || 0}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                        ${record.total_payment?.toLocaleString() || 0}
+                        TZS {record.total_payment?.toLocaleString() || 0}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {record.crop_type || 'N/A'}

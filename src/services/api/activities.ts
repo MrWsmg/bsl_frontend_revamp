@@ -54,4 +54,8 @@ export class ActivitiesApiService extends BaseApiService {
   async getSupervisorWorkHistory(startDate: string, endDate: string): Promise<any> {
     return this.get<any>('/supervisor/work-history', { start_date: startDate, end_date: endDate });
   }
+
+  async getAuditLogs(params?: Record<string, any>): Promise<any> {
+    return this.get<any>('/admin/audit-logs', params);
+  }
 }

@@ -6,7 +6,7 @@ import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { ApprovalStatusBadge } from '../../common/ApprovalStatusBadge';
-import { Check, X, DollarSign, Clock, CheckSquare } from 'lucide-react';
+import { Check, X, DollarSign, Clock, CheckSquare, XSquare } from 'lucide-react';
 import { toast } from '../../ui/sonner';
 
 export const ManagerPayrollSection: React.FC = () => {
@@ -17,6 +17,9 @@ export const ManagerPayrollSection: React.FC = () => {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [bulkApproving, setBulkApproving] = useState(false);
+  const [bulkRejecting, setBulkRejecting] = useState(false);
+  const [showBulkRejectModal, setShowBulkRejectModal] = useState(false);
+  const [bulkRejectReason, setBulkRejectReason] = useState('');
 
   const getPendingPayroll = useCallback(() => apiService.getManagerPendingPayroll(), []);
   const getAllPayroll = useCallback(() => apiService.getManagerAllPayroll(), []);
@@ -59,6 +62,23 @@ export const ManagerPayrollSection: React.FC = () => {
       toast.error(error.message || 'Bulk approval failed');
     } finally {
       setBulkApproving(false);
+    }
+  };
+
+  const handleBulkReject = async () => {
+    if (selectedIds.length === 0 || !bulkRejectReason.trim()) return;
+    setBulkRejecting(true);
+    try {
+      await apiService.bulkRejectManagerPayroll(selectedIds, bulkRejectReason.trim());
+      toast.success(`${selectedIds.length} records rejected`);
+      setSelectedIds([]);
+      setShowBulkRejectModal(false);
+      setBulkRejectReason('');
+      await refetchCurrent();
+    } catch (error: any) {
+      toast.error(error.message || 'Bulk rejection failed');
+    } finally {
+      setBulkRejecting(false);
     }
   };
 
@@ -138,8 +158,8 @@ export const ManagerPayrollSection: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Total Amount</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">
-                ${totals.total.toLocaleString()}
+              <p className="text-2xl font-bold text-gray-900 mt-2">
+                TZS {totals.total.toLocaleString()}
               </p>
             </div>
             <div className="bg-green-500 p-3 rounded-lg">
@@ -192,6 +212,13 @@ export const ManagerPayrollSection: React.FC = () => {
             >
               {bulkApproving ? <LoadingSpinner size="sm" /> : <CheckSquare className="w-4 h-4" />}
               Approve All Selected
+            </button>
+            <button
+              onClick={() => { setBulkRejectReason(''); setShowBulkRejectModal(true); }}
+              className="flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-sm rounded hover:bg-red-700"
+            >
+              <XSquare className="w-4 h-4" />
+              Reject All Selected
             </button>
             <button
               onClick={() => setSelectedIds([])}
@@ -279,10 +306,10 @@ export const ManagerPayrollSection: React.FC = () => {
                         {record.quantity}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        ${record.rate}
+                        TZS {record.rate?.toLocaleString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                        ${record.total_amount?.toLocaleString()}
+                        TZS {record.total_amount?.toLocaleString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(record.date_worked).toLocaleDateString()}
@@ -323,6 +350,41 @@ export const ManagerPayrollSection: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Bulk Reject Modal */}
+      {showBulkRejectModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Reject {selectedIds.length} Records</h3>
+            <p className="text-sm text-gray-500 mb-4">All selected records will be returned to supervisors.</p>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Reason for rejection <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={bulkRejectReason}
+              onChange={(e) => setBulkRejectReason(e.target.value)}
+              rows={3}
+              placeholder="Enter rejection reason..."
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+            />
+            <div className="flex justify-end gap-3 mt-4">
+              <button
+                onClick={() => setShowBulkRejectModal(false)}
+                className="px-4 py-2 text-sm text-gray-700 border rounded hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkReject}
+                disabled={!bulkRejectReason.trim() || bulkRejecting}
+                className="px-4 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+              >
+                {bulkRejecting ? 'Rejecting...' : 'Reject All'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Reject Modal */}
       {showRejectModal && (

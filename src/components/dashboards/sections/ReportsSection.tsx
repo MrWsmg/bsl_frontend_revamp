@@ -1,244 +1,322 @@
 "use client";
 
-// Reports section component
 import React, { useState, useCallback } from 'react';
-import { Eye } from 'lucide-react';
+import { Eye, Globe, Download } from 'lucide-react';
 import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
+import { toast } from 'sonner';
 
 export const ReportsSection: React.FC = () => {
-  const [dailyReport, setDailyReport] = useState<any>(null);
+  const [dailyReport, setDailyReport]   = useState<any>(null);
   const [weeklyReport, setWeeklyReport] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [dailyReportFilters, setDailyReportFilters] = useState({
-    date: new Date().toISOString().split('T')[0],
-    farm_id: ''
+  const [monthlyReport, setMonthlyReport] = useState<any>(null);
+  const [systemReport, setSystemReport]   = useState<any>(null);
+  const [loading, setLoading]             = useState(false);
+
+  const [dailyFilters, setDailyFilters] = useState({
+    date:    new Date().toISOString().split('T')[0],
+    farm_id: '',
   });
-  const [weeklyReportFilters, setWeeklyReportFilters] = useState({
+  const [weeklyFilters, setWeeklyFilters] = useState({
     week_start: '',
-    farm_id: ''
+    farm_id:    '',
+  });
+  const [monthlyFilters, setMonthlyFilters] = useState({
+    farm_id: '',
+    year:    String(new Date().getFullYear()),
+    month:   String(new Date().getMonth() + 1),
   });
 
   const getFarms = useCallback(() => apiService.farms.getFarms(), []);
   const { data: farms } = useApi(getFarms);
+  const farmList = Array.isArray(farms) ? farms : [];
 
+  // ── Daily ──────────────────────────────────────────────────────────────────
   const generateDailyReport = async () => {
     try {
       setLoading(true);
-      const reportData = await apiService.reports.getDailyReport(
-        dailyReportFilters.date,
-        dailyReportFilters.farm_id ? parseInt(dailyReportFilters.farm_id) : undefined
+      const data = await apiService.reports.getDailyReport(
+        dailyFilters.date,
+        dailyFilters.farm_id ? parseInt(dailyFilters.farm_id) : undefined,
       );
-      setDailyReport(reportData);
-    } catch (error) {
-      console.error('Error generating daily report:', error);
-      alert('Failed to generate daily report. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+      setDailyReport(data);
+    } catch {
+      toast.error('Failed to generate daily report.');
+    } finally { setLoading(false); }
   };
 
-  const generateWeeklyReport = async () => {
-    try {
-      setLoading(true);
-      const reportData = await apiService.reports.getWeeklyReport(
-        weeklyReportFilters.week_start,
-        weeklyReportFilters.farm_id ? parseInt(weeklyReportFilters.farm_id) : undefined
-      );
-      setWeeklyReport(reportData);
-    } catch (error) {
-      console.error('Error generating weekly report:', error);
-      alert('Failed to generate weekly report. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const downloadReport = async (format: 'excel' | 'pdf') => {
+  const downloadDaily = async (format: 'excel' | 'pdf') => {
     try {
       if (format === 'excel') {
         await apiService.reports.downloadDailyReportExcel(
-          dailyReportFilters.date,
-          dailyReportFilters.farm_id ? parseInt(dailyReportFilters.farm_id) : undefined
+          dailyFilters.date,
+          dailyFilters.farm_id ? parseInt(dailyFilters.farm_id) : undefined,
         );
       } else {
         await apiService.reports.downloadDailyReportPDF(
-          dailyReportFilters.date,
-          dailyReportFilters.farm_id ? parseInt(dailyReportFilters.farm_id) : undefined
+          dailyFilters.date,
+          dailyFilters.farm_id ? parseInt(dailyFilters.farm_id) : undefined,
         );
       }
-    } catch (error) {
-      console.error(`Error downloading ${format} report:`, error);
-      alert(`Failed to download ${format.toUpperCase()} report. Please try again.`);
-    }
+    } catch { toast.error(`Failed to download ${format.toUpperCase()} report.`); }
   };
 
+  // ── Weekly ─────────────────────────────────────────────────────────────────
+  const generateWeeklyReport = async () => {
+    if (!weeklyFilters.week_start) { toast.error('Select a week start date.'); return; }
+    try {
+      setLoading(true);
+      const data = await apiService.reports.getWeeklyReport(
+        weeklyFilters.week_start,
+        weeklyFilters.farm_id ? parseInt(weeklyFilters.farm_id) : undefined,
+      );
+      setWeeklyReport(data);
+    } catch {
+      toast.error('Failed to generate weekly report.');
+    } finally { setLoading(false); }
+  };
+
+  const downloadWeekly = async (format: 'excel' | 'pdf') => {
+    if (!weeklyFilters.week_start) { toast.error('Select a week start date.'); return; }
+    try {
+      if (format === 'excel') {
+        await apiService.reports.downloadWeeklyReportExcel(
+          weeklyFilters.week_start,
+          weeklyFilters.farm_id ? parseInt(weeklyFilters.farm_id) : undefined,
+        );
+      } else {
+        await apiService.reports.downloadWeeklyReportPDF(
+          weeklyFilters.week_start,
+          weeklyFilters.farm_id ? parseInt(weeklyFilters.farm_id) : undefined,
+        );
+      }
+    } catch { toast.error(`Failed to download ${format.toUpperCase()} report.`); }
+  };
+
+  // ── Monthly ────────────────────────────────────────────────────────────────
+  const generateMonthlyReport = async () => {
+    if (!monthlyFilters.farm_id) { toast.error('Select a farm.'); return; }
+    try {
+      setLoading(true);
+      const data = await apiService.getMonthlyReport(
+        parseInt(monthlyFilters.farm_id),
+        parseInt(monthlyFilters.year),
+        parseInt(monthlyFilters.month),
+      );
+      setMonthlyReport(data);
+    } catch {
+      toast.error('Failed to generate monthly report.');
+    } finally { setLoading(false); }
+  };
+
+  // ── System-wide ────────────────────────────────────────────────────────────
+  const generateSystemReport = async () => {
+    try {
+      setLoading(true);
+      const data = await apiService.getSystemWideReport();
+      setSystemReport(data);
+    } catch {
+      toast.error('Failed to generate system-wide report.');
+    } finally { setLoading(false); }
+  };
+
+  const MONTHS = [
+    'January','February','March','April','May','June',
+    'July','August','September','October','November','December',
+  ];
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 5 }, (_, i) => String(currentYear - i));
+
+  const inputCls = 'w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-blue-500';
+  const btnBlue  = 'w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-md flex items-center justify-center text-sm gap-2';
+  const btnGreen = 'w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-4 py-2 rounded-md flex items-center justify-center text-sm gap-2';
+
   return (
-    <div className="space-y-6">
-      {/* Daily Report Generator */}
-      <div className="bg-white rounded-lg shadow-md">
+    <div className="space-y-6 p-6">
+
+      {/* ── Daily ── */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-800">Daily Report Generator</h3>
-          <p className="text-sm text-gray-600 mt-1">Generate and print daily activity reports</p>
+          <h3 className="text-base font-semibold text-gray-800">Daily Report</h3>
+          <p className="text-xs text-gray-500 mt-0.5">Activity totals for a single day</p>
         </div>
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Report Date</label>
-              <input
-                type="date"
-                value={dailyReportFilters.date}
-                onChange={(e) => setDailyReportFilters({...dailyReportFilters, date: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
-                max={new Date().toISOString().split('T')[0]}
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+              <input type="date" value={dailyFilters.date}
+                onChange={e => setDailyFilters(p => ({ ...p, date: e.target.value }))}
+                max={new Date().toISOString().split('T')[0]} className={inputCls} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Farm (Optional)</label>
-              <select
-                value={dailyReportFilters.farm_id}
-                onChange={(e) => setDailyReportFilters({...dailyReportFilters, farm_id: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
-              >
+              <label className="block text-sm font-medium text-gray-700 mb-1">Farm (optional)</label>
+              <select value={dailyFilters.farm_id}
+                onChange={e => setDailyFilters(p => ({ ...p, farm_id: e.target.value }))}
+                className={inputCls}>
                 <option value="">All Farms</option>
-                {farms?.map((farm: any) => (
-                  <option key={farm.id} value={farm.id}>{farm.name}</option>
-                ))}
+                {farmList.map((f: any) => <option key={f.id} value={f.id}>{f.name}</option>)}
               </select>
             </div>
             <div className="flex items-end">
-              <button
-                onClick={generateDailyReport}
-                disabled={loading}
-                className="w-full bg-blue-500 hover:bg-blue-700 disabled:bg-blue-300 text-white px-4 py-2 rounded-md flex items-center justify-center"
-              >
-                {loading ? (
-                  <>
-                    <LoadingSpinner size="sm" className="mr-2" />
-                    Generating...
-                  </>
-                ) : (
-                  'Generate Report'
-                )}
+              <button onClick={generateDailyReport} disabled={loading} className={btnBlue}>
+                {loading ? <><LoadingSpinner size="sm" /> Generating…</> : 'Generate'}
               </button>
             </div>
           </div>
+
+          {dailyReport && (
+            <div className="mt-4 space-y-4">
+              <div className="flex gap-2 justify-end">
+                <button onClick={() => window.print()} className="flex items-center gap-1.5 text-xs border border-gray-300 px-3 py-1.5 rounded hover:bg-gray-50">
+                  <Eye className="w-3.5 h-3.5" /> Print
+                </button>
+                <button onClick={() => downloadDaily('excel')} className="flex items-center gap-1.5 text-xs bg-emerald-600 text-white px-3 py-1.5 rounded hover:bg-emerald-700">
+                  <Download className="w-3.5 h-3.5" /> Excel
+                </button>
+                <button onClick={() => downloadDaily('pdf')} className="flex items-center gap-1.5 text-xs bg-red-600 text-white px-3 py-1.5 rounded hover:bg-red-700">
+                  <Download className="w-3.5 h-3.5" /> PDF
+                </button>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { label: 'Payroll',        value: dailyReport.summary?.total_payroll,        count: dailyReport.summary?.payroll_count,        color: 'blue'   },
+                  { label: 'Stock Payments', value: dailyReport.summary?.total_stock_payments,  count: dailyReport.summary?.stock_count,           color: 'green'  },
+                  { label: 'Expenses',       value: dailyReport.summary?.total_expenses,        count: dailyReport.summary?.expense_count,         color: 'red'    },
+                  { label: 'Grand Total',    value: dailyReport.summary?.grand_total,           count: null,                                       color: 'purple' },
+                ].map(s => (
+                  <div key={s.label} className={`bg-${s.color}-50 rounded-lg p-4`}>
+                    <p className={`text-xs font-semibold text-${s.color}-700 mb-1`}>{s.label}</p>
+                    <p className={`text-xl font-bold text-${s.color}-800`}>{Number(s.value ?? 0).toLocaleString()}</p>
+                    {s.count != null && <p className={`text-xs text-${s.color}-600 mt-0.5`}>{s.count} records</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Daily Report Display */}
-      {dailyReport && (
-        <div className="bg-white rounded-lg shadow-md">
-          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-800">Daily Report</h3>
-              <p className="text-sm text-gray-600">
-                {new Date(dailyReportFilters.date).toLocaleDateString()} •
-                Farm: {dailyReportFilters.farm_id ? farms?.find(f => f.id === parseInt(dailyReportFilters.farm_id))?.name : 'All Farms'}
-              </p>
-            </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => window.print()}
-                className="bg-green-500 hover:bg-green-700 text-white px-4 py-2 rounded-md flex items-center"
-              >
-                <Eye className="w-4 h-4 mr-2" />
-                Print Report
-              </button>
-              <button
-                onClick={() => downloadReport('excel')}
-                className="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center"
-              >
-                📊 Excel
-              </button>
-              <button
-                onClick={() => downloadReport('pdf')}
-                className="bg-red-500 hover:bg-red-700 text-white px-4 py-2 rounded-md flex items-center"
-              >
-                📄 PDF
-              </button>
-            </div>
-          </div>
-
-          {/* Summary Cards */}
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h4 className="font-semibold text-blue-800">Payroll</h4>
-                <p className="text-2xl font-bold text-blue-600">{dailyReport.summary.total_payroll.toLocaleString()}</p>
-                <p className="text-sm text-blue-600">{dailyReport.summary.payroll_count} records</p>
-              </div>
-              <div className="bg-green-50 p-4 rounded-lg">
-                <h4 className="font-semibold text-green-800">Stock Payments</h4>
-                <p className="text-2xl font-bold text-green-600">{dailyReport.summary.total_stock_payments.toLocaleString()}</p>
-                <p className="text-sm text-green-600">{dailyReport.summary.stock_count} records</p>
-              </div>
-              <div className="bg-red-50 p-4 rounded-lg">
-                <h4 className="font-semibold text-red-800">Expenses</h4>
-                <p className="text-2xl font-bold text-red-600">{dailyReport.summary.total_expenses.toLocaleString()}</p>
-                <p className="text-sm text-red-600">{dailyReport.summary.expense_count} records</p>
-              </div>
-              <div className="bg-purple-50 p-4 rounded-lg">
-                <h4 className="font-semibold text-purple-800">Grand Total</h4>
-                <p className="text-2xl font-bold text-purple-600">{dailyReport.summary.grand_total.toLocaleString()}</p>
-                <p className="text-sm text-purple-600">{dailyReport.summary.payroll_count + dailyReport.summary.stock_count + dailyReport.summary.expense_count} total records</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Weekly Report Generator */}
-      <div className="bg-white rounded-lg shadow-md">
+      {/* ── Weekly ── */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-800">Weekly Report Generator</h3>
-          <p className="text-sm text-gray-600 mt-1">Generate weekly totals for all farms</p>
+          <h3 className="text-base font-semibold text-gray-800">Weekly Report</h3>
+          <p className="text-xs text-gray-500 mt-0.5">Totals across a 7-day window</p>
         </div>
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Week Start Date</label>
-              <input
-                type="date"
-                value={weeklyReportFilters.week_start}
-                onChange={(e) => setWeeklyReportFilters({...weeklyReportFilters, week_start: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
-                max={new Date().toISOString().split('T')[0]}
-              />
+              <input type="date" value={weeklyFilters.week_start}
+                onChange={e => setWeeklyFilters(p => ({ ...p, week_start: e.target.value }))}
+                max={new Date().toISOString().split('T')[0]} className={inputCls} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Farm (Optional)</label>
-              <select
-                value={weeklyReportFilters.farm_id}
-                onChange={(e) => setWeeklyReportFilters({...weeklyReportFilters, farm_id: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
-              >
+              <label className="block text-sm font-medium text-gray-700 mb-1">Farm (optional)</label>
+              <select value={weeklyFilters.farm_id}
+                onChange={e => setWeeklyFilters(p => ({ ...p, farm_id: e.target.value }))}
+                className={inputCls}>
                 <option value="">All Farms</option>
-                {farms?.map((farm: any) => (
-                  <option key={farm.id} value={farm.id}>{farm.name}</option>
-                ))}
+                {farmList.map((f: any) => <option key={f.id} value={f.id}>{f.name}</option>)}
               </select>
             </div>
             <div className="flex items-end">
-              <button
-                onClick={generateWeeklyReport}
-                disabled={loading}
-                className="w-full bg-green-500 hover:bg-green-700 disabled:bg-green-300 text-white px-4 py-2 rounded-md flex items-center justify-center"
-              >
-                {loading ? (
-                  <>
-                    <LoadingSpinner size="sm" className="mr-2" />
-                    Generating...
-                  </>
-                ) : (
-                  'Generate Weekly Report'
-                )}
+              <button onClick={generateWeeklyReport} disabled={loading} className={btnGreen}>
+                {loading ? <><LoadingSpinner size="sm" /> Generating…</> : 'Generate'}
               </button>
             </div>
           </div>
+
+          {weeklyReport && (
+            <div className="mt-4 flex gap-2 justify-end">
+              <button onClick={() => downloadWeekly('excel')} className="flex items-center gap-1.5 text-xs bg-emerald-600 text-white px-3 py-1.5 rounded hover:bg-emerald-700">
+                <Download className="w-3.5 h-3.5" /> Excel
+              </button>
+              <button onClick={() => downloadWeekly('pdf')} className="flex items-center gap-1.5 text-xs bg-red-600 text-white px-3 py-1.5 rounded hover:bg-red-700">
+                <Download className="w-3.5 h-3.5" /> PDF
+              </button>
+              <p className="text-xs text-green-700 self-center">Report ready — download above</p>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* ── Monthly ── */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-base font-semibold text-gray-800">Monthly Report</h3>
+          <p className="text-xs text-gray-500 mt-0.5">Full month breakdown per farm</p>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Farm *</label>
+              <select value={monthlyFilters.farm_id}
+                onChange={e => setMonthlyFilters(p => ({ ...p, farm_id: e.target.value }))}
+                className={inputCls}>
+                <option value="">Select farm…</option>
+                {farmList.map((f: any) => <option key={f.id} value={f.id}>{f.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
+              <select value={monthlyFilters.year}
+                onChange={e => setMonthlyFilters(p => ({ ...p, year: e.target.value }))}
+                className={inputCls}>
+                {years.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Month</label>
+              <select value={monthlyFilters.month}
+                onChange={e => setMonthlyFilters(p => ({ ...p, month: e.target.value }))}
+                className={inputCls}>
+                {MONTHS.map((m, i) => <option key={i + 1} value={String(i + 1)}>{m}</option>)}
+              </select>
+            </div>
+            <div className="flex items-end">
+              <button onClick={generateMonthlyReport} disabled={loading} className={btnBlue}>
+                {loading ? <><LoadingSpinner size="sm" /> Generating…</> : 'Generate'}
+              </button>
+            </div>
+          </div>
+
+          {monthlyReport && (
+            <div className="mt-4 bg-gray-50 rounded-lg p-4">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Monthly Summary</p>
+              <pre className="text-xs text-gray-700 whitespace-pre-wrap overflow-auto max-h-64">
+                {JSON.stringify(monthlyReport, null, 2)}
+              </pre>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── System-wide ── */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2">
+            <Globe className="w-4 h-4 text-gray-500" /> System-wide Report
+          </h3>
+          <p className="text-xs text-gray-500 mt-0.5">Aggregated totals across all farms</p>
+        </div>
+        <div className="p-6">
+          <button onClick={generateSystemReport} disabled={loading}
+            className="bg-gray-800 hover:bg-gray-900 disabled:opacity-50 text-white px-5 py-2 rounded-md flex items-center gap-2 text-sm">
+            {loading ? <><LoadingSpinner size="sm" /> Generating…</> : <><Globe className="w-3.5 h-3.5" /> Generate System Report</>}
+          </button>
+
+          {systemReport && (
+            <div className="mt-4 bg-gray-50 rounded-lg p-4">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">System Summary</p>
+              <pre className="text-xs text-gray-700 whitespace-pre-wrap overflow-auto max-h-64">
+                {JSON.stringify(systemReport, null, 2)}
+              </pre>
+            </div>
+          )}
+        </div>
+      </div>
+
     </div>
   );
 };

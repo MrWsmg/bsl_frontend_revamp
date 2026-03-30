@@ -25,6 +25,22 @@ export class AnalyticsApiService extends BaseApiService {
     return this.get<any[]>('/budgets', { period });
   }
 
+  async createBudget(data: { farm_id: number; period: string; budget_allocated: number }): Promise<any> {
+    return this.post<any>('/budgets', data);
+  }
+
+  async updateBudget(budgetId: number, data: { budget_allocated: number }): Promise<any> {
+    return this.put<any>(`/budgets/${budgetId}`, data);
+  }
+
+  async getWarnings(params?: Record<string, any>): Promise<any> {
+    return this.get<any>('/warnings', params);
+  }
+
+  async signWarning(warningId: number): Promise<any> {
+    return this.post<any>(`/warnings/${warningId}/sign/manager`, {});
+  }
+
   /**
    * Get daily report data
    */
@@ -80,6 +96,40 @@ export class AnalyticsApiService extends BaseApiService {
    */
   async getGeneralActivities(limit: number = 50): Promise<any[]> {
     return this.get<any[]>('/activities', { limit });
+  }
+
+  // ============ MD-EXCLUSIVE ENDPOINTS ============
+
+  async getMdStrategicExpenditure(params?: Record<string, any>): Promise<any> {
+    return this.get<any>('/md/strategic-financial/expenditure', params);
+  }
+
+  async getMdStrategicCombined(): Promise<any> {
+    return this.get<any>('/md/strategic-financial/combined');
+  }
+
+  async getMdStrategicQuickbooks(): Promise<any> {
+    return this.get<any>('/md/strategic-financial/quickbooks');
+  }
+
+  async getMdPerformanceReview(params?: Record<string, any>): Promise<any> {
+    return this.get<any>('/md/performance-review', params);
+  }
+
+  async postMdFinancialRequest(data: Record<string, any>): Promise<any> {
+    return this.post<any>('/md/financial-request', data);
+  }
+
+  async postMdInitiateReport(data: Record<string, any>): Promise<any> {
+    return this.post<any>('/md/reports/initiate', data);
+  }
+
+  async getMdReports(): Promise<any> {
+    return this.get<any>('/md/reports');
+  }
+
+  async postMdMeeting(data: Record<string, any>): Promise<any> {
+    return this.post<any>('/md/meetings', data);
   }
 
   // ============ LEGACY ALIASES (For backward compatibility) ============

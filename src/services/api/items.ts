@@ -82,7 +82,7 @@ export class ItemsApiService extends BaseApiService {
     requestId: number, 
     receivedStatus: "received" | "not_received"
   ): Promise<ItemRequest> {
-    return this.post<ItemRequest>(`/supervisor/confirm-receipt/${requestId}`, {
+    return this.post<ItemRequest>(`/farm-clerk/confirm-receipt/${requestId}`, {
       received_status: receivedStatus
     });
   }
@@ -112,7 +112,7 @@ export class ItemsApiService extends BaseApiService {
    * Search PriceList by name/code (includes accounting_code)
    */
   async itemLookup(query: string): Promise<any[]> {
-    return this.get<any[]>('/farm-clerk/item-lookup', { q: query });
+    return this.get<any[]>('/farm-clerk/item-lookup', { query });
   }
 
   /**
