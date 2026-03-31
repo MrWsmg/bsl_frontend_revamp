@@ -274,6 +274,14 @@ export class ApiService extends BaseApiService {
     return this.items.issueItemRequest(requestId);
   }
 
+  async confirmIssuance(requestId: number) {
+    return this.items.confirmIssuance(requestId);
+  }
+
+  async uploadDispatchPhoto(requestId: number, file: File) {
+    return this.items.uploadDispatchPhoto(requestId, file);
+  }
+
   async confirmReceipt(requestId: number, receivedStatus: "received" | "not_received") {
     return this.items.confirmReceipt(requestId, receivedStatus);
   }
@@ -667,6 +675,7 @@ export class ApiService extends BaseApiService {
   async approveDeliveryNote(dnId: number) { return this.procurement.approveDeliveryNote(dnId); }
   async dispatchDeliveryNote(dnId: number) { return this.procurement.dispatchDeliveryNote(dnId); }
   async signDeliveryNote(dnId: number, data?: any) { return this.procurement.signDeliveryNote(dnId, data); }
+  async rejectDeliveryNote(dnId: number, reason: string) { return this.procurement.rejectDeliveryNote(dnId, reason); }
   // Gate Pass
   async createGatePass(data: any) { return this.procurement.createGatePass(data); }
   async getGatePasses(filters?: Record<string, any>) { return this.procurement.getGatePasses(filters); }

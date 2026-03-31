@@ -51,7 +51,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) 
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <Leaf className="h-6 w-6" />
               </div>
-              <CardTitle className="text-2xl">BSL Farm Tracking</CardTitle>
+              <CardTitle className="text-2xl">AGENTIC Farm Tracking</CardTitle>
               <CardDescription>
                 Farm Management System - Sign in to continue
               </CardDescription>
@@ -121,7 +121,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) 
             </CardContent>
           </Card>
           <p className="text-center text-xs text-muted-foreground">
-            BSL Farm Tracking System v1.0
+            AGENTIC Farm Tracking System v1.0
           </p>
         </div>
       </div>

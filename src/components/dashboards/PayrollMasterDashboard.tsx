@@ -25,8 +25,8 @@ interface PayrollMasterDashboardProps {
   onLogout: () => void;
 }
 
-// BSL Pending Section Component
-const BSLPendingSection: React.FC = () => {
+// AGENTIC Pending Section Component
+const AGENTICPendingSection: React.FC = () => {
   const [processingId, setProcessingId] = useState<number | null>(null);
   
   const getPendingRecords = useCallback(() => {
@@ -72,7 +72,7 @@ const BSLPendingSection: React.FC = () => {
             </div>
             <div className="ml-3">
               <p className="text-sm text-yellow-700">
-                You have <strong>{pendingRecords.length}</strong> payroll records pending BSL approval.
+                You have <strong>{pendingRecords.length}</strong> payroll records pending AGENTIC approval.
               </p>
             </div>
           </div>
@@ -81,7 +81,7 @@ const BSLPendingSection: React.FC = () => {
 
       {/* Pending Records Table */}
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">BSL Pending Records</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">AGENTIC Pending Records</h3>
         {loading ? (
           <div className="flex justify-center items-center py-12">
             <LoadingSpinner size="lg" />
@@ -172,7 +172,7 @@ const BSLPendingSection: React.FC = () => {
 const TAB_COMPONENTS: Record<string, React.FC> = {
   overview: PayrollOverviewSection,
   records: PayrollRecordsSection,
-  pending: BSLPendingSection,
+  pending: AGENTICPendingSection,
   summary: PayrollSummarySection,
   picking: PayrollPickingSection,
 };
@@ -184,7 +184,7 @@ export const PayrollMasterDashboard: React.FC<PayrollMasterDashboardProps> = ({ 
   const sidebarItems = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
     { id: 'records', label: 'Payroll Records', icon: ClipboardList },
-    { id: 'pending', label: 'BSL Pending', icon: CheckCircle },
+    { id: 'pending', label: 'AGENTIC Pending', icon: CheckCircle },
     { id: 'workers', label: 'Workers', icon: Users },
     { id: 'summary', label: 'Summary', icon: DollarSign },
     { id: 'reports', label: 'Reports', icon: FileText },
@@ -205,7 +205,7 @@ export const PayrollMasterDashboard: React.FC<PayrollMasterDashboardProps> = ({ 
         sidebarItems={sidebarItems}
         activeTab={activeTab}
         onTabChange={handleTabChange}
-        title="BSL Farm Tracking - Payroll Master"
+        title="AGENTIC Farm Tracking - Payroll Master"
       >
         {Object.entries(TAB_COMPONENTS).map(([tabId, Component]) => (
           <div

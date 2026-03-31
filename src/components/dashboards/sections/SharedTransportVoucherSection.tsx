@@ -301,7 +301,7 @@ export const SharedTransportVoucherSection: React.FC<Props> = ({ userRole }) => 
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Origin *</label>
-                  <Input value={form.origin} onChange={e => setForm(f => ({ ...f, origin: e.target.value }))} placeholder="e.g. BSL Main Store" />
+                  <Input value={form.origin} onChange={e => setForm(f => ({ ...f, origin: e.target.value }))} placeholder="e.g. AGENTIC Main Store" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Destination *</label>

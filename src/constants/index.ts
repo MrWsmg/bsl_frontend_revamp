@@ -1,5 +1,5 @@
 // Application constants
-export const API_BASE_URL = 'http://localhost:8000/api';
+export const API_BASE_URL = '/api';
 
 // User roles
 export const USER_ROLES = {

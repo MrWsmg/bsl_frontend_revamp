@@ -42,7 +42,7 @@ export const WorkerDashboard: React.FC<WorkerDashboardProps> = ({ user, onLogout
         sidebarItems={sidebarItems}
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        title="BSL Farm Tracking - Worker"
+        title="AGENTIC Farm Tracking - Worker"
       >
         {renderContent()}
       </Layout>

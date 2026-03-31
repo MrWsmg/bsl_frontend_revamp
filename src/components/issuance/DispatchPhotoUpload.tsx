@@ -4,7 +4,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { Camera, Upload, X, RefreshCw, Check, Loader2, Package, FileImage } from 'lucide-react';
 import { toast } from 'sonner';
 import { useApi } from '@/hooks';
-import apiService from '@/api';
+import apiService from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -37,7 +37,7 @@ export const DispatchPhotoUpload: React.FC<DispatchPhotoUploadProps> = ({ onUplo
   const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const getPendingIssuances = useCallback(() => apiService.getPendingIssuances(), []);
+  const getPendingIssuances = useCallback(() => apiService.getPendingIssuances() as unknown as Promise<PendingIssuance[]>, []);
   const { data: issuances, loading, refetch } = useApi<PendingIssuance[]>(getPendingIssuances);
 
   // Filter to only show confirmed issuances (ready for dispatch photo)

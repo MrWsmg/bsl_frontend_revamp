@@ -10,7 +10,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "BSL Farm Management",
+  title: "AGENTIC Farm Management",
   description: "Farm tracking and management system",
 };
 

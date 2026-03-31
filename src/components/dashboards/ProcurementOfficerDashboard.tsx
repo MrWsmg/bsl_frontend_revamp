@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProcurementSmrSection } from './sections/ProcurementSmrSection';
-import { ProcurementLpoSection } from './sections/ProcurementLpoSection';
+import { SharedLpoSection } from './sections/SharedLpoSection';
 import { ProcurementGrnSection } from './sections/ProcurementGrnSection';
 import { ProcurementStoreSection } from './sections/ProcurementStoreSection';
 import { ProcurementSuppliersSection } from './sections/ProcurementSuppliersSection';
@@ -61,16 +61,6 @@ const WORKFLOW_STEPS = [
 
 export const ProcurementOfficerDashboard: React.FC<Props> = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
-  const [lpoSmrId, setLpoSmrId] = useState<number | undefined>(undefined);
-  const [lpoSmrNumber, setLpoSmrNumber] = useState<string | undefined>(undefined);
-  const [lpoSmrItems, setLpoSmrItems] = useState<any[]>([]);
-
-  const handleCreateLpo = (smrId: number, smrNumber: string, smrItems: any[]) => {
-    setLpoSmrId(smrId);
-    setLpoSmrNumber(smrNumber);
-    setLpoSmrItems(smrItems);
-    setActiveTab('lpo' as Tab);
-  };
 
   return (
     <ErrorBoundary>
@@ -85,8 +75,8 @@ export const ProcurementOfficerDashboard: React.FC<Props> = ({ user, onLogout })
         <div className="p-6 space-y-6">
           {activeTab === 'overview'   && <OverviewSection onNavigate={setActiveTab} />}
           {activeTab === 'suppliers'  && <ProcurementSuppliersSection />}
-          {activeTab === 'smr'        && <ProcurementSmrSection onCreateLpo={handleCreateLpo} />}
-          {activeTab === 'lpo'        && <ProcurementLpoSection initialSmrId={lpoSmrId} initialSmrNumber={lpoSmrNumber} initialSmrItems={lpoSmrItems} onSmrConsumed={() => { setLpoSmrId(undefined); setLpoSmrNumber(undefined); setLpoSmrItems([]); }} />}
+          {activeTab === 'smr'        && <ProcurementSmrSection />}
+          {activeTab === 'lpo'        && <SharedLpoSection userRole="procurement_officer" />}
           {activeTab === 'grn'        && <ProcurementGrnSection />}
           {activeTab === 'store'      && <ProcurementStoreSection />}
           {activeTab === 'transfers'  && <SharedTransferSection userRole="procurement_officer" />}

@@ -4,7 +4,7 @@ import React, { useState, useCallback } from 'react';
 import { Search, RefreshCw, UserCheck, UserX, Clock, Calendar, Filter, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useApi } from '@/hooks';
-import apiService from '@/api';
+import apiService from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';

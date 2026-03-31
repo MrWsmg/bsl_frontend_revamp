@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Search, User, Check } from 'lucide-react';
 import { useApi } from '@/hooks';
-import apiService from '@/api';
+import apiService from '@/services/api';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';

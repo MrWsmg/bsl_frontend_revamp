@@ -76,10 +76,24 @@ export class ItemsApiService extends BaseApiService {
   }
 
   /**
+   * Confirm issuance
+   */
+  async confirmIssuance(requestId: number): Promise<any> {
+    return this.post<any>(`/farm-clerk/confirm-issuance/${requestId}`);
+  }
+
+  /**
+   * Upload dispatch photo
+   */
+  async uploadDispatchPhoto(requestId: number, file: File): Promise<{ photo_url: string }> {
+    return this.uploadFile<{ photo_url: string }>(`/farm-clerk/issuances/${requestId}/dispatch-photo`, file, 'photo');
+  }
+
+  /**
    * Confirm receipt
    */
   async confirmReceipt(
-    requestId: number, 
+    requestId: number,
     receivedStatus: "received" | "not_received"
   ): Promise<ItemRequest> {
     return this.post<ItemRequest>(`/farm-clerk/confirm-receipt/${requestId}`, {

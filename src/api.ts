@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = '/api';
 
 interface ApiService {
   login(credentials: { username: string; password: string }): Promise<any>;
@@ -254,7 +254,7 @@ class ApiServiceImpl implements ApiService {
           await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
           return this.request(endpoint, options, retryCount + 1);
         }
-        throw new Error(`API Error: ${response.status}`);
+        throw new Error(`API Error: ${response.status} on ${url}`);
       }
       return response.json();
     } catch (error) {

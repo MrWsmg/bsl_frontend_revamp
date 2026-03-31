@@ -42,7 +42,7 @@ export const AccountManagerDashboard: React.FC<AccountManagerDashboardProps> = (
         sidebarItems={sidebarItems}
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        title="BSL Farm Tracking - Account Manager"
+        title="AGENTIC Farm Tracking - Account Manager"
       >
         {renderContent()}
       </Layout>

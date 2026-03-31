@@ -64,9 +64,9 @@ export class PayrollApiService extends BaseApiService {
     return this.get<PayrollRecord[]>('/payroll/payroll/pending', params);
   }
 
-  /**
-   * Get BSL pending payroll records
-   */
+   /**
+    * Get AGENTIC pending payroll records
+    */
   async getBslPendingPayrollRecords(params?: { 
     farm_id?: number; 
     start_date?: string; 

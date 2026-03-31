@@ -16,7 +16,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ 
   user, 
   onLogout, 
-  title = "BSL Farm Tracking",
+  title = "AGENTIC Farm Tracking",
   onMenuClick 
 }) => {
   const [showPhotoModal, setShowPhotoModal] = useState(false);

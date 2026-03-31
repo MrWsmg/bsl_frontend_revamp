@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/:path*",
-        destination: "https://bsl-api.fyatua.online/api/:path*",
+        destination: "http://localhost:8000/api/:path*", // Proxy to Backend
       },
     ];
   },

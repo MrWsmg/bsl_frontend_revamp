@@ -48,7 +48,7 @@ export const StockDashboard: React.FC<StockDashboardProps> = ({ user, onLogout }
         sidebarItems={sidebarItems}
         activeTab={activeTab}
         onTabChange={handleTabChange}
-        title="BSL Farm Tracking - Stock"
+        title="AGENTIC Farm Tracking - Stock"
       >
         {Object.entries(TAB_COMPONENTS).map(([tabId, Component]) => (
           <div key={tabId} className={activeTab === tabId ? '' : 'hidden'}>

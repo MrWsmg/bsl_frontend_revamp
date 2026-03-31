@@ -51,7 +51,7 @@ const ROLE_OPTIONS = [
   { value: 'account_manager', label: 'Account Manager' },
   { value: 'financial_controller', label: 'Financial Controller' },
   { value: 'payroll_master', label: 'Payroll Master' },
-  { value: 'payroll', label: 'Payroll (BSL Auditor)' },
+  { value: 'payroll', label: 'Payroll (AGENTIC Auditor)' },
   { value: 'stock', label: 'Stock' },
   { value: 'farm_clerk', label: 'Farm Clerk' },
   { value: 'procurement_officer', label: 'Procurement Officer' },

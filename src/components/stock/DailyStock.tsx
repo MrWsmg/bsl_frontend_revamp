@@ -3,7 +3,7 @@
 import React, { useState, useCallback } from 'react';
 import { Package, Search, RefreshCw, TrendingUp, TrendingDown } from 'lucide-react';
 import { useApi } from '@/hooks';
-import apiService from '@/api';
+import apiService from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';

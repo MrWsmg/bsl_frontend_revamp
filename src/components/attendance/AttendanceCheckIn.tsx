@@ -3,7 +3,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Camera, User, UserCheck, Clock, Loader2, Check, X, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
-import apiService from '@/api';
+import apiService from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

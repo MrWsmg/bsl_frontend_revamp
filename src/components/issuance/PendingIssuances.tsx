@@ -4,7 +4,7 @@ import React, { useState, useCallback } from 'react';
 import { Package, RefreshCw, Search, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 import { useApi } from '@/hooks';
-import apiService from '@/api';
+import apiService from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -32,7 +32,7 @@ export const PendingIssuances: React.FC<PendingIssuancesProps> = ({ farms, isSup
   const [preparingId, setPreparingId] = useState<number | null>(null);
   const [confirmingId, setConfirmingId] = useState<number | null>(null);
 
-  const getPendingIssuances = useCallback(() => apiService.getPendingIssuances(), []);
+  const getPendingIssuances = useCallback(() => apiService.getPendingIssuances() as unknown as Promise<PendingIssuance[]>, []);
   const { data: issuances, loading, error, refetch } = useApi<PendingIssuance[]>(getPendingIssuances);
 
   const filteredIssuances = (issuances || []).filter((issuance) => {
