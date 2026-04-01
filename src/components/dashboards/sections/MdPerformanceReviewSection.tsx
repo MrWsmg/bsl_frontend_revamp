@@ -97,7 +97,7 @@ export const MdPerformanceReviewSection: React.FC = () => {
               >
                 <option value="">All farms</option>
                 {farmList.map((f: any) => (
-                  <option key={f.id} value={f.id}>{f.name}</option>
+                  <option key={f.id ?? f.farm_id} value={f.id ?? f.farm_id}>{f.name}</option>
                 ))}
               </select>
             </div>

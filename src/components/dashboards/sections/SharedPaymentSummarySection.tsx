@@ -75,7 +75,7 @@ export const SharedPaymentSummarySection: React.FC = () => {
               className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
             >
               <option value="">{farmsLoaded ? 'Select farm…' : 'Loading…'}</option>
-              {farms.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+              {farms.map((f) => { const fid = f.id ?? f.farm_id; return <option key={fid} value={fid}>{f.name}</option>; })}
             </select>
           </div>
           <div>

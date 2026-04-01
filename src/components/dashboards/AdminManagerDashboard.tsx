@@ -7,12 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Building2, Users, DollarSign, CheckCircle2, Calendar, CalendarDays, LucideIcon, TrendingUp, TrendingDown, ChevronLeft, ChevronRight, Plus, CalendarRange, Bell, Clock, X, FileText, TrendingUp as TrendUp, BarChart3, ClipboardList, ShoppingCart, Package, Truck, ArrowLeftRight, BookOpen, CreditCard, Receipt, UserCog, LogOut, LayoutDashboard, ChevronDown, ChevronUp } from "lucide-react";
+import { Building2, Users, DollarSign, Calendar, CalendarDays, LucideIcon, TrendingUp, ChevronLeft, ChevronRight, Bell, FileText, TrendingUp as TrendUp, BarChart3, ClipboardList, ShoppingCart, Package, Truck, ArrowLeftRight, BookOpen, CreditCard, Receipt, UserCog, LayoutDashboard, ShieldCheck } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine, LineChart, Line, PieChart, Pie, Cell, AreaChart, Area } from "recharts";
+import { Layout } from '../layout/Layout';
+import { ErrorBoundary } from '../common/ErrorBoundary';
+import { User } from '../../types';
 import {
   MdStrategicFinancialSection,
   MdPerformanceReviewSection,
@@ -32,8 +31,8 @@ import {
   SharedPayslipSection,
   SharedCalendarSection,
   UsersSection,
-  AdminAuditLogsSection,
   ActivitiesSection,
+  AdminAuditLogsSection,
 } from './sections';
 
 // ============ METRIC CARD COMPONENT ============
@@ -161,60 +160,32 @@ const BudgetCard = ({ farmName, budgetAllocated, budgetSpent, period }: BudgetCa
 interface FarmCardProps {
   name: string;
   location: string;
-  activeWorkers: number;
-  productivity: string;
-  status: "active" | "inactive";
-  budgetUsed: number;
-  budgetStatus: "on-budget" | "near-limit" | "over-budget";
+  crops?: string;
+  total_area?: number;
 }
 
-const FarmCard = ({ name, location, activeWorkers, productivity, status, budgetUsed, budgetStatus }: FarmCardProps) => {
-  const statusColor = status === "active" ? "bg-success" : "bg-muted";
-  const budgetBorderColor =
-    budgetStatus === "over-budget" ? "border-destructive" :
-    budgetStatus === "near-limit" ? "border-warning" :
-    "border-success";
-  const budgetBarColor =
-    budgetStatus === "over-budget" ? "bg-destructive" :
-    budgetStatus === "near-limit" ? "bg-warning" :
-    "bg-success";
-
-  return (
-    <Card className={`border-2 ${budgetBorderColor} transition-all hover:shadow-lg`}>
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div>
-            <CardTitle className="text-lg">{name}</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">{location}</p>
-          </div>
-          <div className={`h-3 w-3 rounded-full ${statusColor}`} />
+const FarmCard = ({ name, location, crops, total_area }: FarmCardProps) => (
+  <Card className="transition-all hover:shadow-lg">
+    <CardHeader className="pb-3">
+      <CardTitle className="text-lg">{name}</CardTitle>
+      {location && <p className="text-sm text-muted-foreground mt-1">{location}</p>}
+    </CardHeader>
+    <CardContent className="space-y-2 text-sm">
+      {crops && (
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Crops</span>
+          <span className="font-medium">{crops}</span>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <p className="text-muted-foreground">Workers</p>
-            <p className="font-semibold text-lg">{activeWorkers}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">Productivity</p>
-            <p className="font-semibold text-lg text-success">{productivity}</p>
-          </div>
+      )}
+      {total_area != null && (
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Total Area</span>
+          <span className="font-medium">{total_area} ha</span>
         </div>
-
-        <div className="space-y-1">
-          <div className="flex justify-between text-xs">
-            <span className="text-muted-foreground">Budget Used</span>
-            <span className="font-medium">{budgetUsed}%</span>
-          </div>
-          <Progress value={budgetUsed} className="h-2">
-            <div className={`h-full ${budgetBarColor} transition-all`} style={{ width: `${Math.min(budgetUsed, 100)}%` }} />
-          </Progress>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
+      )}
+    </CardContent>
+  </Card>
+);
 
 // ============ BUDGET OVERVIEW CHART ============
 const BudgetOverviewChart = ({ period, weeklyBudgets, yearlyBudgets }: { period: "weekly" | "yearly", weeklyBudgets: any[], yearlyBudgets: any[] }) => {
@@ -442,880 +413,6 @@ const ActivityTable = ({ activities }: { activities: any[] }) => (
   </Card>
 );
 
-// ============ WEEKLY ACTIVITIES CALENDAR ============
-const WeeklyCalendar = () => {
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedFilters, setSelectedFilters] = useState<string[]>(['all']);
-  const [calendarView, setCalendarView] = useState<'weekly' | 'monthly' | 'yearly'>('weekly');
-  const [isAddEventOpen, setIsAddEventOpen] = useState(false);
-  const [selectedEventDetails, setSelectedEventDetails] = useState<any>(null);
-  const [isEventDetailsOpen, setIsEventDetailsOpen] = useState(false);
-  const [isEditEventOpen, setIsEditEventOpen] = useState(false);
-  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-  const [activities, setActivities] = useState<any[]>([]);
-  const [newEvent, setNewEvent] = useState({
-    title: '',
-    type: 'payroll',
-    farm: 'Farm A',
-    date: '',
-    startTime: '09:00',
-    duration: '1',
-    reminder: 'none',
-    description: '',
-  });
-  const [editingEvent, setEditingEvent] = useState<any>(null);
-
-  const activityTypes = [
-    { id: 'all', label: 'All Activities', color: 'hsl(var(--primary))' },
-    { id: 'payroll', label: 'Payroll', color: 'hsl(142 76% 36%)' },
-    { id: 'stock', label: 'Stock', color: 'hsl(221 83% 53%)' },
-    { id: 'expenses', label: 'Expenses', color: 'hsl(0 84% 60%)' },
-    { id: 'inventory', label: 'Inventory', color: 'hsl(45 93% 47%)' },
-  ];
-
-  const getWeekDays = (date: Date) => {
-    const week = [];
-    const current = new Date(date);
-    current.setDate(current.getDate() - current.getDay());
-
-    for (let i = 0; i < 7; i++) {
-      week.push(new Date(current));
-      current.setDate(current.getDate() + 1);
-    }
-    return week;
-  };
-
-  const weekDays = getWeekDays(selectedDate);
-  const timeSlots = Array.from({ length: 13 }, (_, i) => i + 7); // 7 AM to 7 PM
-
-  const filteredActivities = selectedFilters.includes('all')
-    ? activities
-    : activities.filter(a => selectedFilters.includes(a.type));
-
-  const getActivityColor = (type: string) => {
-    return activityTypes.find(t => t.id === type)?.color || 'hsl(var(--primary))';
-  };
-
-  const toggleFilter = (filterId: string) => {
-    if (filterId === 'all') {
-      setSelectedFilters(['all']);
-    } else {
-      const newFilters = selectedFilters.includes(filterId)
-        ? selectedFilters.filter(f => f !== filterId)
-        : [...selectedFilters.filter(f => f !== 'all'), filterId];
-      setSelectedFilters(newFilters.length === 0 ? ['all'] : newFilters);
-    }
-  };
-
-  const handleAddEvent = () => {
-    const eventDate = new Date(newEvent.date);
-    const dayOfWeek = eventDate.getDay();
-    const [hours, minutes] = newEvent.startTime.split(':').map(Number);
-    const startHour = hours + minutes / 60;
-
-    const newActivity = {
-      id: Date.now(),
-      type: newEvent.type,
-      title: newEvent.title,
-      day: dayOfWeek,
-      startHour: startHour,
-      duration: parseFloat(newEvent.duration),
-      farm: newEvent.farm,
-      reminder: newEvent.reminder,
-      description: newEvent.description,
-    };
-
-    setActivities(prev => [...prev, newActivity]);
-    setIsAddEventOpen(false);
-    // Reset form
-    setNewEvent({
-      title: '',
-      type: 'payroll',
-      farm: 'Farm A',
-      date: '',
-      startTime: '09:00',
-      duration: '1',
-      reminder: 'none',
-      description: '',
-    });
-  };
-
-  const handleEditEvent = () => {
-    if (!editingEvent) return;
-
-    const eventDate = new Date(newEvent.date);
-    const dayOfWeek = eventDate.getDay();
-    const [hours, minutes] = newEvent.startTime.split(':').map(Number);
-    const startHour = hours + minutes / 60;
-
-    const updatedActivity = {
-      ...editingEvent,
-      type: newEvent.type,
-      title: newEvent.title,
-      day: dayOfWeek,
-      startHour: startHour,
-      duration: parseFloat(newEvent.duration),
-      farm: newEvent.farm,
-      reminder: newEvent.reminder,
-      description: newEvent.description,
-    };
-
-    setActivities(prev => prev.map(activity =>
-      activity.id === editingEvent.id ? updatedActivity : activity
-    ));
-    setIsEditEventOpen(false);
-    setEditingEvent(null);
-    // Reset form
-    setNewEvent({
-      title: '',
-      type: 'payroll',
-      farm: 'Farm A',
-      date: '',
-      startTime: '09:00',
-      duration: '1',
-      reminder: 'none',
-      description: '',
-    });
-  };
-
-  const handleDeleteEvent = () => {
-    if (!selectedEventDetails) return;
-    setActivities(prev => prev.filter(activity => activity.id !== selectedEventDetails.id));
-    setIsDeleteConfirmOpen(false);
-    setIsEventDetailsOpen(false);
-    setSelectedEventDetails(null);
-  };
-
-  const openEditDialog = (activity: any) => {
-    setEditingEvent(activity);
-    setNewEvent({
-      title: activity.title,
-      type: activity.type,
-      farm: activity.farm,
-      date: '', // Would need to calculate from day/startHour
-      startTime: `${Math.floor(activity.startHour).toString().padStart(2, '0')}:${((activity.startHour % 1) * 60).toString().padStart(2, '0')}`,
-      duration: activity.duration.toString(),
-      reminder: activity.reminder,
-      description: activity.description,
-    });
-    setIsEditEventOpen(true);
-    setIsEventDetailsOpen(false);
-  };
-
-  const handleEventClick = (activity: any) => {
-    setSelectedEventDetails(activity);
-    setIsEventDetailsOpen(true);
-  };
-
-  const getReminderLabel = (reminder: string) => {
-    const labels: Record<string, string> = {
-      'none': 'No reminder',
-      '1day': '1 day before',
-      '3days': '3 days before',
-      '30days': '30 days before',
-      'daily30': 'Daily for 30 days before',
-    };
-    return labels[reminder] || 'No reminder';
-  };
-
-  const getMonthDays = (date: Date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
-    const startingDayOfWeek = firstDay.getDay();
-
-    const days = [];
-    // Add empty cells for days before month starts
-    for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(null);
-    }
-    // Add all days of the month
-    for (let i = 1; i <= daysInMonth; i++) {
-      days.push(new Date(year, month, i));
-    }
-    return days;
-  };
-
-  const getYearMonths = (date: Date) => {
-    const year = date.getFullYear();
-    const months = [];
-    for (let i = 0; i < 12; i++) {
-      months.push(new Date(year, i, 1));
-    }
-    return months;
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h3 className="text-xl sm:text-2xl font-bold text-foreground">Farm Activities Calendar</h3>
-          <p className="text-sm text-muted-foreground">View and track all farm activities</p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Calendar View Toggle */}
-          <div className="inline-flex rounded-lg border border-border bg-muted/50 p-1">
-            <Button
-              variant={calendarView === "weekly" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setCalendarView("weekly")}
-              className="gap-2"
-            >
-              <Calendar className="h-4 w-4" />
-              Weekly
-            </Button>
-            <Button
-              variant={calendarView === "monthly" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setCalendarView("monthly")}
-              className="gap-2"
-            >
-              <CalendarDays className="h-4 w-4" />
-              Monthly
-            </Button>
-            <Button
-              variant={calendarView === "yearly" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setCalendarView("yearly")}
-              className="gap-2"
-            >
-              <CalendarRange className="h-4 w-4" />
-              Yearly
-            </Button>
-          </div>
-
-          {/* Add Event Dialog */}
-          <Dialog open={isAddEventOpen} onOpenChange={setIsAddEventOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2 min-h-[44px] px-4 py-2">
-                <Plus className="h-4 w-4" />
-                Add Event
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-[95vw] sm:max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Add New Event</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Event Title</Label>
-                  <Input
-                    id="title"
-                    value={newEvent.title}
-                    onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
-                    placeholder="e.g., Payroll Entry"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="type">Event Type</Label>
-                  <Select value={newEvent.type} onValueChange={(value: string) => setNewEvent({ ...newEvent, type: value })}>
-                    <SelectTrigger id="type">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="payroll">Payroll</SelectItem>
-                      <SelectItem value="stock">Stock</SelectItem>
-                      <SelectItem value="expenses">Expenses</SelectItem>
-                      <SelectItem value="inventory">Inventory</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="farm">Farm</Label>
-                  <Select value={newEvent.farm} onValueChange={(value: string) => setNewEvent({ ...newEvent, farm: value })}>
-                    <SelectTrigger id="farm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Farm A">Farm Alpha</SelectItem>
-                      <SelectItem value="Farm B">Farm Beta</SelectItem>
-                      <SelectItem value="Farm C">Farm Gamma</SelectItem>
-                      <SelectItem value="Farm D">Farm Delta</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="date">Date</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={newEvent.date}
-                    onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="startTime">Start Time</Label>
-                    <Input
-                      id="startTime"
-                      type="time"
-                      value={newEvent.startTime}
-                      onChange={(e) => setNewEvent({ ...newEvent, startTime: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="duration">Duration (hours)</Label>
-                    <Input
-                      id="duration"
-                      type="number"
-                      min="0.5"
-                      step="0.5"
-                      value={newEvent.duration}
-                      onChange={(e) => setNewEvent({ ...newEvent, duration: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Input
-                    id="description"
-                    value={newEvent.description}
-                    onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
-                    placeholder="Event description"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="reminder" className="flex items-center gap-2">
-                    <Bell className="h-4 w-4" />
-                    Set Reminder
-                  </Label>
-                  <Select value={newEvent.reminder} onValueChange={(value: string) => setNewEvent({ ...newEvent, reminder: value })}>
-                    <SelectTrigger id="reminder">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No reminder</SelectItem>
-                      <SelectItem value="1day">Remind me 1 day before</SelectItem>
-                      <SelectItem value="3days">Remind me 3 days before</SelectItem>
-                      <SelectItem value="30days">Remind me 30 days before</SelectItem>
-                      <SelectItem value="daily30">Everyday for 30 days before</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button onClick={handleAddEvent} className="w-full">
-                  Add Event
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
-
-      {/* Navigation Controls */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            className="min-h-[44px] min-w-[44px]"
-            onClick={() => {
-              const newDate = new Date(selectedDate);
-              if (calendarView === 'weekly') newDate.setDate(newDate.getDate() - 7);
-              else if (calendarView === 'monthly') newDate.setMonth(newDate.getMonth() - 1);
-              else newDate.setFullYear(newDate.getFullYear() - 1);
-              setSelectedDate(newDate);
-            }}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm font-medium px-4">
-            {calendarView === 'weekly' && `${weekDays[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekDays[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`}
-            {calendarView === 'monthly' && selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-            {calendarView === 'yearly' && selectedDate.getFullYear()}
-          </span>
-          <Button
-            variant="outline"
-            size="icon"
-            className="min-h-[44px] min-w-[44px]"
-            onClick={() => {
-              const newDate = new Date(selectedDate);
-              if (calendarView === 'weekly') newDate.setDate(newDate.getDate() + 7);
-              else if (calendarView === 'monthly') newDate.setMonth(newDate.getMonth() + 1);
-              else newDate.setFullYear(newDate.getFullYear() + 1);
-              setSelectedDate(newDate);
-            }}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setSelectedDate(new Date())}
-          >
-            Today
-          </Button>
-        </div>
-      </div>
-
-      {/* Activity Type Filters */}
-      <div className="flex flex-wrap gap-2">
-        {activityTypes.map((type) => (
-          <Button
-            key={type.id}
-            variant={selectedFilters.includes(type.id) ? "default" : "outline"}
-            size="sm"
-            onClick={() => toggleFilter(type.id)}
-            className="gap-2"
-          >
-            <div
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: type.color }}
-            />
-            {type.label}
-          </Button>
-        ))}
-      </div>
-
-      {/* Weekly View */}
-      {calendarView === 'weekly' && (
-        <>
-          <Card className="border-border/50 overflow-hidden">
-            <div className="overflow-x-auto">
-              <div className="min-w-[800px]">
-                <div className="grid grid-cols-8 border-b border-border/50">
-              <div className="p-4 bg-muted/30 border-r border-border/50">
-                <span className="text-xs font-medium text-muted-foreground">Time</span>
-              </div>
-              {weekDays.map((day, idx) => {
-                const isToday = day.toDateString() === new Date().toDateString();
-                return (
-                  <div
-                    key={idx}
-                    className={`p-4 text-center border-r border-border/50 ${isToday ? 'bg-primary/5' : ''}`}
-                  >
-                    <div className="text-xs text-muted-foreground uppercase">
-                      {day.toLocaleDateString('en-US', { weekday: 'short' })}
-                    </div>
-                    <div className={`text-lg font-semibold mt-1 ${isToday ? 'text-primary' : 'text-foreground'}`}>
-                      {day.getDate()}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-                <div className="relative">
-                  {timeSlots.map((hour) => (
-                    <div key={hour} className="grid grid-cols-8 border-b border-border/20 min-h-[60px]">
-                      <div className="p-2 text-xs text-muted-foreground border-r border-border/50 bg-muted/10">
-                        {hour.toString().padStart(2, '0')}:00
-                      </div>
-                      {weekDays.map((_, dayIdx) => (
-                        <div
-                          key={dayIdx}
-                          className="border-r border-border/20 relative"
-                        />
-                      ))}
-                    </div>
-                  ))}
-
-                  {/* Activity Blocks */}
-                  <div className="absolute inset-0 pointer-events-none">
-                    {filteredActivities.map((activity) => {
-                  const top = ((activity.startHour - 7) * 60) + 40;
-                  const height = activity.duration * 60;
-                  const left = `${(activity.day / 7) * 100}%`;
-
-                  return (
-                    <div
-                      key={activity.id}
-                      className="absolute pointer-events-auto"
-                      style={{
-                        top: `${top}px`,
-                        left: `calc(${left} + 4px)`,
-                        width: 'calc(14.28% - 8px)',
-                        height: `${height}px`,
-                      }}
-                      onClick={() => handleEventClick(activity)}
-                    >
-                      <div
-                        className={`h-full rounded-md p-2 overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer border-l-4`}
-                        style={{
-                          backgroundColor: `${getActivityColor(activity.type)}15`,
-                          borderLeftColor: getActivityColor(activity.type),
-                        }}
-                      >
-                        <div className="text-xs font-medium text-foreground truncate">
-                          {activity.title}
-                        </div>
-                        <div className="text-xs text-muted-foreground truncate mt-1">
-                          {activity.farm}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {activity.startHour.toString().padStart(2, '0')}:00 - {(activity.startHour + activity.duration).toFixed(0).padStart(2, '0')}:00
-                        </div>
-                        {activity.reminder !== 'none' && (
-                          <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                            <Bell className="h-3 w-3" />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Card>
-      </>
-    )}
-
-      {/* Monthly View */}
-      {calendarView === 'monthly' && (
-        <Card className="border-border/50 overflow-hidden p-4">
-          <div className="overflow-x-auto">
-            <div className="min-w-[400px]">
-              <div className="grid grid-cols-7 gap-2 mb-2">
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-                  <div key={day} className="text-center text-xs font-medium text-muted-foreground p-2">
-                    {day}
-                  </div>
-                ))}
-              </div>
-              <div className="grid grid-cols-7 gap-2">
-                {getMonthDays(selectedDate).map((day, idx) => {
-                  const isToday = day && day.toDateString() === new Date().toDateString();
-                  const dayActivities = day ? activities.filter(a => a.day === day.getDay()) : [];
-
-                  return (
-                    <div
-                      key={idx}
-                      className={`min-h-[100px] border border-border/50 rounded-lg p-2 ${day ? 'bg-card hover:bg-muted/50 cursor-pointer' : 'bg-muted/20'} ${isToday ? 'border-primary border-2' : ''}`}
-                      onClick={() => {
-                        if (day && dayActivities.length > 0) {
-                          handleEventClick(dayActivities[0]);
-                        }
-                      }}
-                    >
-                      {day && (
-                        <>
-                          <div className={`text-sm font-medium mb-1 ${isToday ? 'text-primary' : 'text-foreground'}`}>
-                            {day.getDate()}
-                          </div>
-                          <div className="space-y-1">
-                            {dayActivities.slice(0, 2).map((activity) => (
-                              <div
-                                key={activity.id}
-                                className="text-xs p-1 rounded truncate cursor-pointer hover:opacity-80"
-                                style={{
-                                  backgroundColor: `${getActivityColor(activity.type)}15`,
-                                  borderLeft: `2px solid ${getActivityColor(activity.type)}`,
-                                }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleEventClick(activity);
-                                }}
-                              >
-                                {activity.title}
-                              </div>
-                            ))}
-                            {dayActivities.length > 2 && (
-                              <div className="text-xs text-muted-foreground">
-                                +{dayActivities.length - 2} more
-                              </div>
-                            )}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Yearly View */}
-      {calendarView === 'yearly' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {getYearMonths(selectedDate).map((month, monthIdx) => {
-            const monthActivities = activities.filter(() => Math.random() > 0.7);
-
-            return (
-              <Card key={monthIdx} className="p-4 border-border/50">
-                <div className="text-sm font-semibold mb-3 text-center">
-                  {month.toLocaleDateString('en-US', { month: 'long' })}
-                </div>
-                <div className="grid grid-cols-7 gap-1">
-                  {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, idx) => (
-                    <div key={idx} className="text-[10px] text-center text-muted-foreground">
-                      {day}
-                    </div>
-                  ))}
-                  {getMonthDays(month).map((day, dayIdx) => {
-                    const hasActivities = day && monthActivities.length > 0;
-
-                    return (
-                      <div
-                        key={dayIdx}
-                        className={`text-[10px] text-center p-1 rounded ${day ? 'hover:bg-muted/50 cursor-pointer' : ''} ${hasActivities ? 'bg-primary/10 font-semibold' : ''}`}
-                      >
-                        {day ? day.getDate() : ''}
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="mt-2 text-xs text-center text-muted-foreground">
-                  {monthActivities.length} events
-                </div>
-              </Card>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Event Details Dialog */}
-      <Dialog open={isEventDetailsOpen} onOpenChange={setIsEventDetailsOpen}>
-        <DialogContent className="max-w-[95vw] sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <span>Event Details</span>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsEventDetailsOpen(false)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </DialogTitle>
-          </DialogHeader>
-          {selectedEventDetails && (
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-4 h-4 rounded"
-                    style={{
-                      backgroundColor: getActivityColor(selectedEventDetails.type),
-                    }}
-                  />
-                  <h3 className="text-lg font-semibold">{selectedEventDetails.title}</h3>
-                </div>
-                <Badge variant="outline">{selectedEventDetails.type}</Badge>
-              </div>
-
-              <div className="space-y-3 border-t pt-4">
-                <div className="flex items-start gap-3">
-                  <Building2 className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium">Farm</p>
-                    <p className="text-sm text-muted-foreground">{selectedEventDetails.farm}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <Clock className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium">Time</p>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedEventDetails.startHour.toString().padStart(2, '0')}:00 - {(selectedEventDetails.startHour + selectedEventDetails.duration).toFixed(0).padStart(2, '0')}:00
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Duration: {selectedEventDetails.duration} hour{selectedEventDetails.duration !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <Bell className="h-5 w-5 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium">Reminder</p>
-                    <p className="text-sm text-muted-foreground">
-                      {getReminderLabel(selectedEventDetails.reminder)}
-                    </p>
-                  </div>
-                </div>
-
-                {selectedEventDetails.description && (
-                  <div className="flex items-start gap-3">
-                    <FileText className="h-5 w-5 text-muted-foreground mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium">Description</p>
-                      <p className="text-sm text-muted-foreground">
-                        {selectedEventDetails.description}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex gap-2 pt-4 border-t">
-                <Button variant="outline" className="flex-1" onClick={() => openEditDialog(selectedEventDetails)}>
-                  Edit Event
-                </Button>
-                <Button variant="destructive" className="flex-1" onClick={() => setIsDeleteConfirmOpen(true)}>
-                  Delete Event
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Event Dialog */}
-      <Dialog open={isEditEventOpen} onOpenChange={setIsEditEventOpen}>
-        <DialogContent className="max-w-[95vw] sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Edit Event</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-title">Event Title</Label>
-              <Input
-                id="edit-title"
-                value={newEvent.title}
-                onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
-                placeholder="e.g., Payroll Entry"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-type">Event Type</Label>
-              <Select value={newEvent.type} onValueChange={(value: string) => setNewEvent({ ...newEvent, type: value })}>
-                <SelectTrigger id="edit-type">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="payroll">Payroll</SelectItem>
-                  <SelectItem value="stock">Stock</SelectItem>
-                  <SelectItem value="expenses">Expenses</SelectItem>
-                  <SelectItem value="inventory">Inventory</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-farm">Farm</Label>
-              <Select value={newEvent.farm} onValueChange={(value: string) => setNewEvent({ ...newEvent, farm: value })}>
-                <SelectTrigger id="edit-farm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Farm A">Farm Alpha</SelectItem>
-                  <SelectItem value="Farm B">Farm Beta</SelectItem>
-                  <SelectItem value="Farm C">Farm Gamma</SelectItem>
-                  <SelectItem value="Farm D">Farm Delta</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-date">Date</Label>
-              <Input
-                id="edit-date"
-                type="date"
-                value={newEvent.date}
-                onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-startTime">Start Time</Label>
-                <Input
-                  id="edit-startTime"
-                  type="time"
-                  value={newEvent.startTime}
-                  onChange={(e) => setNewEvent({ ...newEvent, startTime: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-duration">Duration (hours)</Label>
-                <Input
-                  id="edit-duration"
-                  type="number"
-                  min="0.5"
-                  step="0.5"
-                  value={newEvent.duration}
-                  onChange={(e) => setNewEvent({ ...newEvent, duration: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-description">Description</Label>
-              <Input
-                id="edit-description"
-                value={newEvent.description}
-                onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
-                placeholder="Event description"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-reminder" className="flex items-center gap-2">
-                <Bell className="h-4 w-4" />
-                Set Reminder
-              </Label>
-              <Select value={newEvent.reminder} onValueChange={(value: string) => setNewEvent({ ...newEvent, reminder: value })}>
-                <SelectTrigger id="edit-reminder">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No reminder</SelectItem>
-                  <SelectItem value="1day">Remind me 1 day before</SelectItem>
-                  <SelectItem value="3days">Remind me 3 days before</SelectItem>
-                  <SelectItem value="30days">Remind me 30 days before</SelectItem>
-                  <SelectItem value="daily30">Everyday for 30 days before</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button onClick={handleEditEvent} className="w-full">
-              Update Event
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
-        <DialogContent className="max-w-[95vw] sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Delete Event</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <p className="text-sm text-muted-foreground">
-              Are you sure you want to delete "{selectedEventDetails?.title}"? This action cannot be undone.
-            </p>
-            <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => setIsDeleteConfirmOpen(false)}>
-                Cancel
-              </Button>
-              <Button variant="destructive" className="flex-1" onClick={handleDeleteEvent}>
-                Delete
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Activity Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {activityTypes.slice(1).map((type) => {
-          const count = activities.filter(a => a.type === type.id).length;
-          return (
-            <Card key={type.id} className="p-4 border-border/50">
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-10 h-10 rounded-lg flex items-center justify-center"
-                  style={{ backgroundColor: `${type.color}15` }}
-                >
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: type.color }}
-                  />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-foreground">{count}</div>
-                  <div className="text-xs text-muted-foreground">{type.label}</div>
-                </div>
-              </div>
-            </Card>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
-
 // ============ MD OVERVIEW TAB ============
 const MdOverviewTab = () => {
   const [period, setPeriod] = useState<"weekly" | "yearly">("weekly");
@@ -1335,30 +432,31 @@ const MdOverviewTab = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const [farmsData, budgetsData, payrollD, stockD, workerD, expensesD, activitiesD] = await Promise.all([
-          apiService.getAdminManagerFarms(),
-          apiService.getAdminManagerBudgets(period),
-          apiService.getAdminManagerPayrollData(),
-          apiService.getAdminManagerStockData(),
-          apiService.getAdminManagerWorkerData(),
-          apiService.getAdminManagerExpensesData(),
-          apiService.getAdminManagerActivities(),
-        ]);
-        setFarms(farmsData);
-        setBudgets(budgetsData);
-        setPayrollData(payrollD);
-        setStockData(stockD);
-        setWorkerData(workerD);
-        setExpensesData(expensesD);
-        setActivities(activitiesD);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
-      } finally {
-        setLoading(false);
+      setLoading(true);
+      setError(null);
+      const results = await Promise.allSettled([
+        apiService.getAdminManagerFarms(),
+        apiService.getAdminManagerBudgets(period),
+        apiService.getAdminManagerPayrollData(),
+        apiService.getAdminManagerStockData(),
+        apiService.getAdminManagerWorkerData(),
+        apiService.getAdminManagerExpensesData(),
+        apiService.getAdminManagerActivities(),
+      ]);
+      const ok = <T,>(r: PromiseSettledResult<T>, fallback: T): T =>
+        r.status === 'fulfilled' ? r.value : fallback;
+      setFarms(ok(results[0], []));
+      setBudgets(ok(results[1], []));
+      setPayrollData(ok(results[2], []));
+      setStockData(ok(results[3], []));
+      setWorkerData(ok(results[4], []));
+      setExpensesData(ok(results[5], []));
+      setActivities(ok(results[6], []));
+      const failed = results.filter(r => r.status === 'rejected');
+      if (failed.length === results.length) {
+        setError('Failed to load dashboard data');
       }
+      setLoading(false);
     };
     loadData();
   }, [period]);
@@ -1400,18 +498,26 @@ const MdOverviewTab = () => {
         <PeriodToggle period={period} onPeriodChange={setPeriod} />
       </div>
 
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard title="Total Farms" value="12" icon={Building2} trend={{ value: "2 new this month", isPositive: true }} iconColor="text-primary" />
-        <MetricCard title="Active Workers" value="156" icon={Users} trend={{ value: "8% increase", isPositive: true }} iconColor="text-accent" />
-        <MetricCard
-          title={period === "weekly" ? "Weekly Budget" : "Yearly Budget"}
-          value={period === "weekly" ? "$19.7K" : "$1.076M"}
-          icon={DollarSign}
-          trend={{ value: period === "weekly" ? "$1.2K over" : "$29K over", isPositive: false }}
-          iconColor="text-success"
-        />
-        <MetricCard title="Pending Approvals" value="24" icon={CheckCircle2} trend={{ value: "6 urgent", isPositive: false }} iconColor="text-warning" />
-      </div>
+      {(() => {
+        const totalAllocated = currentBudgets.reduce((s, b) => s + (b.budgetAllocated ?? 0), 0);
+        const totalSpent = currentBudgets.reduce((s, b) => s + (b.budgetSpent ?? 0), 0);
+        const diff = totalSpent - totalAllocated;
+        const fmtNum = (n: number) => n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `${(n / 1_000).toFixed(1)}K` : String(Math.round(n));
+        const totalWorkers = workerData.reduce((s, w) => s + (w.value ?? 0), 0);
+        return (
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            <MetricCard title="Total Farms" value={farms.length} icon={Building2} iconColor="text-primary" />
+            <MetricCard title="Active Workers" value={totalWorkers || '—'} icon={Users} iconColor="text-accent" />
+            <MetricCard
+              title={period === "weekly" ? "Weekly Budget" : "Yearly Budget"}
+              value={totalAllocated ? fmtNum(totalAllocated) : '—'}
+              icon={DollarSign}
+              trend={totalAllocated ? { value: `${fmtNum(Math.abs(diff))} ${diff > 0 ? 'over' : 'under'}`, isPositive: diff <= 0 } : undefined}
+              iconColor="text-success"
+            />
+          </div>
+        );
+      })()}
 
       <div>
         <h2 className="text-xl sm:text-2xl font-bold mb-4">Budget Status by Farm</h2>
@@ -1423,7 +529,6 @@ const MdOverviewTab = () => {
       </div>
 
       <BudgetOverviewChart period={period} weeklyBudgets={currentBudgets} yearlyBudgets={currentBudgets} />
-      <WeeklyCalendar />
 
       <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
         <PayrollChart payrollData={payrollData} />
@@ -1454,248 +559,143 @@ type MdTab =
   | 'overview' | 'strategic-financial' | 'performance' | 'reports-meetings'
   | 'smr' | 'lpo' | 'grn' | 'simr' | 'gin' | 'tv' | 'dn' | 'gate-pass' | 'transfers' | 'cardex'
   | 'weekly-sheet' | 'payment-summary' | 'payslip'
-  | 'calendar' | 'users' | 'audit-logs' | 'activities';
-
-interface SidebarGroup {
-  label: string;
-  icon: LucideIcon;
-  items: { id: MdTab; label: string; icon: LucideIcon }[];
-}
+  | 'calendar' | 'users' | 'activities' | 'audit-logs';
 
 interface AdminManagerDashboardProps {
-  user?: { full_name?: string; username?: string; role?: string };
-  onLogout?: () => void;
+  user: User;
+  onLogout: () => void;
 }
+
+const MD_SIDEBAR = [
+  {
+    id: 'strategic',
+    label: 'Strategic',
+    icon: LayoutDashboard,
+    children: [
+      { id: 'overview',            label: 'Overview',            icon: LayoutDashboard },
+      { id: 'strategic-financial', label: 'Strategic Financial', icon: BarChart3 },
+      { id: 'performance',         label: 'Performance Review',  icon: TrendUp },
+      { id: 'reports-meetings',    label: 'Reports & Meetings',  icon: FileText },
+    ],
+  },
+  {
+    id: 'procurement',
+    label: 'Procurement',
+    icon: ShoppingCart,
+    children: [
+      { id: 'smr',       label: 'SMR',             icon: ClipboardList },
+      { id: 'lpo',       label: 'LPO',             icon: ShoppingCart },
+      { id: 'grn',       label: 'GRN',             icon: Package },
+      { id: 'simr',      label: 'SIMR',            icon: ClipboardList },
+      { id: 'gin',       label: 'GIN',             icon: Package },
+      { id: 'tv',        label: 'Transport',       icon: Truck },
+      { id: 'dn',        label: 'Delivery Note',   icon: Truck },
+      { id: 'gate-pass', label: 'Gate Pass',       icon: ArrowLeftRight },
+      { id: 'transfers', label: 'Transfers',       icon: ArrowLeftRight },
+      { id: 'cardex',    label: 'CARDEX',          icon: BookOpen },
+    ],
+  },
+  {
+    id: 'payroll_group',
+    label: 'Payroll',
+    icon: CreditCard,
+    children: [
+      { id: 'weekly-sheet',    label: 'Weekly Sheet',    icon: Receipt },
+      { id: 'payment-summary', label: 'Payment Summary', icon: CreditCard },
+      { id: 'payslip',         label: 'Payslip',         icon: FileText },
+    ],
+  },
+  { id: 'calendar',   label: 'Calendar',   icon: CalendarDays },
+  { id: 'activities', label: 'Activities', icon: Bell },
+  { id: 'users',      label: 'Users',      icon: UserCog },
+  { id: 'audit-logs', label: 'Audit Logs', icon: ShieldCheck },
+];
 
 const AdminManagerDashboard = ({ user, onLogout }: AdminManagerDashboardProps) => {
   const [activeTab, setActiveTab] = useState<MdTab>('overview');
   const mountedTabs = useRef<Set<MdTab>>(new Set(['overview']));
-  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(['strategic', 'procurement', 'payroll']));
 
-  const toggleGroup = (key: string) => {
-    setOpenGroups(prev => {
-      const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
-      return next;
-    });
+  const handleTabChange = (tab: string) => {
+    mountedTabs.current.add(tab as MdTab);
+    setActiveTab(tab as MdTab);
   };
-
-  const goTo = (tab: MdTab) => {
-    mountedTabs.current.add(tab);
-    setActiveTab(tab);
-  };
-
-  const groups: SidebarGroup[] = [
-    {
-      label: 'Strategic',
-      icon: LayoutDashboard,
-      items: [
-        { id: 'overview',            label: 'Overview',            icon: LayoutDashboard },
-        { id: 'strategic-financial', label: 'Strategic Financial', icon: BarChart3 },
-        { id: 'performance',         label: 'Performance Review',  icon: TrendUp },
-        { id: 'reports-meetings',    label: 'Reports & Meetings',  icon: FileText },
-      ],
-    },
-    {
-      label: 'Procurement',
-      icon: ShoppingCart,
-      items: [
-        { id: 'smr',       label: 'SMR',              icon: ClipboardList },
-        { id: 'lpo',       label: 'LPO',              icon: ShoppingCart },
-        { id: 'grn',       label: 'GRN',              icon: Package },
-        { id: 'simr',      label: 'SIMR',             icon: ClipboardList },
-        { id: 'gin',       label: 'GIN',              icon: Package },
-        { id: 'tv',        label: 'Transport Voucher', icon: Truck },
-        { id: 'dn',        label: 'Delivery Note',    icon: Truck },
-        { id: 'gate-pass', label: 'Gate Pass',        icon: ArrowLeftRight },
-        { id: 'transfers', label: 'Transfers',        icon: ArrowLeftRight },
-        { id: 'cardex',    label: 'CARDEX',           icon: BookOpen },
-      ],
-    },
-    {
-      label: 'Payroll',
-      icon: CreditCard,
-      items: [
-        { id: 'weekly-sheet',    label: 'Weekly Sheet',    icon: Receipt },
-        { id: 'payment-summary', label: 'Payment Summary', icon: CreditCard },
-        { id: 'payslip',         label: 'Payslip',         icon: FileText },
-      ],
-    },
-  ];
-
-  const flatItems: { id: MdTab; label: string; icon: LucideIcon }[] = [
-    { id: 'calendar',   label: 'Calendar',   icon: CalendarDays },
-    { id: 'activities', label: 'Activities', icon: Bell },
-    { id: 'users',      label: 'Users',      icon: UserCog },
-    { id: 'audit-logs', label: 'Audit Logs', icon: ClipboardList },
-  ];
-
-  const allItems = [...groups.flatMap(g => g.items), ...flatItems];
-  const activeLabel = allItems.find(i => i.id === activeTab)?.label ?? 'Overview';
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/30 flex-shrink-0">
-        <div className="px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-2 h-8 bg-blue-600 rounded-full" />
-            <div>
-              <h1 className="text-lg font-bold tracking-tight">Managing Director</h1>
-              <p className="text-xs text-muted-foreground">{activeLabel}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
-              </span>
-              <span className="text-xs font-medium text-green-600">Live</span>
-            </div>
-            {user && <span className="text-sm text-muted-foreground">{user.full_name || user.username}</span>}
-            {onLogout && (
-              <button
-                onClick={onLogout}
-                className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md border border-border hover:bg-muted transition-colors"
-              >
-                <LogOut className="w-3.5 h-3.5" /> Logout
-              </button>
-            )}
-          </div>
+    <ErrorBoundary>
+      <Layout
+        user={user}
+        onLogout={onLogout}
+        sidebarItems={MD_SIDEBAR}
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        title="AGENTIC Farm Tracking - Managing Director"
+      >
+        <div className={activeTab !== 'overview' ? 'hidden' : ''}>
+          {mountedTabs.current.has('overview') && <MdOverviewTab />}
         </div>
-      </header>
+        <div className={activeTab !== 'strategic-financial' ? 'hidden' : ''}>
+          {mountedTabs.current.has('strategic-financial') && <MdStrategicFinancialSection />}
+        </div>
+        <div className={activeTab !== 'performance' ? 'hidden' : ''}>
+          {mountedTabs.current.has('performance') && <MdPerformanceReviewSection />}
+        </div>
+        <div className={activeTab !== 'reports-meetings' ? 'hidden' : ''}>
+          {mountedTabs.current.has('reports-meetings') && <MdReportsMeetingsSection />}
+        </div>
+        <div className={activeTab !== 'smr' ? 'hidden' : ''}>
+          {mountedTabs.current.has('smr') && <SharedSmrSection userRole="managing_director" />}
+        </div>
+        <div className={activeTab !== 'lpo' ? 'hidden' : ''}>
+          {mountedTabs.current.has('lpo') && <SharedLpoSection userRole="managing_director" />}
+        </div>
+        <div className={activeTab !== 'grn' ? 'hidden' : ''}>
+          {mountedTabs.current.has('grn') && <SharedGrnSection userRole="managing_director" />}
+        </div>
+        <div className={activeTab !== 'simr' ? 'hidden' : ''}>
+          {mountedTabs.current.has('simr') && <SharedSimrSection userRole="managing_director" />}
+        </div>
+        <div className={activeTab !== 'gin' ? 'hidden' : ''}>
+          {mountedTabs.current.has('gin') && <SharedGinSection userRole="managing_director" />}
+        </div>
+        <div className={activeTab !== 'tv' ? 'hidden' : ''}>
+          {mountedTabs.current.has('tv') && <SharedTransportVoucherSection userRole="managing_director" />}
+        </div>
+        <div className={activeTab !== 'dn' ? 'hidden' : ''}>
+          {mountedTabs.current.has('dn') && <SharedDeliveryNoteSection userRole="managing_director" />}
+        </div>
+        <div className={activeTab !== 'gate-pass' ? 'hidden' : ''}>
+          {mountedTabs.current.has('gate-pass') && <SharedGatePassSection userRole="managing_director" />}
+        </div>
+        <div className={activeTab !== 'transfers' ? 'hidden' : ''}>
+          {mountedTabs.current.has('transfers') && <SharedTransferSection userRole="managing_director" />}
+        </div>
+        <div className={activeTab !== 'cardex' ? 'hidden' : ''}>
+          {mountedTabs.current.has('cardex') && <SharedCardexSection userRole="managing_director" />}
+        </div>
+        <div className={activeTab !== 'weekly-sheet' ? 'hidden' : ''}>
+          {mountedTabs.current.has('weekly-sheet') && <SharedWeeklySheetSection />}
+        </div>
+        <div className={activeTab !== 'payment-summary' ? 'hidden' : ''}>
+          {mountedTabs.current.has('payment-summary') && <SharedPaymentSummarySection />}
+        </div>
+        <div className={activeTab !== 'payslip' ? 'hidden' : ''}>
+          {mountedTabs.current.has('payslip') && <SharedPayslipSection />}
+        </div>
+        <div className={activeTab !== 'calendar' ? 'hidden' : ''}>
+          {mountedTabs.current.has('calendar') && <SharedCalendarSection userRole="managing_director" />}
+        </div>
+        <div className={activeTab !== 'activities' ? 'hidden' : ''}>
+          {mountedTabs.current.has('activities') && <ActivitiesSection />}
+        </div>
+        <div className={activeTab !== 'users' ? 'hidden' : ''}>
+          {mountedTabs.current.has('users') && <UsersSection />}
+        </div>
+        <div className={activeTab !== 'audit-logs' ? 'hidden' : ''}>
+          {mountedTabs.current.has('audit-logs') && <AdminAuditLogsSection />}
+        </div>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <aside className="w-56 flex-shrink-0 border-r bg-gray-50 overflow-y-auto">
-          <nav className="p-3 space-y-1">
-            {/* Grouped sections */}
-            {groups.map(group => (
-              <div key={group.label}>
-                <button
-                  onClick={() => toggleGroup(group.label)}
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-md text-xs font-semibold text-gray-500 uppercase tracking-wide hover:bg-gray-100 transition-colors"
-                >
-                  <span className="flex items-center gap-2">
-                    <group.icon className="w-3.5 h-3.5" />
-                    {group.label}
-                  </span>
-                  {openGroups.has(group.label)
-                    ? <ChevronUp className="w-3.5 h-3.5" />
-                    : <ChevronDown className="w-3.5 h-3.5" />
-                  }
-                </button>
-                {openGroups.has(group.label) && (
-                  <div className="ml-2 mt-0.5 space-y-0.5">
-                    {group.items.map(item => (
-                      <button
-                        key={item.id}
-                        onClick={() => goTo(item.id)}
-                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
-                          activeTab === item.id
-                            ? 'bg-white text-gray-900 shadow-sm font-medium'
-                            : 'text-gray-600 hover:bg-white hover:text-gray-900'
-                        }`}
-                      >
-                        <item.icon className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span className="truncate">{item.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-
-            {/* Divider */}
-            <div className="border-t border-gray-200 my-2" />
-
-            {/* Flat items */}
-            {flatItems.map(item => (
-              <button
-                key={item.id}
-                onClick={() => goTo(item.id)}
-                className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
-                  activeTab === item.id
-                    ? 'bg-white text-gray-900 shadow-sm font-medium'
-                    : 'text-gray-600 hover:bg-white hover:text-gray-900'
-                }`}
-              >
-                <item.icon className="w-3.5 h-3.5 flex-shrink-0" />
-                <span className="truncate">{item.label}</span>
-              </button>
-            ))}
-          </nav>
-        </aside>
-
-        {/* Main content */}
-        <main className="flex-1 overflow-y-auto">
-          <div hidden={activeTab !== 'overview'}>
-            {mountedTabs.current.has('overview') && <MdOverviewTab />}
-          </div>
-          <div hidden={activeTab !== 'strategic-financial'}>
-            {mountedTabs.current.has('strategic-financial') && <MdStrategicFinancialSection />}
-          </div>
-          <div hidden={activeTab !== 'performance'}>
-            {mountedTabs.current.has('performance') && <MdPerformanceReviewSection />}
-          </div>
-          <div hidden={activeTab !== 'reports-meetings'}>
-            {mountedTabs.current.has('reports-meetings') && <MdReportsMeetingsSection />}
-          </div>
-          <div hidden={activeTab !== 'smr'}>
-            {mountedTabs.current.has('smr') && <SharedSmrSection userRole="managing_director" />}
-          </div>
-          <div hidden={activeTab !== 'lpo'}>
-            {mountedTabs.current.has('lpo') && <SharedLpoSection userRole="managing_director" />}
-          </div>
-          <div hidden={activeTab !== 'grn'}>
-            {mountedTabs.current.has('grn') && <SharedGrnSection userRole="managing_director" />}
-          </div>
-          <div hidden={activeTab !== 'simr'}>
-            {mountedTabs.current.has('simr') && <SharedSimrSection userRole="managing_director" />}
-          </div>
-          <div hidden={activeTab !== 'gin'}>
-            {mountedTabs.current.has('gin') && <SharedGinSection userRole="managing_director" />}
-          </div>
-          <div hidden={activeTab !== 'tv'}>
-            {mountedTabs.current.has('tv') && <SharedTransportVoucherSection userRole="managing_director" />}
-          </div>
-          <div hidden={activeTab !== 'dn'}>
-            {mountedTabs.current.has('dn') && <SharedDeliveryNoteSection userRole="managing_director" />}
-          </div>
-          <div hidden={activeTab !== 'gate-pass'}>
-            {mountedTabs.current.has('gate-pass') && <SharedGatePassSection userRole="managing_director" />}
-          </div>
-          <div hidden={activeTab !== 'transfers'}>
-            {mountedTabs.current.has('transfers') && <SharedTransferSection userRole="managing_director" />}
-          </div>
-          <div hidden={activeTab !== 'cardex'}>
-            {mountedTabs.current.has('cardex') && <SharedCardexSection userRole="managing_director" />}
-          </div>
-          <div hidden={activeTab !== 'weekly-sheet'}>
-            {mountedTabs.current.has('weekly-sheet') && <SharedWeeklySheetSection />}
-          </div>
-          <div hidden={activeTab !== 'payment-summary'}>
-            {mountedTabs.current.has('payment-summary') && <SharedPaymentSummarySection />}
-          </div>
-          <div hidden={activeTab !== 'payslip'}>
-            {mountedTabs.current.has('payslip') && <SharedPayslipSection />}
-          </div>
-          <div hidden={activeTab !== 'calendar'}>
-            {mountedTabs.current.has('calendar') && <SharedCalendarSection userRole="managing_director" />}
-          </div>
-          <div hidden={activeTab !== 'activities'}>
-            {mountedTabs.current.has('activities') && <ActivitiesSection />}
-          </div>
-          <div hidden={activeTab !== 'users'}>
-            {mountedTabs.current.has('users') && <UsersSection />}
-          </div>
-          <div hidden={activeTab !== 'audit-logs'}>
-            {mountedTabs.current.has('audit-logs') && <AdminAuditLogsSection />}
-          </div>
-        </main>
-      </div>
-    </div>
+      </Layout>
+    </ErrorBoundary>
   );
 };
 

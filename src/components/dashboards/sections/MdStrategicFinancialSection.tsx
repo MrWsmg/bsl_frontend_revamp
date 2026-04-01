@@ -85,7 +85,7 @@ const ExpenditureView: React.FC = () => {
             <label className="block text-xs font-medium text-gray-600 mb-1">Farm</label>
             <select value={farmId} onChange={e => setFarmId(e.target.value)} className={inputCls}>
               <option value="">All farms</option>
-              {farmList.map((f: any) => <option key={f.id} value={f.id}>{f.name}</option>)}
+              {farmList.map((f: any) => { const fid = f.id ?? f.farm_id; return <option key={fid} value={fid}>{f.name}</option>; })}
             </select>
           </div>
           <div>

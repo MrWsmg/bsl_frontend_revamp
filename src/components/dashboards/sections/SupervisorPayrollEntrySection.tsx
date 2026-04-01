@@ -135,7 +135,7 @@ export const SupervisorPayrollEntrySection: React.FC = () => {
                 >
                   <option value="">Select farm…</option>
                   {farms.map((f) => (
-                    <option key={f.id} value={f.id}>{f.name}</option>
+                    <option key={f.id ?? f.farm_id} value={f.id ?? f.farm_id}>{f.name}</option>
                   ))}
                 </select>
               ) : (

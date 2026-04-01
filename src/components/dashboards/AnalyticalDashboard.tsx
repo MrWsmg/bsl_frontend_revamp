@@ -509,16 +509,7 @@ const AnalyticalDashboard: React.FC = () => {
         setLoading(true);
         setError(null);
 
-        const [
-          dashboardData,
-          budgetsData,
-          payrollData,
-          stockData,
-          workerData,
-          expensesData,
-          activitiesData,
-          farmsData
-        ] = await Promise.all([
+        const results = await Promise.allSettled([
           apiService.getAnalyticalDashboardData(),
           apiService.getAnalyticalBudgets(period),
           apiService.getAnalyticalPayrollData(),
@@ -529,18 +520,31 @@ const AnalyticalDashboard: React.FC = () => {
           apiService.getAnalyticalFarms()
         ]);
 
+        const ok = <T,>(r: PromiseSettledResult<T>, fallback: T): T =>
+          r.status === 'fulfilled' ? r.value : fallback;
+
+        const dashboardData = ok(results[0], null);
+        const budgetsData   = ok(results[1], [] as any[]);
+        const payrollData   = ok(results[2], [] as any[]);
+        const stockData     = ok(results[3], [] as any[]);
+        const workerData    = ok(results[4], [] as any[]);
+        const expensesData  = ok(results[5], [] as any[]);
+        const activitiesData = ok(results[6], [] as any[]);
+        const farmsData     = ok(results[7], [] as any[]);
+
         setDashboardData(dashboardData);
-        // Update the global arrays
-        (window as any).weeklyData = budgetsData.filter(b => b.period === 'weekly');
-        (window as any).yearlyData = budgetsData.filter(b => b.period === 'yearly');
+        (window as any).weeklyData = budgetsData.filter((b: any) => b.period === 'weekly');
+        (window as any).yearlyData = budgetsData.filter((b: any) => b.period === 'yearly');
         (window as any).payrollData = payrollData;
         (window as any).stockData = stockData;
         (window as any).workerData = workerData;
         (window as any).expensesData = expensesData;
         (window as any).activities = activitiesData;
         (window as any).farmsData = farmsData;
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
+
+        if (results.every(r => r.status === 'rejected')) {
+          setError('Failed to load dashboard data');
+        }
       } finally {
         setLoading(false);
       }

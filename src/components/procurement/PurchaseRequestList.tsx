@@ -33,15 +33,18 @@ export const PurchaseRequestList: React.FC<PurchaseRequestListProps> = ({
   const loadData = async () => {
     setLoading(true);
     try {
-      const [prData, farmData] = await Promise.all([
+      const results = await Promise.allSettled([
         apiService.procurement.getPurchaseRequests({
           farm_id: selectedFarm ? parseInt(selectedFarm) : undefined,
           status: selectedStatus || undefined,
         }),
         apiService.farms.getFarms(),
       ]);
-      setRequests(prData);
-      setFarms(farmData);
+      if (results[0].status === 'fulfilled') setRequests(results[0].value);
+      if (results[1].status === 'fulfilled') setFarms(results[1].value);
+      if (results.every(r => r.status === 'rejected')) {
+        toast.error('Failed to load purchase requests');
+      }
     } catch (error) {
       console.error('Error loading purchase requests:', error);
       toast.error('Failed to load purchase requests');

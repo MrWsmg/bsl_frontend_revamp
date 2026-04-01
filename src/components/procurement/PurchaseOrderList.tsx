@@ -27,14 +27,17 @@ export const PurchaseOrderList: React.FC<PurchaseOrderListProps> = ({ userRole }
   const loadData = async () => {
     setLoading(true);
     try {
-      const [poData, supplierData] = await Promise.all([
+      const results = await Promise.allSettled([
         apiService.procurement.getPurchaseOrders({
           status: selectedStatus || undefined,
         }),
         apiService.procurement.getSuppliers(),
       ]);
-      setOrders(poData);
-      setSuppliers(supplierData);
+      if (results[0].status === 'fulfilled') setOrders(results[0].value);
+      if (results[1].status === 'fulfilled') setSuppliers(results[1].value);
+      if (results.every(r => r.status === 'rejected')) {
+        toast.error('Failed to load purchase orders');
+      }
     } catch (error) {
       console.error('Error loading purchase orders:', error);
       toast.error('Failed to load purchase orders');

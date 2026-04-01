@@ -155,7 +155,7 @@ export const ReportsSection: React.FC = () => {
                 onChange={e => setDailyFilters(p => ({ ...p, farm_id: e.target.value }))}
                 className={inputCls}>
                 <option value="">All Farms</option>
-                {farmList.map((f: any) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                {farmList.map((f: any) => <option key={f.id ?? f.farm_id} value={f.id ?? f.farm_id}>{f.name}</option>)}
               </select>
             </div>
             <div className="flex items-end">
@@ -217,7 +217,7 @@ export const ReportsSection: React.FC = () => {
                 onChange={e => setWeeklyFilters(p => ({ ...p, farm_id: e.target.value }))}
                 className={inputCls}>
                 <option value="">All Farms</option>
-                {farmList.map((f: any) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                {farmList.map((f: any) => <option key={f.id ?? f.farm_id} value={f.id ?? f.farm_id}>{f.name}</option>)}
               </select>
             </div>
             <div className="flex items-end">
@@ -255,7 +255,7 @@ export const ReportsSection: React.FC = () => {
                 onChange={e => setMonthlyFilters(p => ({ ...p, farm_id: e.target.value }))}
                 className={inputCls}>
                 <option value="">Select farm…</option>
-                {farmList.map((f: any) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                {farmList.map((f: any) => <option key={f.id ?? f.farm_id} value={f.id ?? f.farm_id}>{f.name}</option>)}
               </select>
             </div>
             <div>
