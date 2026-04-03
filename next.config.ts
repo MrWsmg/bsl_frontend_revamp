@@ -5,7 +5,8 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/:path*",
-        destination: "https://bsl-238481219614.europe-west1.run.app/api/:path*", // Proxy to Backend
+        destination: "http://localhost:8080/api/:path*", // Proxy to Backend
+        // destination: "https://bsl-238481219614.europe-west1.run.app/api/:path*", // Proxy to Backend
       },
     ];
   },

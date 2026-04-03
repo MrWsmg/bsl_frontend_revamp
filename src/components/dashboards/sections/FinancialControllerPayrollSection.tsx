@@ -265,7 +265,7 @@ export const FinancialControllerPayrollSection: React.FC = () => {
 
       {/* Reject Modal */}
       {showRejectModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold text-gray-900 mb-1">Reject Payroll Record</h3>
             <p className="text-sm text-gray-500 mb-4">The record will be returned to the supervisor with your reason. All approval history will be cleared.</p>
@@ -300,7 +300,7 @@ export const FinancialControllerPayrollSection: React.FC = () => {
 
       {/* Bulk Reject Modal */}
       {bulkRejectModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold text-gray-900 mb-1">Bulk Reject ({selectedIds.length} records)</h3>
             <p className="text-sm text-gray-500 mb-4">All selected records will be returned to their supervisors with this reason.</p>

@@ -819,7 +819,7 @@ export const SharedGinSection: React.FC<Props> = ({ userRole }) => {
 
       {/* ── Detail Sheet ──────────────────────────────────────────────────── */}
       <Sheet open={!!selected} onOpenChange={open => { if (!open) setSelected(null); }}>
-        <SheetContent className="w-[500px] sm:max-w-[500px] overflow-y-auto">
+        <SheetContent className="sm:max-w-[500px] overflow-y-auto">
           {selected && (
             <>
               <SheetHeader className="mb-4">

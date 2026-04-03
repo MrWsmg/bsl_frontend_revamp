@@ -393,7 +393,7 @@ export const ProcurementGrnSection: React.FC = () => {
 
       {/* GRN Detail Sheet */}
       <Sheet open={!!selectedGrn} onOpenChange={open => { if (!open) { setSelectedGrn(null); setGrnDetail(null); setGrnChain(null); } }}>
-        <SheetContent className="w-[480px] sm:max-w-[480px] overflow-y-auto">
+        <SheetContent className="sm:max-w-[480px] overflow-y-auto">
           {selectedGrn && (
             <div className="mt-2 space-y-5">
               <div className="flex items-start justify-between">
@@ -647,7 +647,7 @@ export const ProcurementGrnSection: React.FC = () => {
                   <div className="space-y-2">
                     {directItems.map((row, i) => (
                       <div key={i} className="border border-gray-100 rounded-lg p-3">
-                        <div className="grid grid-cols-4 gap-2 items-end">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-end">
                           <div>
                             <label className="text-xs text-gray-500 mb-0.5 block">Price List ID *</label>
                             <Input
@@ -713,8 +713,8 @@ export const ProcurementGrnSection: React.FC = () => {
             {/* ── Linked mode fields ── */}
             {mode === 'linked' && (
               <>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="col-span-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="col-span-1 sm:col-span-3">
                     <label className="block text-sm font-medium text-gray-700 mb-1">LPO ID *</label>
                     <Input type="number" value={lpoId} onChange={e => setLpoId(e.target.value)} placeholder="Local Purchase Order ID" />
                   </div>
@@ -796,7 +796,7 @@ export const ProcurementGrnSection: React.FC = () => {
                           )}
                         </div>
 
-                        <div className="grid grid-cols-4 gap-2">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                           <div>
                             <label className="text-xs text-gray-500 mb-0.5 block">Ordered</label>
                             <Input type="number" min="0" step="0.01" value={row.quantity_ordered} onChange={e => updateItem(i, { quantity_ordered: e.target.value })} placeholder="0" className="text-sm" />

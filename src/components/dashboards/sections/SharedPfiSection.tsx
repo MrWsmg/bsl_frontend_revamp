@@ -343,7 +343,7 @@ export const SharedPfiSection: React.FC<Props> = ({ userRole }) => {
 
       {/* ── PFI Detail Sheet ─────────────────────────────────── */}
       <Sheet open={!!selectedPfi} onOpenChange={open => { if (!open) setSelectedPfi(null); }}>
-        <SheetContent className="w-[480px] sm:max-w-[480px] overflow-y-auto">
+        <SheetContent className="sm:max-w-[480px] overflow-y-auto">
           {selectedPfi && (
             <>
               <SheetHeader className="mb-4">

@@ -163,7 +163,7 @@ export const SharedPaymentSummarySection: React.FC = () => {
 
             {/* Subtotals by method */}
             {summaryData.subtotals && (
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {Object.entries(summaryData.subtotals).map(([method, amount]) => (
                   <div key={method} className="border rounded-lg p-4">
                     <p className="text-xs text-gray-500 uppercase tracking-wide capitalize">{method.replace('_', ' ')}</p>

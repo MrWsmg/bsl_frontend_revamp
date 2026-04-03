@@ -574,7 +574,7 @@ export function SharedCalendarSection({ userRole, farmId }: SharedCalendarSectio
 
       {/* ── Event Detail Sheet ── */}
       <Sheet open={!!selectedEvent} onOpenChange={open => { if (!open) setSelectedEvent(null); }}>
-        <SheetContent className="w-[400px] sm:max-w-[400px] overflow-y-auto">
+        <SheetContent className="sm:max-w-[400px] overflow-y-auto">
           {selectedEvent && (() => {
             const e = selectedEvent;
             const cfg = CATEGORY_CONFIG[e.category] ?? CATEGORY_CONFIG.custom;

@@ -510,7 +510,7 @@ export const HarvestOperationsDashboard: React.FC<HarvestOperationsDashboardProp
                     </div>
 
                     {/* Scenario bars */}
-                    <div className="grid grid-cols-3 gap-4 mb-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3">
                       {[
                         { label: 'Pessimistic', value: f.pessimistic_yield_kg, color: 'bg-red-500' },
                         { label: 'Base', value: f.base_yield_kg, color: 'bg-blue-500' },

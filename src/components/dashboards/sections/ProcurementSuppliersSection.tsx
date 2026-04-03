@@ -206,7 +206,7 @@ export const ProcurementSuppliersSection: React.FC = () => {
 
       {/* Detail Sheet */}
       <Sheet open={!!viewing} onOpenChange={open => { if (!open) setViewing(null); }}>
-        <SheetContent className="w-[400px] sm:max-w-[400px] overflow-y-auto">
+        <SheetContent className="sm:max-w-[400px] overflow-y-auto">
           {viewing && (
             <>
               <SheetHeader className="mb-6">

@@ -250,7 +250,7 @@ const PickingDashboard: React.FC<PickingDashboardProps> = ({ user }) => {
             </div>
             <div className="flex items-center gap-3">
               <Select value={selectedFarmId} onValueChange={setSelectedFarmId}>
-                <SelectTrigger className="w-48">
+                <SelectTrigger className="w-full sm:w-48">
                   <SelectValue placeholder="Select Farm" />
                 </SelectTrigger>
                 <SelectContent>
@@ -274,11 +274,11 @@ const PickingDashboard: React.FC<PickingDashboardProps> = ({ user }) => {
             <Tabs defaultValue="session" className="space-y-6">
               <Card>
                 <CardContent className="p-4">
-                  <TabsList>
-                    <TabsTrigger value="session">Active Session</TabsTrigger>
-                    <TabsTrigger value="daily">Daily Overview</TabsTrigger>
-                    <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
-                    {isGM && <TabsTrigger value="price">Price Management</TabsTrigger>}
+                  <TabsList className="w-full flex flex-wrap h-auto gap-1">
+                    <TabsTrigger value="session" className="flex-1 min-w-[120px]">Active Session</TabsTrigger>
+                    <TabsTrigger value="daily" className="flex-1 min-w-[120px]">Daily Overview</TabsTrigger>
+                    <TabsTrigger value="leaderboard" className="flex-1 min-w-[120px]">Leaderboard</TabsTrigger>
+                    {isGM && <TabsTrigger value="price" className="flex-1 min-w-[120px]">Price Management</TabsTrigger>}
                   </TabsList>
                 </CardContent>
               </Card>
@@ -306,7 +306,7 @@ const PickingDashboard: React.FC<PickingDashboardProps> = ({ user }) => {
                 {activeSession ? (
                   <>
                     <Card>
-                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-2 gap-3">
                         <div>
                           <CardTitle className="text-lg">
                             Session #{activeSession.id}
@@ -665,7 +665,7 @@ const PickingDashboard: React.FC<PickingDashboardProps> = ({ user }) => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Cherry Weight (kg)</Label>
                     <Input

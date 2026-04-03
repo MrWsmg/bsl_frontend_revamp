@@ -140,9 +140,9 @@ export const PriceListSection: React.FC = () => {
         </div>
 
         {/* Category filter */}
-        <div className="mt-4 flex items-center gap-3">
+        <div className="mt-4 flex flex-wrap items-center gap-3">
           <label className="text-sm font-medium text-gray-700">Filter by category:</label>
-          <div className="w-52">
+          <div className="w-full sm:w-52">
             <Select
               value={categoryFilter || 'all'}
               onValueChange={(v) => setCategoryFilter(v === 'all' ? '' : v)}

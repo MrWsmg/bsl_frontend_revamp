@@ -359,7 +359,7 @@ export const SharedLpoSection: React.FC<Props> = ({ userRole }) => {
     <div className="space-y-4">
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <CardTitle className="text-base font-semibold text-gray-800 flex items-center gap-2">
               <ClipboardList className="w-4 h-4 text-amber-600" />
               Local Purchase Orders (LPO)
@@ -470,7 +470,7 @@ export const SharedLpoSection: React.FC<Props> = ({ userRole }) => {
       <Sheet open={!!selected} onOpenChange={open => {
         if (!open) { setSelected(null); setDetailData(null); setChain(null); setNoChainReason(''); setResolvedSmrNumber(null); setActionError(''); }
       }}>
-        <SheetContent className="w-[540px] sm:max-w-[540px] overflow-y-auto">
+        <SheetContent className="sm:max-w-[540px] overflow-y-auto">
           {selected && (
             <>
               <SheetHeader className="mb-3">

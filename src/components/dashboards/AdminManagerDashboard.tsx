@@ -209,7 +209,7 @@ const BudgetOverviewChart = ({ period, weeklyBudgets, yearlyBudgets }: { period:
         <CardTitle>Budget vs Actual Spending ({period})</CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={window.innerWidth < 768 ? 250 : 350}>
+        <ResponsiveContainer width="100%" height={350}>
           <BarChart data={data}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
             <XAxis dataKey="farm" className="text-xs" />
@@ -241,7 +241,7 @@ const PayrollChart = ({ payrollData }: { payrollData: any[] }) => (
       <CardTitle>Payroll Trends</CardTitle>
     </CardHeader>
     <CardContent>
-      <ResponsiveContainer width="100%" height={window.innerWidth < 768 ? 250 : 300}>
+      <ResponsiveContainer width="100%" height={300}>
         <LineChart data={payrollData}>
           <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
           <XAxis dataKey="month" className="text-xs" />
@@ -269,7 +269,7 @@ const StockChart = ({ stockData }: { stockData: any[] }) => (
       <CardTitle>Stock Levels by Farm</CardTitle>
     </CardHeader>
     <CardContent>
-      <ResponsiveContainer width="100%" height={window.innerWidth < 768 ? 250 : 300}>
+      <ResponsiveContainer width="100%" height={300}>
         <BarChart data={stockData}>
           <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
           <XAxis dataKey="farm" className="text-xs" />
@@ -298,7 +298,7 @@ const WorkerDistribution = ({ workerData }: { workerData: any[] }) => (
       <CardTitle>Worker Distribution</CardTitle>
     </CardHeader>
     <CardContent>
-      <ResponsiveContainer width="100%" height={window.innerWidth < 768 ? 250 : 300}>
+      <ResponsiveContainer width="100%" height={300}>
         <PieChart>
           <Pie
             data={workerData}
@@ -335,7 +335,7 @@ const ExpensesChart = ({ expensesData }: { expensesData: any[] }) => (
       <CardTitle>Monthly Expenses</CardTitle>
     </CardHeader>
     <CardContent>
-      <ResponsiveContainer width="100%" height={window.innerWidth < 768 ? 250 : 300}>
+      <ResponsiveContainer width="100%" height={300}>
         <AreaChart data={expensesData}>
           <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
           <XAxis dataKey="month" className="text-xs" />

@@ -797,7 +797,7 @@ export const ProcurementPfiSection: React.FC = () => {
 
 const PfiDetailSheet: React.FC<{ pfi: any; onClose: () => void }> = ({ pfi, onClose }) => (
   <Sheet open={!!pfi} onOpenChange={open => { if (!open) onClose(); }}>
-    <SheetContent className="w-[520px] sm:max-w-[520px] overflow-y-auto">
+    <SheetContent className="sm:max-w-[520px] overflow-y-auto">
       {pfi && (
         <>
           <SheetHeader className="mb-6">

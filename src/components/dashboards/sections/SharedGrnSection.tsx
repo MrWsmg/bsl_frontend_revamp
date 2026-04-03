@@ -544,7 +544,7 @@ export const SharedGrnSection: React.FC<Props> = ({ userRole, farmId, farmName }
 
       {/* Detail Sheet */}
       <Sheet open={!!selected} onOpenChange={open => { if (!open) { setSelected(null); setLoadingDetail(false); } }}>
-        <SheetContent className="w-[500px] sm:max-w-[500px] overflow-y-auto">
+        <SheetContent className="sm:max-w-[500px] overflow-y-auto">
           {selected && (
             <>
               <SheetHeader className="mb-4">

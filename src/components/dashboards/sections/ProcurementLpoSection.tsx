@@ -393,7 +393,7 @@ export const ProcurementLpoSection: React.FC<Props> = ({ initialSmrId, initialSm
 
       {/* LPO Detail Sheet */}
       <Sheet open={!!selected} onOpenChange={open => { if (!open) { setSelected(null); setDetailData(null); setChain(null); } }}>
-        <SheetContent className="w-[520px] sm:max-w-[520px] overflow-y-auto">
+        <SheetContent className="sm:max-w-[520px] overflow-y-auto">
           {selected && (
             <>
               {/* Header */}

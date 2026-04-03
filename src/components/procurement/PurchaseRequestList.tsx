@@ -331,7 +331,7 @@ export const PurchaseRequestList: React.FC<PurchaseRequestListProps> = ({
 
       {/* Approval Modal */}
       {showApprovalModal && selectedPR && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">
               {approvalAction === 'approve' ? 'Approve' : 'Reject'} Purchase Request
