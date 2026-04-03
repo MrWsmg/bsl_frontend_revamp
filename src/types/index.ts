@@ -70,6 +70,7 @@ export interface PayrollRecord {
   quantity: number;
   rate: number;
   total_amount: number;
+<<<<<<< HEAD
   date_worked: string;
   crop_type?: string;
   notes?: string;
@@ -87,6 +88,20 @@ export interface PayrollRecord {
   // QuickBooks
   quickbooks_synced?: boolean;
   quickbooks_transaction_id?: string | null;
+=======
+  crop_type?: string;
+  farm?: Farm;
+  worker_type?: 'permanent' | 'contracted';
+  block?: string;
+  date_worked: string;
+  approval_status: 'pending' | 'approved' | 'rejected' | 'supervisor_pending' | 'manager_approved';
+  payment_method?: 'per_task' | 'per_day';
+  rejection_reason?: string;
+  rejected_by?: string;
+  rejected_at?: string;
+  entered_by?: string;
+  farm_name?: string;
+>>>>>>> feature/payroll-complete
 }
 
 export interface StockRecord {
