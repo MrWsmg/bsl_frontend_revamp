@@ -6,7 +6,13 @@ import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { toast } from '../../ui/sonner';
 import { FileDown, Receipt } from 'lucide-react';
 
-export const SharedPayslipSection: React.FC = () => {
+interface SharedPayslipSectionProps {
+  userRole?: string;
+}
+
+const GM_MD_ROLES = ['general_manager', 'managing_director'];
+
+export const SharedPayslipSection: React.FC<SharedPayslipSectionProps> = ({ userRole }) => {
   const [farms, setFarms] = useState<{ id: number; name: string }[]>([]);
   const [farmsLoaded, setFarmsLoaded] = useState(false);
   const [workers, setWorkers] = useState<{ id: number; name: string }[]>([]);
@@ -17,15 +23,22 @@ export const SharedPayslipSection: React.FC = () => {
   const [downloading, setDownloading] = useState(false);
 
   React.useEffect(() => {
+    const fetchFarms = userRole && GM_MD_ROLES.includes(userRole)
+      ? apiService.getFarms()
+      : apiService.getPayrollFarms();
     Promise.all([
-      apiService.getPayrollFarms().catch(() => []),
+      fetchFarms.catch(() => []),
       apiService.getWorkers().catch(() => []),
     ]).then(([f, w]) => {
-      setFarms(f as any[]);
+      setFarms(
+        (f as any[])
+          .map((farm) => ({ id: farm.id ?? farm.farm_id, name: farm.name }))
+          .filter((farm) => farm.id != null)
+      );
       setWorkers(w as any[]);
       setFarmsLoaded(true);
     });
-  }, []);
+  }, [userRole]);
 
   const validate = () => {
     if (!farmId)     { toast.error('Please select a farm');       return false; }
@@ -72,13 +85,13 @@ export const SharedPayslipSection: React.FC = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Farm</label>
             <select
-              value={farmId}
+              value={farmId === '' ? '' : String(farmId)}
               onChange={(e) => setFarmId(e.target.value ? Number(e.target.value) : '')}
               disabled={!farmsLoaded}
               className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
             >
               <option value="">{farmsLoaded ? 'Select farm…' : 'Loading…'}</option>
-              {farms.map((f) => <option key={f.id ?? f.farm_id} value={f.id ?? f.farm_id}>{f.name}</option>)}
+              {farms.map((f) => <option key={f.id} value={String(f.id)}>{f.name}</option>)}
             </select>
           </div>
 

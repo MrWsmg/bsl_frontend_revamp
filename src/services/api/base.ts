@@ -186,7 +186,16 @@ export class BaseApiService {
    * GET request
    */
   protected async get<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
-    const queryString = params ? new URLSearchParams(params).toString() : '';
+    let queryString = '';
+    if (params) {
+      const clean: Record<string, string> = {};
+      for (const [k, v] of Object.entries(params)) {
+        if (v !== undefined && v !== null && v !== '') {
+          clean[k] = String(v);
+        }
+      }
+      queryString = new URLSearchParams(clean).toString();
+    }
     const url = queryString ? `${endpoint}?${queryString}` : endpoint;
     return this.request<T>(url, { method: 'GET' });
   }

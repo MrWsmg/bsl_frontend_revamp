@@ -30,6 +30,9 @@ import {
   SharedPaymentSummarySection,
   SharedPayslipSection,
   SharedCalendarSection,
+  SharedBudgetManagerSection,
+  SharedBudgetSummarySection,
+  SharedBudgetTrackingSection,
   UsersSection,
   ActivitiesSection,
   AdminAuditLogsSection,
@@ -559,7 +562,8 @@ type MdTab =
   | 'overview' | 'strategic-financial' | 'performance' | 'reports-meetings'
   | 'smr' | 'lpo' | 'grn' | 'simr' | 'gin' | 'tv' | 'dn' | 'gate-pass' | 'transfers' | 'cardex'
   | 'weekly-sheet' | 'payment-summary' | 'payslip'
-  | 'calendar' | 'users' | 'activities' | 'audit-logs';
+  | 'calendar' | 'users' | 'activities' | 'audit-logs'
+  | 'budget-manager' | 'budget-summary' | 'budget-tracking';
 
 interface AdminManagerDashboardProps {
   user: User;
@@ -606,6 +610,14 @@ const MD_SIDEBAR = [
     ],
   },
   { id: 'calendar',   label: 'Calendar',   icon: CalendarDays },
+  {
+    id: 'budgets-group', label: 'Budgets', icon: BookOpen,
+    children: [
+      { id: 'budget-manager',  label: 'Budget Manager', icon: BookOpen    },
+      { id: 'budget-summary',  label: 'Summary Tree',   icon: BarChart3   },
+      { id: 'budget-tracking', label: 'Live Tracking',  icon: TrendingUp  },
+    ],
+  },
   { id: 'activities', label: 'Activities', icon: Bell },
   { id: 'users',      label: 'Users',      icon: UserCog },
   { id: 'audit-logs', label: 'Audit Logs', icon: ShieldCheck },
@@ -673,13 +685,13 @@ const AdminManagerDashboard = ({ user, onLogout }: AdminManagerDashboardProps) =
           {mountedTabs.current.has('cardex') && <SharedCardexSection userRole="managing_director" />}
         </div>
         <div className={activeTab !== 'weekly-sheet' ? 'hidden' : ''}>
-          {mountedTabs.current.has('weekly-sheet') && <SharedWeeklySheetSection />}
+          {mountedTabs.current.has('weekly-sheet') && <SharedWeeklySheetSection userRole="managing_director" />}
         </div>
         <div className={activeTab !== 'payment-summary' ? 'hidden' : ''}>
-          {mountedTabs.current.has('payment-summary') && <SharedPaymentSummarySection />}
+          {mountedTabs.current.has('payment-summary') && <SharedPaymentSummarySection userRole="managing_director" />}
         </div>
         <div className={activeTab !== 'payslip' ? 'hidden' : ''}>
-          {mountedTabs.current.has('payslip') && <SharedPayslipSection />}
+          {mountedTabs.current.has('payslip') && <SharedPayslipSection userRole="managing_director" />}
         </div>
         <div className={activeTab !== 'calendar' ? 'hidden' : ''}>
           {mountedTabs.current.has('calendar') && <SharedCalendarSection userRole="managing_director" />}
@@ -693,7 +705,15 @@ const AdminManagerDashboard = ({ user, onLogout }: AdminManagerDashboardProps) =
         <div className={activeTab !== 'audit-logs' ? 'hidden' : ''}>
           {mountedTabs.current.has('audit-logs') && <AdminAuditLogsSection />}
         </div>
-
+        <div className={activeTab !== 'budget-manager' ? 'hidden' : ''}>
+          {mountedTabs.current.has('budget-manager') && <SharedBudgetManagerSection userRole="managing_director" />}
+        </div>
+        <div className={activeTab !== 'budget-summary' ? 'hidden' : ''}>
+          {mountedTabs.current.has('budget-summary') && <SharedBudgetSummarySection userRole="managing_director" />}
+        </div>
+        <div className={activeTab !== 'budget-tracking' ? 'hidden' : ''}>
+          {mountedTabs.current.has('budget-tracking') && <SharedBudgetTrackingSection userRole="managing_director" />}
+        </div>
       </Layout>
     </ErrorBoundary>
   );

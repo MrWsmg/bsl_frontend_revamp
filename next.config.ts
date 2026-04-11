@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/:path*",
-        destination: "http://localhost:8080/api/:path*", // Proxy to Backend
+        destination: "http://localhost:8000/api/:path*", // Proxy to local backend
         // destination: "https://bsl-238481219614.europe-west1.run.app/api/:path*", // Proxy to Backend
       },
     ];

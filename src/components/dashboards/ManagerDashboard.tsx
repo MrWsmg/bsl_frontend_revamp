@@ -41,9 +41,11 @@ import {
   SharedPayslipSection,
   SharedCalendarSection,
   ManagerHarvestSection,
-  ManagerBudgetsSection,
   ManagerWarningsSection,
   ManagerStoreSection,
+  SharedBudgetManagerSection,
+  SharedBudgetSummarySection,
+  SharedBudgetTrackingSection,
 } from './sections';
 import { ManagerInterFarmSection } from './sections/ManagerInterFarmSection';
 
@@ -82,7 +84,6 @@ const TAB_COMPONENTS: Record<string, React.FC> = {
   reports:         ManagerReportsSection,
   blocks:          ManagerBlocksSection,
   harvest:         ManagerHarvestSection,
-  budgets:         ManagerBudgetsSection,
   warnings:        ManagerWarningsSection,
   store:           ManagerStoreSection,
 };
@@ -133,7 +134,14 @@ const MANAGER_SIDEBAR = (() => {
     if (i === tasksIdx) result.push(PROCUREMENT_GROUP as any);
   });
   result.push({ id: 'harvest',   label: 'Harvest Plans', icon: Leaf       });
-  result.push({ id: 'budgets',   label: 'Budgets',       icon: Wallet     });
+  result.push({
+    id: 'budgets_group', label: 'Budgets', icon: Wallet,
+    children: [
+      { id: 'budget-manager',  label: 'Budget Manager', icon: Wallet     },
+      { id: 'budget-summary',  label: 'Summary Tree',   icon: BarChart3  },
+      { id: 'budget-tracking', label: 'Live Tracking',  icon: TrendingUp },
+    ],
+  });
   result.push({ id: 'warnings',  label: 'Warnings',      icon: ShieldAlert });
   result.push({ id: 'store',     label: 'Store',         icon: Warehouse  });
   result.push({ id: 'blocks',    label: 'Blocks',        icon: LayoutGrid });
@@ -180,7 +188,10 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ user, onLogo
         <div className={activeTab === 'proc-transfer' ? '' : 'hidden'}>{mountedTabs.has('proc-transfer') && <SharedTransferSection userRole={ROLE} />}</div>
         <div className={activeTab === 'proc-cardex'   ? '' : 'hidden'}>{mountedTabs.has('proc-cardex')   && <SharedCardexSection userRole={ROLE} />}</div>
         <div className={activeTab === 'proc-gatepass' ? '' : 'hidden'}>{mountedTabs.has('proc-gatepass') && <SharedGatePassSection userRole={ROLE} />}</div>
-        <div className={activeTab === 'calendar' ? '' : 'hidden'}>{mountedTabs.has('calendar') && <SharedCalendarSection userRole={ROLE} />}</div>
+        <div className={activeTab === 'calendar'        ? '' : 'hidden'}>{mountedTabs.has('calendar')        && <SharedCalendarSection userRole={ROLE} />}</div>
+        <div className={activeTab === 'budget-manager'  ? '' : 'hidden'}>{mountedTabs.has('budget-manager')  && <SharedBudgetManagerSection  userRole={ROLE} />}</div>
+        <div className={activeTab === 'budget-summary'  ? '' : 'hidden'}>{mountedTabs.has('budget-summary')  && <SharedBudgetSummarySection   userRole={ROLE} />}</div>
+        <div className={activeTab === 'budget-tracking' ? '' : 'hidden'}>{mountedTabs.has('budget-tracking') && <SharedBudgetTrackingSection  userRole={ROLE} />}</div>
       </Layout>
     </ErrorBoundary>
   );

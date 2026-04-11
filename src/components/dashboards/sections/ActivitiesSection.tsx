@@ -46,9 +46,10 @@ export const ActivitiesSection: React.FC = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
               >
                 <option value="">All Farms</option>
-                {farms?.map((farm: any) => (
-                  <option key={farm.id} value={farm.id}>{farm.name}</option>
-                ))}
+                {farms?.map((farm: any) => {
+                  const fid = farm.id ?? farm.farm_id;
+                  return <option key={fid} value={fid}>{farm.name}</option>;
+                })}
               </select>
             </div>
             <div>

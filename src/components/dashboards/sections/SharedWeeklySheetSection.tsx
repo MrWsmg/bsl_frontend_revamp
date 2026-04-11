@@ -7,7 +7,13 @@ import { SaturdayWeekPicker } from '../../common/SaturdayWeekPicker';
 import { toast } from '../../ui/sonner';
 import { Eye, FileDown, FileText } from 'lucide-react';
 
-export const SharedWeeklySheetSection: React.FC = () => {
+interface SharedWeeklySheetSectionProps {
+  userRole?: string;
+}
+
+const GM_MD_ROLES = ['general_manager', 'managing_director'];
+
+export const SharedWeeklySheetSection: React.FC<SharedWeeklySheetSectionProps> = ({ userRole }) => {
   const [farms, setFarms] = useState<{ id: number; name: string }[]>([]);
   const [farmsLoaded, setFarmsLoaded] = useState(false);
   const [farmId, setFarmId] = useState<number | ''>('');
@@ -16,12 +22,22 @@ export const SharedWeeklySheetSection: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [downloading, setDownloading] = useState<'pdf' | 'csv' | null>(null);
 
-  // Lazy-load farms on first render
+  // GM and MD access all farms; others use the payroll-scoped endpoint
   React.useEffect(() => {
-    apiService.getPayrollFarms()
-      .then((data) => { setFarms(data as any[]); setFarmsLoaded(true); })
+    const fetchFarms = userRole && GM_MD_ROLES.includes(userRole)
+      ? apiService.getFarms()
+      : apiService.getPayrollFarms();
+    fetchFarms
+      .then((data) => {
+        setFarms(
+          (data as any[])
+            .map((f) => ({ id: f.id ?? f.farm_id, name: f.name }))
+            .filter((f) => f.id != null)
+        );
+        setFarmsLoaded(true);
+      })
       .catch(() => setFarmsLoaded(true));
-  }, []);
+  }, [userRole]);
 
   const validate = () => {
     if (!farmId) { toast.error('Please select a farm'); return false; }
@@ -77,13 +93,13 @@ export const SharedWeeklySheetSection: React.FC = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Farm</label>
             <select
-              value={farmId}
+              value={farmId === '' ? '' : String(farmId)}
               onChange={(e) => setFarmId(e.target.value ? Number(e.target.value) : '')}
               disabled={!farmsLoaded}
               className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
             >
               <option value="">{farmsLoaded ? 'Select farm…' : 'Loading…'}</option>
-              {farms.map((f) => <option key={String(f.id)} value={f.id}>{f.name}</option>)}
+              {farms.map((f) => <option key={String(f.id)} value={String(f.id)}>{f.name}</option>)}
             </select>
           </div>
 

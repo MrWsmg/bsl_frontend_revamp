@@ -82,8 +82,10 @@ export const StockOverviewSection: React.FC = () => {
             <p className="text-muted-foreground text-center py-4">No farms assigned</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {farms.map((farm: any) => (
-                <Card key={farm.id} className="hover:shadow-md transition-shadow">
+              {farms.map((farm: any) => {
+                const fid = farm.id ?? farm.farm_id;
+                return (
+                <Card key={fid} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
                     <h4 className="font-semibold text-foreground">{farm.name}</h4>
                     <p className="text-sm text-muted-foreground mt-1">{farm.location || 'No location'}</p>
@@ -94,7 +96,8 @@ export const StockOverviewSection: React.FC = () => {
                     )}
                   </CardContent>
                 </Card>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>

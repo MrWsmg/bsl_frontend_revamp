@@ -18,6 +18,9 @@ import {
   SharedPaymentSummarySection,
   SharedPayslipSection,
   SharedCalendarSection,
+  SharedBudgetManagerSection,
+  SharedBudgetSummarySection,
+  SharedBudgetTrackingSection,
 } from './sections';
 import apiService from '../../services/api';
 import { Card, CardContent } from '@/components/ui/card';
@@ -33,7 +36,10 @@ type Tab =
   | 'proc-lpo'
   | 'proc-grn'
   | 'proc-cardex'
-  | 'calendar';
+  | 'calendar'
+  | 'budget-manager'
+  | 'budget-summary'
+  | 'budget-tracking';
 
 interface Props {
   user: User;
@@ -65,6 +71,14 @@ const SIDEBAR_ITEMS = [
     ],
   },
   { id: 'calendar', label: 'Calendar', icon: CalendarDays },
+  {
+    id: 'budgets-group', label: 'Budgets', icon: BarChart3,
+    children: [
+      { id: 'budget-manager',  label: 'Budget Manager', icon: BarChart3    },
+      { id: 'budget-summary',  label: 'Summary Tree',   icon: BarChart3    },
+      { id: 'budget-tracking', label: 'Live Tracking',  icon: TrendingUp   },
+    ],
+  },
 ];
 
 export const FinancialControllerDashboard: React.FC<Props> = ({ user, onLogout }) => {
@@ -117,6 +131,15 @@ export const FinancialControllerDashboard: React.FC<Props> = ({ user, onLogout }
           </div>
           <div hidden={activeTab !== 'calendar'}>
             {mountedTabs.current.has('calendar') && <SharedCalendarSection userRole="financial_controller" />}
+          </div>
+          <div hidden={activeTab !== 'budget-manager'}>
+            {mountedTabs.current.has('budget-manager') && <SharedBudgetManagerSection userRole="financial_controller" />}
+          </div>
+          <div hidden={activeTab !== 'budget-summary'}>
+            {mountedTabs.current.has('budget-summary') && <SharedBudgetSummarySection userRole="financial_controller" />}
+          </div>
+          <div hidden={activeTab !== 'budget-tracking'}>
+            {mountedTabs.current.has('budget-tracking') && <SharedBudgetTrackingSection userRole="financial_controller" />}
           </div>
         </div>
       </Layout>

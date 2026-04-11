@@ -58,7 +58,6 @@ const ROLE_OPTIONS = [
   { value: 'supervisor', label: 'Supervisor' },
   { value: 'sub_supervisor', label: 'Sub Supervisor' },
   { value: 'factory_supervisor', label: 'Factory Supervisor' },
-  { value: 'scale_supervisor', label: 'Scale Supervisor' },
   { value: 'godown_manager', label: 'Godown Manager' },
   { value: 'worker', label: 'Worker' },
 ];

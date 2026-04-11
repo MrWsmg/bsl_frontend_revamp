@@ -7,11 +7,12 @@ import { ErrorBoundary } from '../common/ErrorBoundary';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { Pagination } from '../common/Pagination';
 import { User } from '../../types';
-import { BarChart3, Users, ClipboardList, TrendingUp, Calendar, CheckCircle, Clock, AlertCircle, Package, UserCheck, LayoutDashboard, FileText } from 'lucide-react';
+import { BarChart3, Users, ClipboardList, TrendingUp, Calendar, CheckCircle, Clock, AlertCircle, Package, UserCheck, LayoutDashboard, FileText, Wallet, Scale } from 'lucide-react';
 import { useApi } from '../../hooks';
 import apiService from '../../services/api';
 import AddWorkerModal from '../shared/AddWorkerModal';
 import { SupervisorTasksSection, SupervisorAttendanceSection } from './sections';
+import PickingDashboard from './PickingDashboard';
 import { SupervisorPayrollSection } from './sections/SupervisorPayrollSection';
 import { SupervisorPayrollPendingSection } from './sections/SupervisorPayrollPendingSection';
 import {
@@ -21,6 +22,9 @@ import {
   SharedDeliveryNoteSection,
   SharedCardexSection,
   SharedCalendarSection,
+  SharedBudgetManagerSection,
+  SharedBudgetSummarySection,
+  SharedBudgetTrackingSection,
 } from './sections';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -68,6 +72,21 @@ const SUPERVISOR_NAV_ITEMS = [
     id: 'calendar',
     label: 'Calendar',
     icon: Calendar,
+  },
+  {
+    id: 'budgets',
+    label: 'Budgets',
+    icon: Wallet,
+    children: [
+      { id: 'budget-manager',  label: 'Budget View',    icon: Wallet     },
+      { id: 'budget-summary',  label: 'Summary Tree',   icon: BarChart3  },
+      { id: 'budget-tracking', label: 'Live Tracking',  icon: TrendingUp },
+    ],
+  },
+  {
+    id: 'picking',
+    label: 'Picking Operations',
+    icon: Scale,
   },
   {
     id: 'reports',
@@ -648,9 +667,16 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
         <div className={activeTab === 'calendar' ? '' : 'hidden'}>
           {mountedTabs.has('calendar') && <SharedCalendarSection userRole="supervisor" />}
         </div>
+        <div className={activeTab === 'picking' ? '' : 'hidden'}>
+          {mountedTabs.has('picking') && <PickingDashboard user={user} onLogout={onLogout} />}
+        </div>
         <div className={activeTab === 'reports' ? '' : 'hidden'}>
           {mountedTabs.has('reports') && renderReports()}
         </div>
+        {/* Budget tabs — read-only for supervisor */}
+        <div className={activeTab === 'budget-manager'  ? '' : 'hidden'}>{mountedTabs.has('budget-manager')  && <SharedBudgetManagerSection  userRole="supervisor" />}</div>
+        <div className={activeTab === 'budget-summary'  ? '' : 'hidden'}>{mountedTabs.has('budget-summary')  && <SharedBudgetSummarySection   userRole="supervisor" />}</div>
+        <div className={activeTab === 'budget-tracking' ? '' : 'hidden'}>{mountedTabs.has('budget-tracking') && <SharedBudgetTrackingSection  userRole="supervisor" />}</div>
         {/* Procurement tabs */}
         <div className={activeTab === 'proc-simr'   ? '' : 'hidden'}>{mountedTabs.has('proc-simr')   && <SupervisorSimrSection />}</div>
         <div className={activeTab === 'proc-gin'    ? '' : 'hidden'}>{mountedTabs.has('proc-gin')    && <SharedGinSection userRole="supervisor" />}</div>

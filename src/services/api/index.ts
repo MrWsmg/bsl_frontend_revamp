@@ -514,40 +514,52 @@ export class ApiService extends BaseApiService {
     return this.payroll.deleteSupervisorPayrollRecord(recordId);
   }
 
-  async bulkRejectFinancialControllerPayroll(recordIds: number[], rejectionReason: string) {
-    return this.payroll.bulkRejectFinancialControllerPayroll({ record_ids: recordIds, rejection_reason: rejectionReason });
+  async bulkRejectFinancialControllerPayroll(data: { record_ids: number[]; rejection_reason: string }) {
+    return this.payroll.bulkRejectFinancialControllerPayroll(data);
   }
 
+  // ── Weekly sheet ──
   async getWeeklyPayrollSheet(farmId: number, weekStart: string) {
     return this.payroll.getWeeklyPayrollSheet(farmId, weekStart);
   }
-
+  async getWeeklySheet(params: { farm_id: number; week_start: string }) {
+    return this.payroll.getWeeklySheet(params);
+  }
   async downloadWeeklyPayrollSheetPdf(farmId: number, weekStart: string) {
     return this.payroll.downloadWeeklyPayrollSheetPdf(farmId, weekStart);
   }
-
+  async downloadWeeklySheetPdf(params: { farm_id: number; week_start: string }) {
+    return this.payroll.downloadWeeklySheetPdf(params);
+  }
   async downloadWeeklyPayrollSheetCsv(farmId: number, weekStart: string) {
     return this.payroll.downloadWeeklyPayrollSheetCsv(farmId, weekStart);
   }
+  async downloadWeeklySheetCsv(params: { farm_id: number; week_start: string }) {
+    return this.payroll.downloadWeeklySheetCsv(params);
+  }
 
+  // ── Payment summary ──
   async getPaymentSummaryJson(farmId: number, startDate: string, endDate: string) {
     return this.payroll.getPaymentSummaryJson(farmId, startDate, endDate);
   }
-
-  async downloadPaymentSummaryPdf(farmId: number, startDate: string, endDate: string) {
-    return this.payroll.downloadPaymentSummaryPdf({ farm_id: farmId, start_date: startDate, end_date: endDate });
+  async getPaymentSummary(params: { farm_id: number; start_date: string; end_date: string }) {
+    return this.payroll.getPaymentSummary(params);
+  }
+  async downloadPaymentSummaryPdf(params: { farm_id: number; start_date: string; end_date: string }) {
+    return this.payroll.downloadPaymentSummaryPdf(params);
   }
 
-  async downloadPayslipPdf(workerName: string, farmId: number, startDate: string, endDate: string) {
-    return this.payroll.downloadPayslipPdf({ worker_name: workerName, farm_id: farmId, start_date: startDate, end_date: endDate });
+  // ── Payslip ──
+  async downloadPayslipPdf(params: { worker_name: string; farm_id: number; start_date: string; end_date: string }) {
+    return this.payroll.downloadPayslipPdf(params);
   }
 
+  // ── QuickBooks ──
   async getQuickBooksPending() {
     return this.payroll.getQuickBooksPending();
   }
-
-  async markQuickBooksSynced(recordIds: number[], transactionIdPrefix: string = 'QB') {
-    return this.payroll.markQuickBooksSynced({ record_ids: recordIds, transaction_id_prefix: transactionIdPrefix });
+  async markQuickBooksSynced(data: { record_ids: number[]; transaction_id_prefix: string }) {
+    return this.payroll.markQuickBooksSynced(data);
   }
 
   async getWorkerPaymentDetails(workerId: number) {
@@ -612,8 +624,16 @@ export class ApiService extends BaseApiService {
 
   // ── Budgets ───────────────────────────────────────────────────────────────
   async getBudgets(period: 'weekly' | 'yearly') { return this.analytics.getBudgets(period); }
-  async createBudget(data: { farm_id: number; period: string; budget_allocated: number }) { return this.analytics.createBudget(data); }
-  async updateBudget(budgetId: number, data: { budget_allocated: number }) { return this.analytics.updateBudget(budgetId, data); }
+  async getBudgetsByPeriod(params: { period: string; farm_id?: number; fiscal_year?: number }) { return this.analytics.getBudgetsByPeriod(params); }
+  async getCurrentBudget(farmId: number, period: string) { return this.analytics.getCurrentBudget(farmId, period); }
+  async getBudgetSummary(farmId: number, fiscalYear?: number) { return this.analytics.getBudgetSummary(farmId, fiscalYear); }
+  async getBudgetTracking(params: { period: string; farm_id?: number }) { return this.analytics.getBudgetTracking(params); }
+  async getBudgetBlocks(budgetId: number) { return this.analytics.getBudgetBlocks(budgetId); }
+  async createBudget(data: any) { return this.analytics.createBudget(data); }
+  async updateBudget(budgetId: number, data: any) { return this.analytics.updateBudget(budgetId, data); }
+  async createBudgetBlock(budgetId: number, data: any) { return this.analytics.createBudgetBlock(budgetId, data); }
+  async updateBudgetBlock(budgetId: number, blockId: number, data: any) { return this.analytics.updateBudgetBlock(budgetId, blockId, data); }
+  async validateExpenditure(params: { expenditure_type: string; amount: number; farm_id: number; period: string }) { return this.analytics.validateExpenditure(params); }
 
   // ── Warnings ──────────────────────────────────────────────────────────────
   async getWarnings(params?: Record<string, any>) { return this.analytics.getWarnings(params); }
@@ -1286,6 +1306,17 @@ export class ApiService extends BaseApiService {
   async postMdInitiateReport(data: Record<string, any>) { return this.analytics.postMdInitiateReport(data); }
   async getMdReports() { return this.analytics.getMdReports(); }
   async postMdMeeting(data: Record<string, any>) { return this.analytics.postMdMeeting(data); }
+
+  // ===========================
+  // GM-exclusive
+  // ===========================
+
+  async getGmExpenditure(params?: Record<string, any>) { return this.analytics.getGmExpenditure(params); }
+  async getGmCombinedFarm() { return this.analytics.getGmCombinedFarm(); }
+  async getGmQuickbooks() { return this.analytics.getGmQuickbooks(); }
+  async getGmPerformanceIndicators(params?: Record<string, any>) { return this.analytics.getGmPerformanceIndicators(params); }
+  async getGmMeetings() { return this.analytics.getGmMeetings(); }
+  async postGmMeeting(data: Record<string, any>) { return this.analytics.postGmMeeting(data); }
 }
 
 // Create and export a singleton instance

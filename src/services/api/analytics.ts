@@ -25,20 +25,52 @@ export class AnalyticsApiService extends BaseApiService {
     return this.get<any[]>('/budgets', { period });
   }
 
-  async createBudget(data: { farm_id: number; period: string; budget_allocated: number }): Promise<any> {
+  async getBudgetsByPeriod(params: { period: string; farm_id?: number; fiscal_year?: number }): Promise<any[]> {
+    return this.get<any[]>('/budgets', params);
+  }
+
+  async getCurrentBudget(farmId: number, period: string): Promise<any> {
+    return this.get<any>(`/budgets/current/${farmId}`, { period });
+  }
+
+  async getBudgetSummary(farmId: number, fiscalYear?: number): Promise<any> {
+    return this.get<any>(`/budgets/summary/${farmId}`, fiscalYear ? { fiscal_year: fiscalYear } : undefined);
+  }
+
+  async getBudgetTracking(params: { period: string; farm_id?: number }): Promise<any> {
+    return this.get<any>('/budget/tracking', params);
+  }
+
+  async getBudgetBlocks(budgetId: number): Promise<any[]> {
+    return this.get<any[]>(`/budgets/${budgetId}/blocks`);
+  }
+
+  async createBudget(data: any): Promise<any> {
     return this.post<any>('/budgets', data);
   }
 
-  async updateBudget(budgetId: number, data: { budget_allocated: number }): Promise<any> {
+  async updateBudget(budgetId: number, data: any): Promise<any> {
     return this.put<any>(`/budgets/${budgetId}`, data);
   }
 
+  async createBudgetBlock(budgetId: number, data: any): Promise<any> {
+    return this.post<any>(`/budgets/${budgetId}/blocks`, data);
+  }
+
+  async updateBudgetBlock(budgetId: number, blockId: number, data: any): Promise<any> {
+    return this.put<any>(`/budgets/${budgetId}/blocks/${blockId}`, data);
+  }
+
+  async validateExpenditure(params: { expenditure_type: string; amount: number; farm_id: number; period: string }): Promise<any> {
+    return this.post<any>('/budget/validate-expenditure', undefined, { params });
+  }
+
   async getWarnings(params?: Record<string, any>): Promise<any> {
-    return this.get<any>('/warnings', params);
+    return this.get<any>('/hr/warnings', params);
   }
 
   async signWarning(warningId: number): Promise<any> {
-    return this.post<any>(`/warnings/${warningId}/sign/manager`, {});
+    return this.post<any>(`/hr/warnings/${warningId}/sign/manager`, {});
   }
 
   /**
@@ -96,6 +128,32 @@ export class AnalyticsApiService extends BaseApiService {
    */
   async getGeneralActivities(limit: number = 50): Promise<any[]> {
     return this.get<any[]>('/activities', { limit });
+  }
+
+  // ============ GM-EXCLUSIVE ENDPOINTS ============
+
+  async getGmExpenditure(params?: Record<string, any>): Promise<any> {
+    return this.get<any>('/gm/financial-monitoring/expenditure', params);
+  }
+
+  async getGmCombinedFarm(): Promise<any> {
+    return this.get<any>('/gm/financial-monitoring/combined-farm');
+  }
+
+  async getGmQuickbooks(): Promise<any> {
+    return this.get<any>('/gm/financial-monitoring/quickbooks');
+  }
+
+  async getGmPerformanceIndicators(params?: Record<string, any>): Promise<any> {
+    return this.get<any>('/gm/performance-indicators', params);
+  }
+
+  async getGmMeetings(): Promise<any> {
+    return this.get<any>('/gm/meetings');
+  }
+
+  async postGmMeeting(data: Record<string, any>): Promise<any> {
+    return this.post<any>('/gm/meetings', data);
   }
 
   // ============ MD-EXCLUSIVE ENDPOINTS ============

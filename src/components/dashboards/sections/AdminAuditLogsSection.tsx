@@ -52,6 +52,12 @@ export const AdminAuditLogsSection: React.FC = () => {
   const { data: usersRaw } = useApi<any>(fetchUsers);
   const userList: any[] = Array.isArray(usersRaw) ? usersRaw : (usersRaw as any)?.users ?? [];
 
+  const userMap = React.useMemo(() => {
+    const m: Record<number, string> = {};
+    userList.forEach((u: any) => { if (u.id != null) m[u.id] = u.full_name || u.username; });
+    return m;
+  }, [userList]);
+
   const buildParams = useCallback(() => {
     const p: Record<string, any> = {};
     if (action)    p.action     = action;
@@ -162,7 +168,7 @@ export const AdminAuditLogsSection: React.FC = () => {
                             : '—'}
                         </td>
                         <td className="px-3 py-2 font-medium text-gray-800">
-                          {log.username ?? log.user?.username ?? (log.user_id ? `#${log.user_id}` : '—')}
+                          {log.username ?? log.user?.full_name ?? log.user?.username ?? (log.user_id != null ? (userMap[log.user_id] ?? `#${log.user_id}`) : '—')}
                         </td>
                         <td className="px-3 py-2">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${badgeCls}`}>

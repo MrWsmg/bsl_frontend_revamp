@@ -15,11 +15,7 @@ import type { CalendarEventDTO, CalendarEventPayload } from '../../../services/a
 import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -27,14 +23,7 @@ import {
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from '@/components/ui/sheet';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
-import {
-  Popover, PopoverContent, PopoverTrigger,
-} from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { Plus, Pencil, Trash2, ExternalLink, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, ExternalLink, X, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isValid } from 'date-fns';
@@ -121,19 +110,24 @@ export function SharedCalendarSection({ userRole, farmId }: SharedCalendarSectio
   const fetchEventTypes = useCallback(() => apiService.calendar.getEventTypes(), []);
   const { data: eventTypesRaw } = useApi(fetchEventTypes);
   const availableCategories: string[] = Array.isArray(eventTypesRaw) && eventTypesRaw.length > 0
-    ? eventTypesRaw
+    ? (eventTypesRaw as any[]).map((t) => (typeof t === 'string' ? t : t.name ?? t.type ?? String(t)))
     : Object.keys(CATEGORY_CONFIG);
 
   // ── Events (re-fetches when range or farm changes) ──
+  // Always send at least the user's own farmId so the backend returns
+  // events shared with that farm (visibility=farm / visibility=all).
+  const resolvedFarmId = farmFilter ? Number(farmFilter) : (farmId ?? undefined);
   const fetchEvents = useCallback(() => {
     if (!startStr || !endStr) return Promise.resolve([]);
     return apiService.calendar.getEvents({
       start: startStr,
       end: endStr,
-      farm_id: farmFilter ? Number(farmFilter) : undefined,
+      farm_id: resolvedFarmId,
     });
-  }, [startStr, endStr, farmFilter]);
-  const { data: eventsRaw, loading, refetch } = useApi(fetchEvents);
+  }, [startStr, endStr, resolvedFarmId]);
+  const { data: eventsRaw, loading, refetch } = useApi(fetchEvents, {
+    dependencies: [startStr, endStr, resolvedFarmId],
+  });
   const allEvents: CalendarEventDTO[] = Array.isArray(eventsRaw) ? eventsRaw : [];
 
   // ── Client-side category filter ──
@@ -216,11 +210,12 @@ export function SharedCalendarSection({ userRole, farmId }: SharedCalendarSectio
     const startDT = form.all_day
       ? `${form.start_date}T00:00:00`
       : `${form.start_date}T${form.start_time || '00:00'}:00`;
-    const endDT = form.end_date
-      ? form.all_day
-        ? `${form.end_date}T23:59:59`
-        : `${form.end_date}T${form.end_time || '23:59'}:00`
-      : undefined;
+    const endDate = form.end_date || form.start_date;
+    const endDT = form.all_day
+      ? `${endDate}T23:59:59`
+      : form.end_time
+        ? `${endDate}T${form.end_time}:00`
+        : undefined;
     return {
       title: form.title.trim(),
       description: form.description?.trim() || undefined,
@@ -289,19 +284,26 @@ export function SharedCalendarSection({ userRole, farmId }: SharedCalendarSectio
         <CardContent className="p-4">
           <div className="flex items-center gap-2 flex-wrap">
             {farms.length > 1 && (
-              <Select value={farmFilter || 'all'} onValueChange={v => setFarmFilter(v === 'all' ? '' : v)}>
-                <SelectTrigger className="h-7 text-xs w-36">
-                  <SelectValue placeholder="All farms" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All farms</SelectItem>
-                  {farms.map((f: any) => {
-                    const id = String(f.id ?? f.farm_id);
-                    return <SelectItem key={id} value={id}>{f.name}</SelectItem>;
-                  })}
-                </SelectContent>
-              </Select>
+              <select
+                value={farmFilter || 'all'}
+                onChange={e => setFarmFilter(e.target.value === 'all' ? '' : e.target.value)}
+                className="h-7 text-xs border border-gray-300 rounded-md px-2 focus:outline-none focus:ring-1 focus:ring-blue-500 w-36"
+              >
+                <option value="all">All farms</option>
+                {farms.map((f: any) => {
+                  const id = String(f.id ?? f.farm_id);
+                  return <option key={id} value={id}>{f.name}</option>;
+                })}
+              </select>
             )}
+            <button
+              onClick={() => refetch()}
+              disabled={loading}
+              title="Reload events"
+              className="h-7 w-7 flex items-center justify-center border border-gray-300 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-50 disabled:opacity-40 transition-colors"
+            >
+              <RefreshCw className={cn('w-3.5 h-3.5', loading && 'animate-spin')} />
+            </button>
             <div className="flex gap-1.5 flex-wrap flex-1">
               {Object.entries(CATEGORY_CONFIG)
                 .filter(([key]) => availableCategories.includes(key))
@@ -371,16 +373,32 @@ export function SharedCalendarSection({ userRole, farmId }: SharedCalendarSectio
 
       {/* ── Event Detail Sheet ── */}
       <Sheet open={!!selectedEvent} onOpenChange={open => { if (!open) setSelectedEvent(null); }}>
-        <SheetContent className="sm:max-w-[400px] overflow-y-auto">
+        <SheetContent className="sm:max-w-[480px] overflow-y-auto">
           {selectedEvent && (() => {
             const e = selectedEvent;
             const cfg = CATEGORY_CONFIG[e.category] ?? CATEGORY_CONFIG.custom;
             const canEdit = isOwnCustomEvent(e);
+            const startDt = eventDate(e);
+            const endDt = e.end ? parseISO(e.end) : null;
+
+            // Known meta keys handled explicitly — rest shown generically
+            const KNOWN_META = new Set(['description', 'event_type', 'visibility', 'recurrence', 'created_by']);
+            const extraMeta = e.meta
+              ? Object.entries(e.meta).filter(([k]) => !KNOWN_META.has(k))
+              : [];
+
+            const Row = ({ label, value }: { label: string; value: React.ReactNode }) => (
+              <div>
+                <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
+                <p className="text-sm font-medium text-gray-900">{value}</p>
+              </div>
+            );
+
             return (
               <>
                 <SheetHeader className="mb-4">
                   <div className="flex items-start gap-2">
-                    <div className="w-3 rounded-full mt-1.5 flex-shrink-0" style={{ background: cfg.color, height: 12 }} />
+                    <div className="w-3 h-3 rounded-full mt-1 flex-shrink-0" style={{ background: cfg.color }} />
                     <SheetTitle className="leading-snug">{e.title}</SheetTitle>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap ml-5">
@@ -388,45 +406,100 @@ export function SharedCalendarSection({ userRole, farmId }: SharedCalendarSectio
                     {e.status && (
                       <Badge variant="secondary" className="capitalize">{e.status.replace(/_/g, ' ')}</Badge>
                     )}
+                    {e.meta?.event_type && (
+                      <Badge variant="secondary" className="capitalize">{String(e.meta.event_type).replace(/_/g, ' ')}</Badge>
+                    )}
                   </div>
                 </SheetHeader>
-                <div className="space-y-3 text-sm ml-5">
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-0.5">Date & Time</p>
-                    <p className="font-medium">
-                      {e.all_day
-                        ? format(eventDate(e), 'MMMM d, yyyy') + ' (All day)'
-                        : format(eventDate(e), 'MMM d, yyyy · HH:mm')}
-                      {e.end && !e.all_day && ` – ${format(parseISO(e.end), 'HH:mm')}`}
-                    </p>
+
+                <div className="space-y-4 text-sm">
+
+                  {/* ── Date / Time block ── */}
+                  <div className="grid grid-cols-2 gap-3 p-3 bg-gray-50 rounded-lg border">
+                    <Row
+                      label="Start"
+                      value={e.all_day
+                        ? format(startDt, 'EEE, MMM d yyyy')
+                        : format(startDt, 'EEE, MMM d yyyy · HH:mm')}
+                    />
+                    <Row
+                      label="End"
+                      value={endDt
+                        ? e.all_day
+                          ? format(endDt, 'EEE, MMM d yyyy')
+                          : format(endDt, 'EEE, MMM d yyyy · HH:mm')
+                        : '—'}
+                    />
+                    <Row label="Duration" value={e.all_day ? 'All day' : endDt
+                      ? (() => {
+                          const mins = Math.round((endDt.getTime() - startDt.getTime()) / 60000);
+                          if (mins < 60) return `${mins} min`;
+                          const h = Math.floor(mins / 60), m = mins % 60;
+                          return m > 0 ? `${h}h ${m}m` : `${h}h`;
+                        })()
+                      : '—'
+                    } />
+                    {e.meta?.recurrence && e.meta.recurrence !== 'none' && (
+                      <Row label="Repeats" value={<span className="capitalize">{String(e.meta.recurrence)}</span>} />
+                    )}
                   </div>
+
+                  {/* ── Location / Farm ── */}
                   {e.farm_name && (
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-0.5">Farm</p>
-                      <p className="font-medium">{e.farm_name}</p>
-                    </div>
+                    <Row label="Farm" value={e.farm_name} />
                   )}
-                  {e.meta?.recurrence && e.meta.recurrence !== 'none' && (
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-0.5">Repeats</p>
-                      <p className="font-medium capitalize">{e.meta.recurrence as string}</p>
-                    </div>
+
+                  {/* ── Visibility ── */}
+                  {e.meta?.visibility && (
+                    <Row label="Visibility" value={
+                      e.meta.visibility === 'private' ? 'Only me'
+                      : e.meta.visibility === 'farm' ? 'My farm'
+                      : 'Everyone'
+                    } />
                   )}
+
+                  {/* ── Description ── */}
                   {e.meta?.description && (
                     <div>
-                      <p className="text-xs text-muted-foreground mb-0.5">Description</p>
-                      <p className="text-gray-700">{e.meta.description as string}</p>
+                      <p className="text-xs text-muted-foreground mb-1">Description</p>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 rounded p-2 border">
+                        {String(e.meta.description)}
+                      </p>
                     </div>
                   )}
+
+                  {/* ── Extra meta fields from operational events ── */}
+                  {extraMeta.length > 0 && (
+                    <>
+                      <Separator />
+                      <div className="grid grid-cols-2 gap-3">
+                        {extraMeta.map(([key, val]) => (
+                          <Row
+                            key={key}
+                            label={key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                            value={val == null ? '—' : typeof val === 'object' ? JSON.stringify(val) : String(val)}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {/* ── Source ── */}
                   <Separator />
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <ExternalLink className="w-3.5 h-3.5" />
+                    <ExternalLink className="w-3.5 h-3.5 flex-shrink-0" />
                     <span>
-                      Source: <span className="font-medium capitalize">{e.source.replace(/_/g, ' ')}</span> #{e.source_id}
+                      Source: <span className="font-medium capitalize">{e.source.replace(/_/g, ' ')}</span>
+                      {' '}·{' '}ID #{e.source_id}
+                      {e.meta?.created_by && (
+                        <> · Created by user #{String(e.meta.created_by)}</>
+                      )}
                     </span>
                   </div>
+
+                  {/* ── Actions ── */}
                   {canEdit && (
-                    <div className="flex gap-2 pt-2">
+                    <div className="flex gap-2 pt-1">
                       <Button size="sm" variant="outline" className="flex-1 gap-1.5" onClick={() => openEdit(e)}>
                         <Pencil className="w-3.5 h-3.5" /> Edit
                       </Button>
@@ -449,177 +522,161 @@ export function SharedCalendarSection({ userRole, farmId }: SharedCalendarSectio
 
       {/* ── Add / Edit Event Dialog ── */}
       <Dialog open={showAddModal} onOpenChange={open => { if (!open) setShowAddModal(false); }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingEvent ? 'Edit Event' : 'New Event'}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-1">
 
-            {/* Title */}
-            <div>
-              <Label className="text-sm mb-1 block">Title <span className="text-red-500">*</span></Label>
-              <Input
+          <div className="grid grid-cols-2 gap-3 py-2">
+
+            {/* Title — full width */}
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Title <span className="text-red-500">*</span></label>
+              <input
+                type="text"
                 value={form.title}
                 onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                 placeholder="Event title"
+                className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             {/* Type */}
             <div>
-              <Label className="text-sm mb-1 block">Type</Label>
-              <Select value={form.event_type} onValueChange={v => setForm(f => ({ ...f, event_type: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="meeting">Meeting</SelectItem>
-                  <SelectItem value="reminder">Reminder</SelectItem>
-                  <SelectItem value="maintenance">Maintenance</SelectItem>
-                  <SelectItem value="custom">Other</SelectItem>
-                </SelectContent>
-              </Select>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+              <select
+                value={form.event_type}
+                onChange={e => setForm(f => ({ ...f, event_type: e.target.value }))}
+                className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="meeting">Meeting</option>
+                <option value="reminder">Reminder</option>
+                <option value="maintenance">Maintenance</option>
+                <option value="custom">Other</option>
+              </select>
+            </div>
+
+            {/* Repeat */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Repeat</label>
+              <select
+                value={form.recurrence ?? 'none'}
+                onChange={e => setForm(f => ({ ...f, recurrence: e.target.value }))}
+                className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="none">Does not repeat</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="annually">Annually</option>
+              </select>
             </div>
 
             {/* All-day */}
-            <div className="flex items-center gap-3">
-              <Switch
+            <div className="col-span-2 flex items-center gap-2">
+              <input
                 id="all-day"
+                type="checkbox"
                 checked={form.all_day}
-                onCheckedChange={v => setForm(f => ({ ...f, all_day: v }))}
+                onChange={e => setForm(f => ({ ...f, all_day: e.target.checked }))}
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
-              <Label htmlFor="all-day" className="text-sm cursor-pointer">All day</Label>
+              <label htmlFor="all-day" className="text-sm font-medium text-gray-700 cursor-pointer">All day</label>
             </div>
 
-            {/* Start */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-sm mb-1 block">Start Date <span className="text-red-500">*</span></Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-sm font-normal">
-                      {form.start_date || 'Pick date'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={form.start_date ? parseISO(form.start_date) : undefined}
-                      onSelect={d => d && setForm(f => ({ ...f, start_date: toDateStr(d) }))}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              {!form.all_day && (
-                <div>
-                  <Label className="text-sm mb-1 block">Start Time</Label>
-                  <Input
-                    type="time"
-                    value={form.start_time}
-                    onChange={e => setForm(f => ({ ...f, start_time: e.target.value }))}
-                  />
-                </div>
-              )}
+            {/* Start Date */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Start Date <span className="text-red-500">*</span></label>
+              <input
+                type="date"
+                value={form.start_date}
+                onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))}
+                className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
             </div>
 
-            {/* End */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-sm mb-1 block">
-                  End Date <span className="text-gray-400 font-normal">(optional)</span>
-                </Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-sm font-normal text-muted-foreground">
-                      {form.end_date || 'No end date'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={form.end_date ? parseISO(form.end_date) : undefined}
-                      onSelect={d => d && setForm(f => ({ ...f, end_date: toDateStr(d) }))}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              {!form.all_day && form.end_date && (
-                <div>
-                  <Label className="text-sm mb-1 block">End Time</Label>
-                  <Input
-                    type="time"
-                    value={form.end_time}
-                    onChange={e => setForm(f => ({ ...f, end_time: e.target.value }))}
-                  />
-                </div>
-              )}
+            {/* Start Time */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+              <input
+                type="time"
+                value={form.start_time}
+                disabled={form.all_day}
+                onChange={e => setForm(f => ({ ...f, start_time: e.target.value }))}
+                className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400"
+              />
+            </div>
+
+            {/* End Date */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">End Date <span className="text-gray-400 font-normal">(optional)</span></label>
+              <input
+                type="date"
+                value={form.end_date}
+                onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))}
+                className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* End Time */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+              <input
+                type="time"
+                value={form.end_time}
+                disabled={form.all_day}
+                onChange={e => setForm(f => ({ ...f, end_time: e.target.value }))}
+                className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400"
+              />
             </div>
 
             {/* Farm */}
             {farms.length > 0 && (
               <div>
-                <Label className="text-sm mb-1 block">Farm</Label>
-                <Select
-                  value={form.farm_id ? String(form.farm_id) : 'none'}
-                  onValueChange={v => setForm(f => ({ ...f, farm_id: v === 'none' ? undefined : Number(v) }))}
+                <label className="block text-sm font-medium text-gray-700 mb-1">Farm</label>
+                <select
+                  value={form.farm_id ? String(form.farm_id) : ''}
+                  onChange={e => setForm(f => ({ ...f, farm_id: e.target.value ? Number(e.target.value) : undefined }))}
+                  className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <SelectTrigger><SelectValue placeholder="Select farm" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No specific farm</SelectItem>
-                    {farms.map((farm: any) => {
-                      const id = String(farm.id ?? farm.farm_id);
-                      return <SelectItem key={id} value={id}>{farm.name}</SelectItem>;
-                    })}
-                  </SelectContent>
-                </Select>
+                  <option value="">No specific farm</option>
+                  {farms.map((farm: any) => {
+                    const id = String(farm.id ?? farm.farm_id);
+                    return <option key={id} value={id}>{farm.name}</option>;
+                  })}
+                </select>
               </div>
             )}
 
             {/* Visibility */}
             <div>
-              <Label className="text-sm mb-1 block">Visibility</Label>
-              <Select value={form.visibility} onValueChange={v => setForm(f => ({ ...f, visibility: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="private">Only me</SelectItem>
-                  <SelectItem value="farm">My farm</SelectItem>
-                  {canSetAllVisibility && (
-                    <SelectItem value="all">Everyone</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Visibility</label>
+              <select
+                value={form.visibility}
+                onChange={e => setForm(f => ({ ...f, visibility: e.target.value }))}
+                className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="private">Only me</option>
+                <option value="farm">My farm</option>
+                {canSetAllVisibility && <option value="all">Everyone</option>}
+              </select>
             </div>
 
-            {/* Recurrence */}
-            <div>
-              <Label className="text-sm mb-1 block">Repeat</Label>
-              <Select value={form.recurrence ?? 'none'} onValueChange={v => setForm(f => ({ ...f, recurrence: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Does not repeat</SelectItem>
-                  <SelectItem value="weekly">Weekly</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
-                  <SelectItem value="quarterly">Quarterly</SelectItem>
-                  <SelectItem value="annually">Annually</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Description */}
-            <div>
-              <Label className="text-sm mb-1 block">
-                Description <span className="text-gray-400 font-normal">(optional)</span>
-              </Label>
-              <Textarea
+            {/* Description — full width */}
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Description <span className="text-gray-400 font-normal">(optional)</span></label>
+              <textarea
                 value={form.description}
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 placeholder="Additional notes…"
                 rows={3}
+                className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               />
             </div>
           </div>
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddModal(false)} disabled={submitting}>
-              Cancel
-            </Button>
+            <Button variant="outline" onClick={() => setShowAddModal(false)} disabled={submitting}>Cancel</Button>
             <Button onClick={handleSave} disabled={submitting}>
               {submitting ? <LoadingSpinner size="sm" /> : editingEvent ? 'Save Changes' : 'Create Event'}
             </Button>

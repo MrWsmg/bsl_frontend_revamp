@@ -829,7 +829,7 @@ export interface PickingSession {
   date: string;
   sub_supervisor_id?: number;
   sub_supervisor_name?: string;
-  scale_supervisor_id: number;
+  opened_by_id: number;
   price_per_kg: number;
   total_cherry_kg: number;
   total_pickers: number;

@@ -48,7 +48,7 @@ export const PayslipSection: React.FC = () => {
   const handleWorkerSelect = (workerId: string) => {
     setSelectedWorkerId(workerId);
     const worker = workers?.find((w: any) => w.id.toString() === workerId);
-    if (worker) setWorkerName(worker.full_name);
+    if (worker) setWorkerName(worker.full_name ?? '');
   };
 
   const validate = (): boolean => {

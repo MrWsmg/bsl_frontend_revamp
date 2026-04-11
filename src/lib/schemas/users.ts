@@ -16,7 +16,6 @@ export const userRoles = [
   "supervisor",
   "sub_supervisor",
   "factory_supervisor",
-  "scale_supervisor",
   "godown_manager",
   "worker",
 ] as const;

@@ -94,7 +94,7 @@ const PickingDashboard: React.FC<PickingDashboardProps> = ({ user }) => {
   }, [farmWorkers, pickerSearch]);
 
   const isGM = ['admin', 'general_manager', 'managing_director'].includes(user.role);
-  const canManageSessions = ['admin', 'supervisor', 'scale_supervisor'].includes(user.role);
+  const canManageSessions = ['admin', 'supervisor'].includes(user.role);
 
   const loadFarms = useCallback(async () => {
     try {
