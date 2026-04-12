@@ -1359,3 +1359,330 @@ export interface HarvestReport {
   harvest_plans: HarvestPlan[];
 }
 
+// ===========================
+// Other Crops Types
+// ===========================
+
+export type OtherCropType = 'maize' | 'beans' | 'soya' | 'rose_coco' | 'maize_rejects' | 'bean_rejects';
+
+export interface OtherCropsHarvest {
+  id: number;
+  farm_id: number;
+  crop_type: OtherCropType;
+  block_name: string;
+  block_side?: string;
+  block_code?: string;
+  area_ha?: number;
+  variety?: string;
+  harvest_date: string;
+  bags?: number;
+  kgs?: number;
+  num_workers?: number;
+  acres_harvested?: number;
+  delivery_note_ref?: string;
+  paid_per_bag?: number;
+  paid_per_kg?: number;
+  total_payment?: number;
+  comments?: string;
+  block_id?: number;
+  recorded_by?: string;
+  created_at?: string;
+}
+
+export interface OtherCropsShelling {
+  id: number;
+  farm_id: number;
+  block_name?: string;
+  block_code?: string;
+  shell_date: string;
+  kgs_in: number;
+  num_shellers?: number;
+  bags_out?: number;
+  avg_kg_per_person?: number;
+  paid_per_kg?: number;
+  total_payment?: number;
+  comments?: string;
+}
+
+export interface OtherCropsSale {
+  id: number;
+  farm_id: number;
+  crop_type: OtherCropType;
+  sale_date: string;
+  invoice_number: string;
+  buyer_name: string;
+  kgs_sold: number;
+  unit_price?: number;
+  paid_amount?: number;
+  on_account_amount?: number;
+  driver_name?: string;
+  driver_phone?: string;
+  vehicle_registration?: string;
+  trailer_registration?: string;
+  delivery_note?: string;
+  serial_number?: string;
+  security_name?: string;
+  security_signed?: boolean;
+  quickbooks_ref?: string;
+  comments?: string;
+}
+
+export interface CropBalance {
+  id: number;
+  farm_id: number;
+  crop_type: OtherCropType;
+  current_kgs: number;
+  current_bags: number;
+  last_updated: string;
+}
+
+// ===========================
+// Mbuni (Dried Cherry) Types
+// ===========================
+
+export interface MbuniRecord {
+  id: number;
+  farm_id: number;
+  block_name: string;
+  block_code?: string;
+  area_ha?: number;
+  variety?: string;
+  harvest_date: string;
+  num_pickers: number;
+  mbuni_kg: number;
+  mbuni_to_green_ratio?: number;
+  green_equivalent_kg?: number;
+  paid_per_kg?: number;
+  total_payment?: number;
+  comments?: string;
+}
+
+// ===========================
+// Fertilizer Stock Types
+// ===========================
+
+export interface FertilizerProduct {
+  id: number;
+  name: string;
+  formula?: string;
+  unit: string;
+  sub_store: 'coffee' | 'otc';
+  active: boolean;
+}
+
+export interface FertilizerEntry {
+  id: number;
+  product_id: number;
+  farm_id: number;
+  entry_date: string;
+  transaction_type: 'in' | 'out';
+  bags?: number;
+  pkts?: number;
+  kgs?: number;
+  from_location?: string;
+  delivery_note_ref?: string;
+  comments?: string;
+}
+
+export interface FertilizerBalance {
+  id: number;
+  product_id: number;
+  farm_id: number;
+  current_bags: number;
+  current_kgs: number;
+  last_updated: string;
+  product_name: string;
+  product_formula?: string;
+  product_unit: string;
+  sub_store: 'coffee' | 'otc';
+}
+
+// ===========================
+// Fuel & Chemicals Types
+// ===========================
+
+export type FuelChemCategory = 'fuel' | 'herbicide' | 'fungicide' | 'pesticide' | 'chemical';
+
+export interface FuelChemProduct {
+  id: number;
+  name: string;
+  formula?: string;
+  category: FuelChemCategory;
+  unit: string;
+  sub_store: 'coffee' | 'otc';
+  active: boolean;
+}
+
+export interface FuelChemEntry {
+  id: number;
+  product_id: number;
+  farm_id: number;
+  entry_date: string;
+  transaction_type: 'in' | 'out';
+  quantity: number;
+  from_to_location?: string;
+  delivery_note_ref?: string;
+  serial_number?: string;
+  comments?: string;
+}
+
+export interface FuelChemBalance {
+  id: number;
+  product_id: number;
+  farm_id: number;
+  current_quantity: number;
+  last_updated: string;
+  product_name: string;
+  product_unit: string;
+  product_category: FuelChemCategory;
+  sub_store: 'coffee' | 'otc';
+}
+
+// ===========================
+// Irrigation Spare Parts Types
+// ===========================
+
+export interface IrrigationPart {
+  id: number;
+  farm_id: number;
+  supplier: string;
+  part_number: string;
+  description: string;
+  unit: string;
+  active: boolean;
+}
+
+export interface IrrigationEntry {
+  id: number;
+  part_id: number;
+  farm_id: number;
+  entry_date: string;
+  transaction_type: 'in' | 'out';
+  quantity: number;
+  from_location?: string;
+  notes?: string;
+}
+
+export interface IrrigationBalance {
+  id: number;
+  part_id: number;
+  farm_id: number;
+  current_quantity: number;
+  last_updated: string;
+  part_number: string;
+  description: string;
+  supplier: string;
+  unit: string;
+}
+
+// ===========================
+// Fish Farming Types
+// ===========================
+
+export interface FishReservoir {
+  id: number;
+  farm_id: number;
+  name: string;
+  species?: string;
+  capacity_m3?: number;
+  stocking_date?: string;
+  stocking_count?: number;
+  status: 'active' | 'dormant' | 'maintenance';
+  notes?: string;
+}
+
+export interface FishWaterParameter {
+  id: number;
+  reservoir_id: number;
+  recorded_at: string;
+  dissolved_oxygen_mg_l?: number;
+  temperature_c?: number;
+  ph?: number;
+  nitrogen_dioxide_mg_l?: number;
+  ammonium_nitrate_mg_l?: number;
+  un_ionized_ammonia_mg_l?: number;
+  comments?: string;
+}
+
+export interface FishFeedingRecord {
+  id: number;
+  reservoir_id: number;
+  feeding_date: string;
+  session: 'morning' | 'midday' | 'afternoon';
+  feeding_time?: string;
+  kg_fed: number;
+  observations?: string;
+}
+
+export interface FishWeightRecord {
+  id: number;
+  reservoir_id: number;
+  sample_date: string;
+  avg_weight_g?: number;
+  sample_count?: number;
+  min_weight_g?: number;
+  max_weight_g?: number;
+  notes?: string;
+}
+
+export interface FishAlarmLog {
+  id: number;
+  reservoir_id: number;
+  log_date: string;
+  alarm_activated_at?: string;
+  alarm_deactivated_at?: string;
+  alarm_activity_reported: boolean;
+  cctv_activity_reported: boolean;
+  surveillance_notes?: string;
+  control_room_notes?: string;
+}
+
+// ===========================
+// Store CARDEX Types
+// ===========================
+
+export interface StoreSummaryItem {
+  item_name: string;
+  unit: string;
+  current_balance: number;
+  current_value?: number | null;
+  total_in: number;
+  total_out: number;
+  last_receipt_date: string | null;
+  last_issue_date: string | null;
+  stock_status: 'green' | 'amber' | 'red' | 'unknown';
+  store_category: string;
+  reorder_level?: number | null;
+  min_level?: number | null;
+  max_level?: number | null;
+}
+
+export interface StoreHistoryEntry {
+  id?: number;
+  transaction_date: string;
+  transaction_type: string;
+  quantity_in: number | null;
+  quantity_out: number | null;
+  running_balance: number;
+  reference: string | null;
+  notes: string | null;
+  unit?: string;
+}
+
+export interface StoreReportCard {
+  store_category: string;
+  item_count: number;
+  total_in: number;
+  total_out: number;
+  current_balance: number;
+  current_value?: number;
+  low_stock_count: number;
+  critical_stock_count: number;
+}
+
+export interface StoreReorderLevels {
+  reorder_level?: number;
+  min_level?: number;
+  max_level?: number;
+}
+

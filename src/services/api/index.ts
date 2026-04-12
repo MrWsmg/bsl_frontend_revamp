@@ -1,8 +1,4 @@
 // Main API service that combines all API services
-<<<<<<< HEAD
-=======
-import { PayrollRecord } from '../../types';
->>>>>>> 8c92f07 (feat(payroll): add document generation and enhance management)
 import { BaseApiService } from './base';
 import { AuthApiService } from './auth';
 import { FarmsApiService } from './farms';
@@ -22,6 +18,14 @@ import { PhotosApiService } from './photos';
 import { ProcurementApiService } from './procurement';
 import { AttendanceApiService } from './attendance';
 import { CalendarApiService } from './calendar';
+import { OtherCropsApiService } from './other-crops';
+import { MbuniApiService } from './mbuni';
+import { FertilizerApiService } from './fertilizer';
+import { FuelChemApiService } from './fuel-chemicals';
+import { IrrigationStockApiService } from './irrigation-stock';
+import { FishFarmingApiService } from './fish-farming';
+import { CsvImportApiService, CsvTemplateName } from './csv-import';
+import { StoreCardexApiService } from './store-cardex';
 
 export class ApiService extends BaseApiService {
   public auth: AuthApiService;
@@ -42,6 +46,14 @@ export class ApiService extends BaseApiService {
   public procurement: ProcurementApiService;
   public attendance: AttendanceApiService;
   public calendar: CalendarApiService;
+  public otherCrops: OtherCropsApiService;
+  public mbuni: MbuniApiService;
+  public fertilizer: FertilizerApiService;
+  public fuelChem: FuelChemApiService;
+  public irrigationStock: IrrigationStockApiService;
+  public fishFarming: FishFarmingApiService;
+  public csvImport: CsvImportApiService;
+  public storeCardex: StoreCardexApiService;
 
   constructor() {
     super();
@@ -63,6 +75,14 @@ export class ApiService extends BaseApiService {
     this.procurement = new ProcurementApiService();
     this.attendance = new AttendanceApiService();
     this.calendar = new CalendarApiService();
+    this.otherCrops = new OtherCropsApiService();
+    this.mbuni = new MbuniApiService();
+    this.fertilizer = new FertilizerApiService();
+    this.fuelChem = new FuelChemApiService();
+    this.irrigationStock = new IrrigationStockApiService();
+    this.fishFarming = new FishFarmingApiService();
+    this.csvImport = new CsvImportApiService();
+    this.storeCardex = new StoreCardexApiService();
   }
 
   // Legacy methods for backward compatibility
@@ -1317,6 +1337,129 @@ export class ApiService extends BaseApiService {
   async getGmPerformanceIndicators(params?: Record<string, any>) { return this.analytics.getGmPerformanceIndicators(params); }
   async getGmMeetings() { return this.analytics.getGmMeetings(); }
   async postGmMeeting(data: Record<string, any>) { return this.analytics.postGmMeeting(data); }
+
+  // ===========================
+  // Other Crops
+  // ===========================
+
+  async getOtherCropsHarvestRecords(params?: { farm_id?: number; crop_type?: string; start_date?: string; end_date?: string }) {
+    return this.otherCrops.getHarvestRecords(params);
+  }
+  async getOtherCropsHarvestRecord(recordId: number) { return this.otherCrops.getHarvestRecord(recordId); }
+  async createOtherCropsHarvestRecord(data: any) { return this.otherCrops.createHarvestRecord(data); }
+  async updateOtherCropsHarvestRecord(recordId: number, data: any) { return this.otherCrops.updateHarvestRecord(recordId, data); }
+
+  async getOtherCropsShellingRecords(params?: { farm_id?: number; start_date?: string; end_date?: string }) {
+    return this.otherCrops.getShellingRecords(params);
+  }
+  async createOtherCropsShellingRecord(data: any) { return this.otherCrops.createShellingRecord(data); }
+
+  async getOtherCropsSaleRecords(params?: { farm_id?: number; crop_type?: string; start_date?: string; end_date?: string }) {
+    return this.otherCrops.getSaleRecords(params);
+  }
+  async getOtherCropsSaleRecord(recordId: number) { return this.otherCrops.getSaleRecord(recordId); }
+  async createOtherCropsSaleRecord(data: any) { return this.otherCrops.createSaleRecord(data); }
+
+  async getCropBalances(params?: { farm_id?: number }) { return this.otherCrops.getCropBalances(params); }
+
+  // ===========================
+  // Mbuni (Dried Cherry)
+  // ===========================
+
+  async getMbuniRecords(params?: { farm_id?: number; start_date?: string; end_date?: string }) {
+    return this.mbuni.getMbuniRecords(params);
+  }
+  async getMbuniRecord(recordId: number) { return this.mbuni.getMbuniRecord(recordId); }
+  async createMbuniRecord(data: any) { return this.mbuni.createMbuniRecord(data); }
+  async updateMbuniRecord(recordId: number, data: any) { return this.mbuni.updateMbuniRecord(recordId, data); }
+
+  // ===========================
+  // Fertilizer
+  // ===========================
+
+  async getFertilizerProducts(params?: { sub_store?: 'coffee' | 'otc'; active_only?: boolean }) {
+    return this.fertilizer.getFertilizerProducts(params);
+  }
+  async getFertilizerEntries(params?: { farm_id?: number; sub_store?: 'coffee' | 'otc'; transaction_type?: 'in' | 'out'; start_date?: string; end_date?: string }) {
+    return this.fertilizer.getFertilizerEntries(params);
+  }
+  async createFertilizerEntry(data: any) { return this.fertilizer.createFertilizerEntry(data); }
+  async getFertilizerBalances(params?: { farm_id?: number; sub_store?: 'coffee' | 'otc' }) {
+    return this.fertilizer.getFertilizerBalances(params);
+  }
+
+  // ===========================
+  // Fuel & Chemicals
+  // ===========================
+
+  async getFuelChemProducts(params?: { sub_store?: 'coffee' | 'otc'; category?: string; active_only?: boolean }) {
+    return this.fuelChem.getFuelChemProducts(params);
+  }
+  async getFuelChemEntries(params?: { farm_id?: number; sub_store?: 'coffee' | 'otc'; category?: string; transaction_type?: 'in' | 'out' }) {
+    return this.fuelChem.getFuelChemEntries(params);
+  }
+  async createFuelChemEntry(data: any) { return this.fuelChem.createFuelChemEntry(data); }
+  async getFuelChemBalances(params?: { farm_id?: number; sub_store?: 'coffee' | 'otc'; category?: string }) {
+    return this.fuelChem.getFuelChemBalances(params);
+  }
+
+  // ===========================
+  // Irrigation Parts
+  // ===========================
+
+  async getIrrigationParts(params?: { farm_id?: number; supplier?: string; active_only?: boolean }) {
+    return this.irrigationStock.getIrrigationParts(params);
+  }
+  async getIrrigationPart(partId: number) { return this.irrigationStock.getIrrigationPart(partId); }
+  async getIrrigationEntries(params?: { farm_id?: number; part_id?: number; transaction_type?: 'in' | 'out' }) {
+    return this.irrigationStock.getIrrigationEntries(params);
+  }
+  async createIrrigationEntry(data: any) { return this.irrigationStock.createIrrigationEntry(data); }
+  async getIrrigationBalances(params?: { farm_id?: number }) { return this.irrigationStock.getIrrigationBalances(params); }
+
+  // ===========================
+  // Fish Farming
+  // ===========================
+
+  async getFishReservoirs(params?: { farm_id?: number; status?: string }) { return this.fishFarming.getFishReservoirs(params); }
+  async createFishReservoir(data: any) { return this.fishFarming.createReservoir(data); }
+  async updateFishReservoir(id: number, data: any) { return this.fishFarming.updateReservoir(id, data); }
+  async getFishReservoirDashboard(reservoirId: number) { return this.fishFarming.getFishReservoirDashboard(reservoirId); }
+  async getWaterParameters(params?: { reservoir_id?: number; start_date?: string; end_date?: string; limit?: number }) {
+    return this.fishFarming.getWaterParameters(params);
+  }
+  async createWaterParameter(data: any) { return this.fishFarming.createWaterParameter(data); }
+  async getFishFeedingRecords(params?: { reservoir_id?: number; session?: string; start_date?: string; limit?: number }) {
+    return this.fishFarming.getFeedingRecords(params);
+  }
+  async createFishFeedingRecord(data: any) { return this.fishFarming.createFeedingRecord(data); }
+  async getDailyFeedingSummary(params: { reservoir_id: number; date: string }) {
+    return this.fishFarming.getDailyFeedingSummary(params);
+  }
+  async getFishWeightRecords(params?: { reservoir_id?: number; start_date?: string; end_date?: string }) {
+    return this.fishFarming.getWeightRecords(params);
+  }
+  async createFishWeightRecord(data: any) { return this.fishFarming.createWeightRecord(data); }
+  async getFishAlarmLogs(params?: { reservoir_id?: number; start_date?: string; end_date?: string; limit?: number }) {
+    return this.fishFarming.getAlarmLogs(params);
+  }
+  async createFishAlarmLog(data: any) { return this.fishFarming.createAlarmLog(data); }
+
+  // ===========================
+  // CSV Import
+  // ===========================
+
+  async downloadCsvTemplate(templateName: CsvTemplateName) { return this.csvImport.downloadTemplate(templateName); }
+  async uploadCropHarvestCsv(file: File) { return this.csvImport.uploadCropHarvest(file); }
+  async uploadCropShellingCsv(file: File) { return this.csvImport.uploadCropShelling(file); }
+  async uploadCropSalesCsv(file: File) { return this.csvImport.uploadCropSales(file); }
+  async uploadMbuniHarvestCsv(file: File) { return this.csvImport.uploadMbuniHarvest(file); }
+  async uploadFertilizerEntriesCsv(file: File) { return this.csvImport.uploadFertilizerEntries(file); }
+  async uploadFuelChemEntriesCsv(file: File) { return this.csvImport.uploadFuelChemEntries(file); }
+  async uploadIrrigationEntriesCsv(file: File) { return this.csvImport.uploadIrrigationEntries(file); }
+  async uploadFishWaterCsv(file: File) { return this.csvImport.uploadFishWater(file); }
+  async uploadFishFeedingCsv(file: File) { return this.csvImport.uploadFishFeeding(file); }
+  async uploadFishWeightCsv(file: File) { return this.csvImport.uploadFishWeight(file); }
 }
 
 // Create and export a singleton instance

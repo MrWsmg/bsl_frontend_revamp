@@ -214,10 +214,10 @@ export class PayrollApiService extends BaseApiService {
     return this.put<PayrollRecord>(`/supervisor/resubmit-payroll/${recordId}`, {});
   }
 
-  // ==================== NEW PAYROLL ENDPOINTS ====================
+  // ==================== SUPERVISOR CRUD ====================
 
   /**
-   * Get supervisor pending payroll records
+   * Get supervisor's own pending payroll records
    */
   async getSupervisorPendingPayroll(): Promise<PayrollRecord[]> {
     return this.get<PayrollRecord[]>('/supervisor/payroll/pending');
@@ -242,6 +242,13 @@ export class PayrollApiService extends BaseApiService {
   }
 
   /**
+   * Supervisor edits own payroll record (PATCH /supervisor/payroll/{id})
+   */
+  async editSupervisorPayrollRecord(recordId: number, data: Partial<PayrollRecord>): Promise<PayrollRecord> {
+    return this.patch<PayrollRecord>(`/supervisor/payroll/${recordId}`, data);
+  }
+
+  /**
    * Update supervisor payroll record
    */
   async updateSupervisorPayrollRecord(recordId: number, data: Partial<PayrollRecord>): Promise<PayrollRecord> {
@@ -256,127 +263,38 @@ export class PayrollApiService extends BaseApiService {
   }
 
   /**
-   * Get weekly payroll sheet
+   * Get weekly payroll sheet (legacy positional-args style)
    */
   async getWeeklyPayrollSheet(farmId: number, weekStart: string): Promise<any> {
     return this.get<any>('/payroll/weekly-sheet', { farm_id: farmId, week_start: weekStart });
   }
 
   /**
-   * Download weekly payroll sheet PDF
+   * Download weekly payroll sheet PDF (legacy positional-args style)
    */
   async downloadWeeklyPayrollSheetPdf(farmId: number, weekStart: string): Promise<void> {
     return this.downloadFile('/payroll/weekly-sheet/pdf', `weekly-sheet-${weekStart}.pdf`, { farm_id: farmId, week_start: weekStart });
   }
 
   /**
-   * Download weekly payroll sheet CSV
+   * Download weekly payroll sheet CSV (legacy positional-args style)
    */
   async downloadWeeklyPayrollSheetCsv(farmId: number, weekStart: string): Promise<void> {
     return this.downloadFile('/payroll/weekly-sheet/csv', `weekly-sheet-${weekStart}.csv`, { farm_id: farmId, week_start: weekStart });
   }
 
   /**
-   * Get payment summary JSON
+   * Get payment summary JSON (legacy positional-args style)
    */
   async getPaymentSummaryJson(farmId: number, startDate: string, endDate: string): Promise<any> {
     return this.get<any>('/payroll/payment-summary/json', { farm_id: farmId, start_date: startDate, end_date: endDate });
   }
 
   /**
-   * Download payment summary PDF
-   */
-  async downloadPaymentSummaryPdf(farmId: number, startDate: string, endDate: string): Promise<void> {
-    return this.downloadFile('/payroll/payment-summary/pdf', `payment-summary-${startDate}-to-${endDate}.pdf`, { farm_id: farmId, start_date: startDate, end_date: endDate });
-  }
-
-  /**
-   * Download individual payslip PDF
-   */
-  async downloadPayslipPdf(workerName: string, farmId: number, startDate: string, endDate: string): Promise<void> {
-    return this.downloadFile('/payroll/payslip/pdf', `payslip-${workerName}-${startDate}-to-${endDate}.pdf`, { 
-      worker_name: workerName, 
-      farm_id: farmId, 
-      start_date: startDate, 
-      end_date: endDate 
-    });
-  }
-
-  /**
-   * Get worker payment details
-   */
-  async getWorkerPaymentDetails(workerId: number): Promise<any> {
-    return this.get<any>(`/supervisor/workers/${workerId}/payment-details`);
-  }
-
-  /**
-   * Update worker payment details
-   */
-  async updateWorkerPaymentDetails(workerId: number, data: {
-    payment_method: 'cash' | 'bank_transfer' | 'mobile_money';
-    bank_name?: string | null;
-    bank_account_number?: string | null;
-    mobile_money_provider?: 'mpesa' | 'tigopesa' | 'airtel_money' | null;
-    mobile_money_number?: string | null;
-  }): Promise<any> {
-    return this.patch<any>(`/supervisor/workers/${workerId}/payment-details`, data);
-  }
-
-  /**
-   * Get QuickBooks pending records
-   */
-  async getQuickBooksPending(): Promise<PayrollRecord[]> {
-    return this.get<PayrollRecord[]>('/payroll/quickbooks/pending');
-  }
-
-  /**
-   * Mark records as synced to QuickBooks
-   */
-  async markQuickBooksSynced(recordIds: number[], transactionIdPrefix: string = 'QB'): Promise<any> {
-    return this.post<any>('/payroll/quickbooks/mark-synced', { 
-      record_ids: recordIds, 
-      transaction_id_prefix: transactionIdPrefix 
-    });
-  }
-
-  /**
    * Bulk reject financial controller payroll
    */
-  async bulkRejectFinancialControllerPayroll(recordIds: number[], rejectionReason: string): Promise<any> {
-    return this.post<any>('/financial-controller/bulk-reject-payroll', { 
-      record_ids: recordIds, 
-      rejection_reason: rejectionReason 
-    });
-  }
-
-  // ==================== SUPERVISOR CRUD ====================
-
-  /**
-   * Supervisor creates a payroll record (POST /supervisor/payroll)
-   */
-  async createSupervisorPayrollRecord(data: Partial<PayrollRecord>): Promise<PayrollRecord> {
-    return this.post<PayrollRecord>('/supervisor/payroll', data);
-  }
-
-  /**
-   * Get supervisor's own pending payroll records
-   */
-  async getSupervisorPendingPayroll(): Promise<PayrollRecord[]> {
-    return this.get<PayrollRecord[]>('/supervisor/payroll/pending');
-  }
-
-  /**
-   * Supervisor edits own payroll record (PATCH /supervisor/payroll/{id})
-   */
-  async editSupervisorPayrollRecord(recordId: number, data: Partial<PayrollRecord>): Promise<PayrollRecord> {
-    return this.patch<PayrollRecord>(`/supervisor/payroll/${recordId}`, data);
-  }
-
-  /**
-   * Supervisor deletes own payroll record (DELETE /supervisor/payroll/{id})
-   */
-  async deleteSupervisorPayrollRecord(recordId: number): Promise<void> {
-    return this.delete<void>(`/supervisor/payroll/${recordId}`);
+  async bulkRejectFinancialControllerPayroll(data: { record_ids: number[]; rejection_reason: string }): Promise<any> {
+    return this.post<any>('/financial-controller/bulk-reject-payroll', data);
   }
 
   // ==================== PRIVATE HELPERS ====================

@@ -14,11 +14,6 @@ export const FinancialControllerPayrollSection: React.FC = () => {
   const [rejectingId, setRejectingId] = useState<number | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
-<<<<<<< HEAD
-  const [bulkRejectModal, setBulkRejectModal] = useState(false);
-  const [bulkRejectReason, setBulkRejectReason] = useState('');
-=======
->>>>>>> 8c92f07 (feat(payroll): add document generation and enhance management)
   const [isBulkReject, setIsBulkReject] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [bulkApproving, setBulkApproving] = useState(false);
@@ -80,11 +75,7 @@ export const FinancialControllerPayrollSection: React.FC = () => {
       if (selectedIds.length === 0) return;
       setBulkRejecting(true);
       try {
-<<<<<<< HEAD
-        await apiService.bulkRejectFinancialControllerPayroll(selectedIds, rejectReason.trim());
-=======
         await apiService.bulkRejectFinancialControllerPayroll({ record_ids: selectedIds, rejection_reason: rejectReason.trim() });
->>>>>>> 8c92f07 (feat(payroll): add document generation and enhance management)
         toast.success(`${selectedIds.length} records rejected`);
         setSelectedIds([]);
         setShowRejectModal(false);

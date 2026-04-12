@@ -37,10 +37,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-<<<<<<< HEAD
-import { Textarea } from '@/components/ui/textarea';
-=======
->>>>>>> 8c92f07 (feat(payroll): add document generation and enhance management)
 
 // Common task codes used on the farm
 const TASK_CODES = [

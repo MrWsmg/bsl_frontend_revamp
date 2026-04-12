@@ -452,7 +452,7 @@ export const SharedGrnSection: React.FC<Props> = ({ userRole, farmId, farmName }
               </Button>
               {canDirectReceipt && (
                 <Button size="sm" variant="outline" onClick={() => setShowDirect(true)} className="gap-1.5 border-green-300 text-green-700 hover:bg-green-50">
-                  <Plus className="w-3.5 h-3.5" /> Receive Without PO
+                  <Plus className="w-3.5 h-3.5" /> Receive Without LPO
                 </Button>
               )}
               {canCreate && (
