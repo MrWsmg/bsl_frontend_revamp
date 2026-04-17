@@ -2,7 +2,7 @@ import { BaseApiService } from './base';
 import { AttendanceRecord, FaceVerificationResult } from '../../types';
 import type { AttendanceReportResponse } from '../../types/farm-clerk';
 
-export type AttendanceStatus = 'present' | 'absent' | 'late' | 'half_day';
+export type AttendanceStatus = 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'sick';
 
 export interface CheckInParams {
   worker_id: number;
