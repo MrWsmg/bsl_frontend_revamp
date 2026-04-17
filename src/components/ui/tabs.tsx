@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 
 interface TabsProps {
-  defaultValue: string;
+  defaultValue?: string;
+  value?: string;
+  onValueChange?: (value: string) => void;
   className?: string;
   children: React.ReactNode;
 }
@@ -28,8 +30,15 @@ const TabsContext = React.createContext<{
   setActiveTab: (value: string) => void;
 } | null>(null);
 
-export const Tabs: React.FC<TabsProps> = ({ defaultValue, className, children }) => {
-  const [activeTab, setActiveTab] = useState(defaultValue);
+export const Tabs: React.FC<TabsProps> = ({ defaultValue, value, onValueChange, className, children }) => {
+  const [internalTab, setInternalTab] = useState(defaultValue ?? value ?? '');
+  const isControlled = value !== undefined;
+  const activeTab = isControlled ? value : internalTab;
+
+  const setActiveTab = (next: string) => {
+    if (!isControlled) setInternalTab(next);
+    onValueChange?.(next);
+  };
 
   return (
     <TabsContext.Provider value={{ activeTab, setActiveTab }}>
