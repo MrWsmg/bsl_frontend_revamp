@@ -860,6 +860,26 @@ export class ApiService extends BaseApiService {
     return this.management.getManagerAttendance(filters);
   }
 
+  async getAttendanceRecords(params?: Record<string, string>) {
+    return this.attendance.getAttendanceRecords(params);
+  }
+
+  async updateAttendance(attendanceId: number, data: Record<string, unknown>) {
+    return this.attendance.updateAttendance(attendanceId, data);
+  }
+
+  async deleteAttendance(attendanceId: number) {
+    return this.attendance.deleteAttendance(attendanceId);
+  }
+
+  async getAttendanceReport(farmId: number, reportDate: string) {
+    return this.attendance.getAttendanceReport(farmId, reportDate);
+  }
+
+  async checkInWithFace(params: Parameters<typeof this.attendance.checkInWithFaceVerification>[0]) {
+    return this.attendance.checkInWithFaceVerification(params);
+  }
+
   async getManagerAttendanceReport(farmId: number, reportDate: string) {
     return this.management.getManagerAttendanceReport(farmId, reportDate);
   }

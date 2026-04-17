@@ -62,7 +62,13 @@ export class AnalyticsApiService extends BaseApiService {
   }
 
   async validateExpenditure(params: { expenditure_type: string; amount: number; farm_id: number; period: string }): Promise<any> {
-    return this.post<any>('/budget/validate-expenditure', undefined, { params });
+    const qs = new URLSearchParams({
+      expenditure_type: params.expenditure_type,
+      amount: String(params.amount),
+      farm_id: String(params.farm_id),
+      period: params.period,
+    }).toString();
+    return this.post<any>(`/budget/validate-expenditure?${qs}`);
   }
 
   async getWarnings(params?: Record<string, any>): Promise<any> {

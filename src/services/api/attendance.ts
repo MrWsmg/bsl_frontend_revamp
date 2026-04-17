@@ -1,6 +1,6 @@
 import { BaseApiService } from './base';
 import { AttendanceRecord, FaceVerificationResult } from '../../types';
-import type { AttendanceReportResponse } from '../../types/farm-clerk';
+import type { AttendanceReportResponse, AttendanceResponse } from '../../types/farm-clerk';
 
 export type AttendanceStatus = 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'sick';
 
@@ -17,6 +17,7 @@ export interface ManualCheckInParams {
   farm_id: number;
   date?: string;
   check_in_time?: string;
+  check_out_time?: string;
   status?: AttendanceStatus;
   notes?: string;
 }
@@ -55,6 +56,7 @@ export class AttendanceApiService extends BaseApiService {
     farm_id,
     date,
     check_in_time,
+    check_out_time,
     status = 'present',
     notes,
   }: ManualCheckInParams): Promise<AttendanceRecord> {
@@ -63,6 +65,7 @@ export class AttendanceApiService extends BaseApiService {
       farm_id,
       date: date || today,
       check_in_time: check_in_time || new Date().toISOString(),
+      check_out_time,
       status,
       notes,
     });
@@ -123,5 +126,26 @@ export class AttendanceApiService extends BaseApiService {
    */
   async getAttendanceReport(farmId: number, reportDate: string): Promise<AttendanceReportResponse> {
     return this.get<AttendanceReportResponse>(`/supervisor/attendance/report/${farmId}`, { report_date: reportDate });
+  }
+
+  /**
+   * List attendance records with filters — GET /supervisor/attendance
+   */
+  async getAttendanceRecords(params?: Record<string, string>): Promise<AttendanceResponse[]> {
+    return this.get<AttendanceResponse[]>('/supervisor/attendance', params);
+  }
+
+  /**
+   * Update an attendance record — PUT /supervisor/attendance/{id}
+   */
+  async updateAttendance(attendanceId: number, data: Record<string, unknown>): Promise<AttendanceResponse> {
+    return this.put<AttendanceResponse>(`/supervisor/attendance/${attendanceId}`, data);
+  }
+
+  /**
+   * Delete an attendance record — DELETE /supervisor/attendance/{id}
+   */
+  async deleteAttendance(attendanceId: number): Promise<void> {
+    return this.delete<void>(`/supervisor/attendance/${attendanceId}`);
   }
 }
