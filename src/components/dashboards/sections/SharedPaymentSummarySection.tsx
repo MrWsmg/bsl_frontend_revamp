@@ -64,7 +64,7 @@ export const SharedPaymentSummarySection: React.FC<SharedPaymentSummarySectionPr
     if (!validate()) return;
     setDownloading(true);
     try {
-      await apiService.downloadPaymentSummaryPdf(Number(farmId), startDate, endDate);
+      await apiService.downloadPaymentSummaryPdf({ farm_id: Number(farmId), start_date: startDate, end_date: endDate });
       toast.success('PDF downloaded');
     } catch (err: any) {
       toast.error(err.message || 'Failed to download PDF');

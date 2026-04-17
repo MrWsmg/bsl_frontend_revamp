@@ -30,7 +30,7 @@ export const PayrollQuickBooksSection: React.FC = () => {
     if (selectedIds.length === 0) return;
     setSyncing(true);
     try {
-      const result: any = await apiService.markQuickBooksSynced(selectedIds, txPrefix || 'QB');
+      const result: any = await apiService.markQuickBooksSynced({ record_ids: selectedIds, transaction_id_prefix: txPrefix || 'QB' });
       const synced = result?.synced_count ?? selectedIds.length;
       toast.success(`${synced} record(s) marked as synced to QuickBooks`);
       setSelectedIds([]);

@@ -53,7 +53,7 @@ export const SharedPayslipSection: React.FC<SharedPayslipSectionProps> = ({ user
     if (!validate()) return;
     setDownloading(true);
     try {
-      await apiService.downloadPayslipPdf(workerName.trim(), Number(farmId), startDate, endDate);
+      await apiService.downloadPayslipPdf({ worker_name: workerName.trim(), farm_id: Number(farmId), start_date: startDate, end_date: endDate });
       toast.success('Payslip downloaded');
     } catch (err: any) {
       if (err?.status === 404 || err?.message?.includes('404')) {
