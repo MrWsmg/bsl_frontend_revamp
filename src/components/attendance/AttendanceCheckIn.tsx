@@ -143,15 +143,22 @@ export const AttendanceCheckIn: React.FC<AttendanceCheckInProps> = ({ farms }) =
       // Convert base64 to blob
       const response = await fetch(capturedImage);
       const blob = await response.blob();
+      const file = new File([blob], 'checkin.jpg', { type: blob.type || 'image/jpeg' });
 
-      const formData = new FormData();
-      formData.append('photo', blob, 'checkin.jpg');
-      formData.append('worker_id', selectedWorker.id.toString());
-      formData.append('farm_id', selectedFarmId);
+      const result = await apiService.attendance.checkInWithFaceVerification({
+        worker_id: selectedWorker.id,
+        farm_id: parseInt(selectedFarmId),
+        file,
+      });
 
-      const result = await apiService.checkInWithFace(formData);
-
-      setLastCheckIn(result);
+      setLastCheckIn({
+        success: result.success,
+        message: result.message,
+        attendance_id: result.attendance_id,
+        confidence: result.confidence,
+        worker_name: result.worker_name,
+        verification_status: result.face_verification_status,
+      });
       setShowSuccessDialog(true);
 
       if (result.success) {

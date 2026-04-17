@@ -36,7 +36,7 @@ export const AttendanceReport: React.FC<AttendanceReportProps> = ({ farms }) => 
     return apiService.getAttendanceReport(parseInt(selectedFarmId), selectedDate);
   }, [selectedFarmId, selectedDate]);
 
-  const { data: report, loading, error, refetch } = useApi<AttendanceReportResponse>(getAttendanceReport, {
+  const { data: report, loading, error, refetch } = useApi<AttendanceReportResponse | null>(getAttendanceReport, {
     dependencies: [selectedFarmId, selectedDate],
   });
 
