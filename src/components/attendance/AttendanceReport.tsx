@@ -32,7 +32,7 @@ export const AttendanceReport: React.FC<AttendanceReportProps> = ({ farms }) => 
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
   const getAttendanceReport = useCallback(() => {
-    if (!selectedFarmId) return Promise.resolve(null);
+    if (!selectedFarmId) return Promise.resolve(null as unknown as AttendanceReportResponse);
     return apiService.getAttendanceReport(parseInt(selectedFarmId), selectedDate);
   }, [selectedFarmId, selectedDate]);
 

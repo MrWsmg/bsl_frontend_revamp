@@ -1235,6 +1235,96 @@ export interface HarvestChecklist {
 }
 
 // ===========================
+// Fertilizer Programs Types
+// ===========================
+
+export interface FertilizerProgram {
+  id: number;
+  farm_id: number;
+  farm_name?: string;
+  season_year: number;
+  tree_type: 'mature' | 'young';
+  status: 'draft' | 'active' | 'completed';
+  total_blocks: number;
+  overall_compliance_pct?: number;
+  created_at?: string;
+}
+
+export interface FertilizerProgramRound {
+  id: number;
+  block_id?: number;
+  round_number: number;
+  month_label: string;
+  planned_npk_kg?: number;
+  planned_blend1_kg?: number;
+  planned_blend2_kg?: number;
+  planned_blend3_kg?: number;
+  actual_npk_kg?: number;
+  actual_blend1_kg?: number;
+  actual_blend2_kg?: number;
+  actual_blend3_kg?: number;
+  applied_date?: string;
+  status: 'pending' | 'applied' | 'partial' | 'overdue';
+  notes?: string;
+}
+
+export interface FertilizerScheduleBlock {
+  block_name: string;
+  area_ha: number;
+  cherry_kg?: number;
+  rounds: FertilizerProgramRound[];
+}
+
+export interface FertilizerProgramSchedule {
+  program: FertilizerProgram;
+  blocks: FertilizerScheduleBlock[];
+  round_labels: string[];
+}
+
+export interface FertilizerReportBlock {
+  block_name: string;
+  planned_kg: number;
+  applied_kg: number;
+  compliance_pct: number;
+  rounds: { round_number: number; status: string }[];
+}
+
+export interface FertilizerProgramReport {
+  program: FertilizerProgram;
+  blocks: FertilizerReportBlock[];
+  overall_compliance_pct: number;
+}
+
+export interface FertilizerSummaryProduct {
+  total_bags: number;
+  total_kg: number;
+}
+
+export interface FertilizerProgramSummary {
+  program_id: number;
+  products: Record<string, FertilizerSummaryProduct>;
+}
+
+export interface FertilizerExcelImportResult {
+  programs_created: number;
+  blocks_created: number;
+  blocks_skipped: number;
+  errors: string[];
+}
+
+export interface FertilizerProgramBlock {
+  id: number;
+  program_id: number;
+  block_name: string;
+  area_ha: number;
+  cherry_kg?: number;
+  npk_kg_per_ha?: number;
+  blend1_kg_per_ha?: number;
+  blend2_kg_per_ha?: number;
+  blend3_kg_per_ha?: number;
+}
+
+// ===========================
 // Daily Picking Rate Types
 // ===========================
 
@@ -1466,8 +1556,10 @@ export interface FertilizerProduct {
   name: string;
   formula?: string;
   unit: string;
-  sub_store: 'coffee' | 'otc';
-  active: boolean;
+  price?: number;
+  category?: string;
+  sub_store?: 'coffee' | 'otc';
+  active?: boolean;
 }
 
 export interface FertilizerEntry {
@@ -1507,10 +1599,11 @@ export interface FuelChemProduct {
   id: number;
   name: string;
   formula?: string;
-  category: FuelChemCategory;
+  category: string;
   unit: string;
-  sub_store: 'coffee' | 'otc';
-  active: boolean;
+  price?: number;
+  sub_store?: 'coffee' | 'otc';
+  active?: boolean;
 }
 
 export interface FuelChemEntry {

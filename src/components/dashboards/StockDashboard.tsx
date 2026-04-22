@@ -28,6 +28,7 @@ import {
   StockIrrigationSection,
   StockFishFarmingSection,
   StockCsvImportSection,
+  FertilizerProgramsSection,
 } from './sections';
 
 interface StockDashboardProps {
@@ -36,15 +37,16 @@ interface StockDashboardProps {
 }
 
 const TAB_COMPONENTS: Record<string, React.FC> = {
-  overview:      StockOverviewSection,
-  stock:         StockRecordsSection,
-  othercrops:    StockOtherCropsSection,
-  mbuni:         StockMbuniSection,
-  fertilizer:    StockFertilizerSection,
-  fuelchem:      StockFuelChemicalsSection,
-  irrigation:    StockIrrigationSection,
-  csvimport:     StockCsvImportSection,
-  reports:       StockReportsSection,
+  overview:       StockOverviewSection,
+  stock:          StockRecordsSection,
+  othercrops:     StockOtherCropsSection,
+  mbuni:          StockMbuniSection,
+  fertilizer:     StockFertilizerSection,
+  'fert-programs': FertilizerProgramsSection,
+  fuelchem:       StockFuelChemicalsSection,
+  irrigation:     StockIrrigationSection,
+  csvimport:      StockCsvImportSection,
+  reports:        StockReportsSection,
 };
 
 export const StockDashboard: React.FC<StockDashboardProps> = ({ user, onLogout }) => {

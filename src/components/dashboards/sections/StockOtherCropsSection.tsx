@@ -52,6 +52,7 @@ const HarvestSubTab: React.FC<HarvestSubTabProps> = ({ farmId, cropType, farms }
     farm_id: farmId || '',
     crop_type: cropType,
     block_name: '',
+    block_code: '',
     harvest_date: new Date().toISOString().slice(0, 10),
     bags: '',
     kgs: '',
@@ -68,7 +69,22 @@ const HarvestSubTab: React.FC<HarvestSubTabProps> = ({ farmId, cropType, farms }
   );
   const { data: records, loading, refetch } = useApi(getRecords);
 
-  const setField = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }));
+  const getModalBlocks = useCallback(
+    () => form.farm_id ? apiService.getBlocksForFarm(Number(form.farm_id)) : Promise.resolve([]),
+    [form.farm_id]
+  );
+  const { data: modalBlocks, loading: blocksLoading } = useApi(getModalBlocks, { dependencies: [form.farm_id] });
+
+  const setField = (k: string, v: any) => setForm(p => ({
+    ...p,
+    [k]: v,
+    ...(k === 'farm_id' ? { block_name: '', block_code: '' } : {}),
+  }));
+
+  const handleBlockSelect = (blockName: string) => {
+    const block = (modalBlocks || []).find((b: any) => b.name === blockName);
+    setForm(p => ({ ...p, block_name: blockName, block_code: block?.code || '' }));
+  };
 
   const handleSave = async () => {
     if (!form.farm_id || !form.block_name || !form.harvest_date) {
@@ -148,7 +164,30 @@ const HarvestSubTab: React.FC<HarvestSubTabProps> = ({ farmId, cropType, farms }
                 <SelectContent>{farms.map((f: any) => <SelectItem key={f.farm_id ?? f.id} value={String(f.farm_id ?? f.id)}>{f.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div><Label>Block Name *</Label><Input value={form.block_name} onChange={e => setField('block_name', e.target.value)} placeholder="e.g. LAMBO 1" /></div>
+            <div>
+              <Label>Block Name *</Label>
+              <Select
+                value={form.block_name}
+                onValueChange={handleBlockSelect}
+                disabled={!form.farm_id || blocksLoading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={!form.farm_id ? 'Select a farm first' : blocksLoading ? 'Loading blocks...' : 'Select block'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {(modalBlocks || []).length === 0 && !blocksLoading ? (
+                    <SelectItem value="__none__" disabled>No blocks available</SelectItem>
+                  ) : (
+                    (modalBlocks || []).map((b: any) => (
+                      <SelectItem key={b.id} value={b.name}>{b.name}{b.code ? ` — ${b.code}` : ''}</SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              {form.block_name && form.block_code && (
+                <p className="text-xs text-muted-foreground mt-1">Code: <span className="font-medium">{form.block_code}</span></p>
+              )}
+            </div>
             <div><Label>Block Side</Label><Input value={form.block_side || ''} onChange={e => setField('block_side', e.target.value)} placeholder="EAST / WEST" /></div>
             <div><Label>Harvest Date *</Label><Input type="date" value={form.harvest_date} onChange={e => setField('harvest_date', e.target.value)} /></div>
             <div className="grid grid-cols-2 gap-3">
@@ -189,6 +228,7 @@ const ShellingSubTab: React.FC<ShellingSubTabProps> = ({ farmId, farms }) => {
   const [form, setForm] = useState<Record<string, any>>({
     farm_id: farmId || '',
     block_name: '',
+    block_code: '',
     shell_date: new Date().toISOString().slice(0, 10),
     kgs_in: '',
     num_shellers: '',
@@ -204,7 +244,22 @@ const ShellingSubTab: React.FC<ShellingSubTabProps> = ({ farmId, farms }) => {
   );
   const { data: records, loading, refetch } = useApi(getRecords);
 
-  const setField = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }));
+  const getModalBlocks = useCallback(
+    () => form.farm_id ? apiService.getBlocksForFarm(Number(form.farm_id)) : Promise.resolve([]),
+    [form.farm_id]
+  );
+  const { data: modalBlocks, loading: blocksLoading } = useApi(getModalBlocks, { dependencies: [form.farm_id] });
+
+  const setField = (k: string, v: any) => setForm(p => ({
+    ...p,
+    [k]: v,
+    ...(k === 'farm_id' ? { block_name: '', block_code: '' } : {}),
+  }));
+
+  const handleBlockSelect = (blockName: string) => {
+    const block = (modalBlocks || []).find((b: any) => b.name === blockName);
+    setForm(p => ({ ...p, block_name: blockName, block_code: block?.code || '' }));
+  };
 
   const handleSave = async () => {
     if (!form.farm_id || !form.shell_date || !form.kgs_in) {
@@ -281,7 +336,30 @@ const ShellingSubTab: React.FC<ShellingSubTabProps> = ({ farmId, farms }) => {
                 <SelectContent>{farms.map((f: any) => <SelectItem key={f.farm_id ?? f.id} value={String(f.farm_id ?? f.id)}>{f.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div><Label>Block Name</Label><Input value={form.block_name} onChange={e => setField('block_name', e.target.value)} /></div>
+            <div>
+              <Label>Block Name</Label>
+              <Select
+                value={form.block_name}
+                onValueChange={handleBlockSelect}
+                disabled={!form.farm_id || blocksLoading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={!form.farm_id ? 'Select a farm first' : blocksLoading ? 'Loading blocks...' : 'Select block'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {(modalBlocks || []).length === 0 && !blocksLoading ? (
+                    <SelectItem value="__none__" disabled>No blocks available</SelectItem>
+                  ) : (
+                    (modalBlocks || []).map((b: any) => (
+                      <SelectItem key={b.id} value={b.name}>{b.name}{b.code ? ` — ${b.code}` : ''}</SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              {form.block_name && form.block_code && (
+                <p className="text-xs text-muted-foreground mt-1">Code: <span className="font-medium">{form.block_code}</span></p>
+              )}
+            </div>
             <div><Label>Shell Date *</Label><Input type="date" value={form.shell_date} onChange={e => setField('shell_date', e.target.value)} /></div>
             <div className="grid grid-cols-2 gap-3">
               <div><Label>KGs In *</Label><Input type="number" value={form.kgs_in} onChange={e => setField('kgs_in', e.target.value)} /></div>

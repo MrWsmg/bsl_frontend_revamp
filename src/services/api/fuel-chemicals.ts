@@ -18,6 +18,7 @@ export class FuelChemApiService extends BaseApiService {
     transaction_type?: 'in' | 'out';
     start_date?: string;
     end_date?: string;
+    [key: string]: any;
   }): Promise<FuelChemEntry[]> {
     return this.get<FuelChemEntry[]>('/fuel-chemicals/entries', params);
   }

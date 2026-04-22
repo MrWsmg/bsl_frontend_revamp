@@ -3,95 +3,112 @@
 import React, { useState, useCallback } from 'react';
 import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
+import { useAuth } from '../../../contexts/AuthContext';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from '../../ui/sonner';
-import { Plus, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
-import { FuelChemCategory } from '../../../types';
+import { ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
 
-const CATEGORIES: { value: FuelChemCategory; label: string }[] = [
-  { value: 'fuel', label: 'Fuel' },
-  { value: 'herbicide', label: 'Herbicide' },
-  { value: 'fungicide', label: 'Fungicide' },
-  { value: 'pesticide', label: 'Pesticide' },
-  { value: 'chemical', label: 'Chemical' },
-];
+// ─── Role helpers ──────────────────────────────────────────────────────────
 
-function fmt(n: number | undefined | null) {
+const CAN_RECORD = new Set(['admin', 'stock', 'farm_clerk']);
+
+// ─── Category constants (exact API strings) ───────────────────────────────
+
+const CATEGORIES = [
+  { value: 'FUEL AND LUBRICANTS', label: 'Fuel & Lubricants' },
+  { value: 'AGROCHEMICALS',       label: 'Agrochemicals' },
+  { value: 'HERBICIDES',          label: 'Herbicides' },
+] as const;
+
+type Category = typeof CATEGORIES[number]['value'];
+type SubStore = 'coffee' | 'otc';
+
+function fmt(n: number | undefined | null, decimals = 1) {
   if (n == null) return '—';
-  return n.toLocaleString();
+  return n.toLocaleString(undefined, { maximumFractionDigits: decimals });
 }
 function fmtDate(d: string) {
   return d ? new Date(d).toLocaleDateString() : '—';
 }
 
-type SubStore = 'coffee' | 'otc';
+// ─── Entry Form ────────────────────────────────────────────────────────────
 
-interface SubStoreTabProps {
-  subStore: SubStore;
-  farmId: string;
+interface EntryFormProps {
+  initialType: 'in' | 'out';
+  initialFarmId: string;
+  initialCategory: string;
   farms: any[];
+  onClose: () => void;
+  onSaved: () => void;
 }
 
-const SubStoreTab: React.FC<SubStoreTabProps> = ({ subStore, farmId, farms }) => {
-  const [showModal, setShowModal] = useState(false);
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+const EntryForm: React.FC<EntryFormProps> = ({
+  initialType, initialFarmId, initialCategory, farms, onClose, onSaved,
+}) => {
   const [saving, setSaving] = useState(false);
+  const isFuel = initialCategory === 'FUEL AND LUBRICANTS';
   const [form, setForm] = useState<Record<string, any>>({
-    farm_id: farmId !== 'all' ? farmId : '',
-    product_id: '',
+    farm_id: initialFarmId !== 'all' ? initialFarmId : '',
+    category: initialCategory || CATEGORIES[0].value,
+    price_list_id: '',
     entry_date: new Date().toISOString().slice(0, 10),
-    transaction_type: 'out',
+    transaction_type: initialType,
     quantity: '',
+    sub_store: isFuel ? '' : 'coffee',
     from_to_location: '',
     delivery_note_ref: '',
     serial_number: '',
     comments: '',
   });
 
+  const setField = (k: string, v: any) => setForm(p => ({
+    ...p,
+    [k]: v,
+    // Reset product when category changes
+    ...(k === 'category' ? { price_list_id: '', sub_store: v === 'FUEL AND LUBRICANTS' ? '' : (p.sub_store || 'coffee') } : {}),
+  }));
+
   const getProducts = useCallback(
-    () => apiService.getFuelChemProducts({ sub_store: subStore }),
-    [subStore, farmId]
+    () => apiService.getFuelChemProducts({ category: form.category }),
+    [form.category]
   );
-  const getEntries = useCallback(
-    () => apiService.getFuelChemEntries({
-      farm_id: farmId !== 'all' ? Number(farmId) : undefined,
-      sub_store: subStore,
-      category: categoryFilter !== 'all' ? categoryFilter : undefined,
-    }),
-    [farmId, subStore, categoryFilter]
+  const { data: products, loading: productsLoading } = useApi(
+    getProducts, { dependencies: [form.category] }
   );
 
-  const { data: products } = useApi(getProducts);
-  const { data: entries, loading: entriesLoading, refetch: refetchEntries } = useApi(getEntries);
-
-  const setField = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }));
+  const selectedProduct = (products || []).find((p: any) => String(p.id) === String(form.price_list_id));
+  const showSubStore = form.category !== 'FUEL AND LUBRICANTS';
 
   const handleSave = async () => {
-    if (!form.farm_id || !form.product_id || !form.quantity) {
+    if (!form.farm_id || !form.price_list_id || !form.quantity) {
       toast.error('Farm, product, and quantity are required');
       return;
     }
     setSaving(true);
     try {
       await apiService.createFuelChemEntry({
-        ...form,
+        price_list_id: Number(form.price_list_id),
         farm_id: Number(form.farm_id),
-        product_id: Number(form.product_id),
         entry_date: new Date(form.entry_date).toISOString(),
+        transaction_type: form.transaction_type,
         quantity: Number(form.quantity),
+        ...(form.sub_store ? { sub_store: form.sub_store } : {}),
+        from_to_location: form.from_to_location || null,
+        delivery_note_ref: form.delivery_note_ref || null,
+        serial_number: form.serial_number || null,
+        comments: form.comments || null,
       });
       toast.success('Entry saved');
-      setShowModal(false);
-      refetchEntries();
+      onSaved();
+      onClose();
     } catch (e: any) {
       toast.error(e.message || 'Failed to save');
     } finally {
@@ -100,155 +117,344 @@ const SubStoreTab: React.FC<SubStoreTabProps> = ({ subStore, farmId, farms }) =>
   };
 
   return (
-    <div className="space-y-6">
-      {/* Category filter + add button */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Label>Category:</Label>
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All categories</SelectItem>
-              {CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
+    <div className="space-y-3">
+      {/* IN / OUT toggle */}
+      <div>
+        <Label>Transaction Type *</Label>
+        <div className="flex gap-2 mt-1">
+          {(['in', 'out'] as const).map(t => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setField('transaction_type', t)}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md border text-sm font-medium transition-colors ${
+                form.transaction_type === t
+                  ? t === 'in' ? 'bg-green-600 text-white border-green-600' : 'bg-orange-500 text-white border-orange-500'
+                  : 'bg-background border-border text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              {t === 'in' ? <ArrowDownToLine className="w-4 h-4" /> : <ArrowUpFromLine className="w-4 h-4" />}
+              {t === 'in' ? 'IN (Receipt)' : 'OUT (Issue)'}
+            </button>
+          ))}
         </div>
-        <Button size="sm" onClick={() => setShowModal(true)}>
-          <Plus className="w-4 h-4 mr-1" /> Add Entry
-        </Button>
       </div>
 
-      {/* Recent Entries */}
-      <Card>
-        <CardHeader><CardTitle className="text-base">Recent Entries</CardTitle></CardHeader>
-        <CardContent>
-          {entriesLoading ? (
-            <div className="flex justify-center py-6"><LoadingSpinner size="sm" /></div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead className="text-right">Quantity</TableHead>
-                    <TableHead>Location / Ref</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {!entries || entries.length === 0 ? (
-                    <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">No entries</TableCell></TableRow>
-                  ) : entries.slice(0, 50).map((e: any, i: number) => (
-                    <TableRow key={e.id ?? i}>
-                      <TableCell>{fmtDate(e.entry_date)}</TableCell>
-                      <TableCell>{products?.find((p: any) => p.id === e.product_id)?.name || `#${e.product_id}`}</TableCell>
-                      <TableCell>
-                        <Badge variant={e.transaction_type === 'in' ? 'default' : 'secondary'}>
-                          {e.transaction_type === 'in' ? <ArrowDownToLine className="w-3 h-3 mr-1 inline" /> : <ArrowUpFromLine className="w-3 h-3 mr-1 inline" />}
-                          {e.transaction_type.toUpperCase()}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right font-medium">{fmt(e.quantity)}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{e.from_to_location || e.delivery_note_ref || '—'}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Farm */}
+      <div>
+        <Label>Farm *</Label>
+        <Select value={form.farm_id} onValueChange={v => setField('farm_id', v)}>
+          <SelectTrigger><SelectValue placeholder="Select farm" /></SelectTrigger>
+          <SelectContent>
+            {farms.map((f: any) => (
+              <SelectItem key={f.farm_id ?? f.id} value={String(f.farm_id ?? f.id)}>{f.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-      {/* Entry Modal */}
-      <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Add Fuel/Chemical Entry — {subStore === 'coffee' ? 'Coffee' : 'OTC'}</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label>Farm *</Label>
-              <Select value={form.farm_id} onValueChange={v => setField('farm_id', v)}>
-                <SelectTrigger><SelectValue placeholder="Select farm" /></SelectTrigger>
-                <SelectContent>{farms.map((f: any) => <SelectItem key={f.farm_id ?? f.id} value={String(f.farm_id ?? f.id)}>{f.name}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Product *</Label>
-              <Select value={form.product_id} onValueChange={v => setField('product_id', v)}>
-                <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
-                <SelectContent>
-                  {(products || []).map((p: any) => (
-                    <SelectItem key={p.id} value={String(p.id)}>{p.name} ({p.category}) — {p.unit}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Type *</Label>
-                <Select value={form.transaction_type} onValueChange={v => setField('transaction_type', v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="in">IN (Receipt)</SelectItem>
-                    <SelectItem value="out">OUT (Issue)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div><Label>Date *</Label><Input type="date" value={form.entry_date} onChange={e => setField('entry_date', e.target.value)} /></div>
-            </div>
-            <div><Label>Quantity *</Label><Input type="number" value={form.quantity} onChange={e => setField('quantity', e.target.value)} /></div>
-            <div><Label>From/To Location</Label><Input value={form.from_to_location} onChange={e => setField('from_to_location', e.target.value)} placeholder="e.g. TB MAIN STORE" /></div>
-            <div><Label>Delivery Note Ref</Label><Input value={form.delivery_note_ref} onChange={e => setField('delivery_note_ref', e.target.value)} /></div>
-            <div><Label>Serial Number</Label><Input value={form.serial_number} onChange={e => setField('serial_number', e.target.value)} /></div>
-            <div><Label>Comments</Label><Input value={form.comments} onChange={e => setField('comments', e.target.value)} /></div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setShowModal(false)}>Cancel</Button>
-              <Button onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save Entry'}</Button>
-            </div>
+      {/* Category */}
+      <div>
+        <Label>Category *</Label>
+        <Select value={form.category} onValueChange={v => setField('category', v)}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Sub-store (hidden for fuel) */}
+      {showSubStore && (
+        <div>
+          <Label>Sub-store *</Label>
+          <div className="flex gap-2 mt-1">
+            {(['coffee', 'otc'] as const).map(s => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setField('sub_store', s)}
+                className={`flex-1 py-1.5 rounded-md border text-sm font-medium transition-colors ${
+                  form.sub_store === s
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-background border-border text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                {s === 'coffee' ? 'Coffee' : 'Other Crops'}
+              </button>
+            ))}
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
+
+      {/* Product */}
+      <div>
+        <Label>Product *</Label>
+        <Select
+          value={String(form.price_list_id)}
+          onValueChange={v => setField('price_list_id', v)}
+          disabled={productsLoading}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder={productsLoading ? 'Loading...' : (products || []).length === 0 ? 'No products for this category' : 'Select product'} />
+          </SelectTrigger>
+          <SelectContent>
+            {(products || []).map((p: any) => (
+              <SelectItem key={p.id} value={String(p.id)}>
+                {p.name} ({p.unit})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {selectedProduct && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Unit: <span className="font-medium">{selectedProduct.unit}</span>
+            {selectedProduct.price ? <> · Price: <span className="font-medium">{fmt(selectedProduct.price, 0)}/unit</span></> : null}
+          </p>
+        )}
+      </div>
+
+      {/* Date */}
+      <div>
+        <Label>Date *</Label>
+        <Input type="date" value={form.entry_date} onChange={e => setField('entry_date', e.target.value)} />
+      </div>
+
+      {/* Quantity */}
+      <div>
+        <Label>Quantity * {selectedProduct ? `(${selectedProduct.unit})` : ''}</Label>
+        <Input type="number" min="0" step="0.01" value={form.quantity} onChange={e => setField('quantity', e.target.value)} placeholder="0" />
+      </div>
+
+      <div>
+        <Label>From / To Location</Label>
+        <Input value={form.from_to_location} onChange={e => setField('from_to_location', e.target.value)} placeholder="e.g. Main Tank / TB MAIN STORE" />
+      </div>
+      <div>
+        <Label>DN Reference</Label>
+        <Input value={form.delivery_note_ref} onChange={e => setField('delivery_note_ref', e.target.value)} placeholder="e.g. DN-2026-001" />
+      </div>
+      <div>
+        <Label>Serial Number</Label>
+        <Input value={form.serial_number} onChange={e => setField('serial_number', e.target.value)} />
+      </div>
+      <div>
+        <Label>Comments</Label>
+        <Input value={form.comments} onChange={e => setField('comments', e.target.value)} />
+      </div>
+
+      <div className="flex justify-end gap-2 pt-2">
+        <Button variant="outline" onClick={onClose}>Cancel</Button>
+        <Button onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save Entry'}</Button>
+      </div>
     </div>
   );
 };
 
-export const StockFuelChemicalsSection: React.FC = () => {
-  const [farmId, setFarmId] = useState('all');
+// ─── Main Section ──────────────────────────────────────────────────────────
 
-  const getFarms = useCallback(() => apiService.getStockFarms(), []);
+export const StockFuelChemicalsSection: React.FC = () => {
+  const { user } = useAuth();
+  const canRecord = CAN_RECORD.has((user as any)?.role || '');
+
+  const [farmId, setFarmId] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [filterType, setFilterType] = useState<string>('all');
+  const [filterStart, setFilterStart] = useState('');
+  const [filterEnd, setFilterEnd] = useState('');
+  const [showEntry, setShowEntry] = useState(false);
+  const [entryType, setEntryType] = useState<'in' | 'out'>('in');
+
+  const getFarms = useCallback(() => apiService.getFarms(), []);
   const { data: farms, loading: farmsLoading } = useApi(getFarms);
+
+  const getBalances = useCallback(
+    () => apiService.getFuelChemBalances({
+      farm_id: farmId !== 'all' ? Number(farmId) : undefined,
+      category: categoryFilter !== 'all' ? categoryFilter : undefined,
+    }),
+    [farmId, categoryFilter]
+  );
+  const { data: balances, loading: balancesLoading, refetch: refetchBalances } = useApi(
+    getBalances, { dependencies: [farmId, categoryFilter] }
+  );
+
+  const getEntries = useCallback(
+    () => apiService.getFuelChemEntries({
+      farm_id: farmId !== 'all' ? Number(farmId) : undefined,
+      category: categoryFilter !== 'all' ? categoryFilter : undefined,
+      transaction_type: filterType !== 'all' ? filterType as 'in' | 'out' : undefined,
+      start_date: filterStart || undefined,
+      end_date: filterEnd || undefined,
+    }),
+    [farmId, categoryFilter, filterType, filterStart, filterEnd]
+  );
+  const { data: entries, loading: entriesLoading, refetch: refetchEntries } = useApi(
+    getEntries, { dependencies: [farmId, categoryFilter, filterType, filterStart, filterEnd] }
+  );
+
+  const handleEntrySaved = () => { refetchEntries(); refetchBalances(); };
+  const openEntry = (type: 'in' | 'out') => { setEntryType(type); setShowEntry(true); };
 
   if (farmsLoading) return <div className="flex justify-center py-12"><LoadingSpinner size="lg" /></div>;
 
   return (
     <div className="space-y-4">
+      {/* Filter bar */}
       <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-4">
-            <Label className="min-w-fit">Farm:</Label>
-            <Select value={farmId} onValueChange={setFarmId}>
-              <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All farms</SelectItem>
-                {(farms || []).map((f: any) => <SelectItem key={f.farm_id ?? f.id} value={String(f.farm_id ?? f.id)}>{f.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+        <CardContent className="p-3">
+          <div className="flex flex-wrap gap-3 items-end">
+            <div>
+              <Label className="text-xs">Farm</Label>
+              <Select value={farmId} onValueChange={setFarmId}>
+                <SelectTrigger className="w-44 h-8 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All farms</SelectItem>
+                  {(farms || []).map((f: any) => (
+                    <SelectItem key={f.farm_id ?? f.id} value={String(f.farm_id ?? f.id)}>{f.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label className="text-xs">Category</Label>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-48 h-8 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All categories</SelectItem>
+                  {CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label className="text-xs">Type</Label>
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger className="w-28 h-8 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="in">IN only</SelectItem>
+                  <SelectItem value="out">OUT only</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label className="text-xs">From</Label>
+              <Input type="date" className="h-8 text-sm w-36" value={filterStart} onChange={e => setFilterStart(e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-xs">To</Label>
+              <Input type="date" className="h-8 text-sm w-36" value={filterEnd} onChange={e => setFilterEnd(e.target.value)} />
+            </div>
+
+            {(categoryFilter !== 'all' || filterType !== 'all' || filterStart || filterEnd) && (
+              <Button size="sm" variant="ghost" className="h-8" onClick={() => { setCategoryFilter('all'); setFilterType('all'); setFilterStart(''); setFilterEnd(''); }}>
+                Clear
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="coffee">
-        <TabsList>
-          <TabsTrigger value="coffee">Coffee Store</TabsTrigger>
-          <TabsTrigger value="otc">Other Crops Store</TabsTrigger>
-        </TabsList>
-        <TabsContent value="coffee">
-          <SubStoreTab subStore="coffee" farmId={farmId} farms={farms || []} />
-        </TabsContent>
-        <TabsContent value="otc">
-          <SubStoreTab subStore="otc" farmId={farmId} farms={farms || []} />
-        </TabsContent>
-      </Tabs>
+      {/* Balance cards */}
+      {balancesLoading ? (
+        <div className="flex justify-center py-4"><LoadingSpinner size="sm" /></div>
+      ) : (balances || []).length > 0 ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {(balances as any[]).map((b: any) => {
+            const neg = b.current_quantity < 0;
+            return (
+              <Card key={b.id ?? `${b.product_id}-${b.farm_id}`}>
+                <CardContent className="p-3 space-y-1">
+                  <p className="text-xs font-semibold leading-tight truncate" title={b.product_name}>{b.product_name}</p>
+                  <Badge variant="outline" className="text-xs">{b.product_category}</Badge>
+                  <div className="pt-1">
+                    <p className="text-xs text-muted-foreground">{b.product_unit}</p>
+                    <p className={`text-xl font-bold ${neg ? 'text-red-500' : 'text-green-600'}`}>{fmt(b.current_quantity)}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      ) : null}
+
+      {/* Action buttons */}
+      {canRecord && (
+        <div className="flex gap-2 justify-end">
+          <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => openEntry('in')}>
+            <ArrowDownToLine className="w-4 h-4 mr-1" /> Stock IN
+          </Button>
+          <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white" onClick={() => openEntry('out')}>
+            <ArrowUpFromLine className="w-4 h-4 mr-1" /> Stock OUT
+          </Button>
+        </div>
+      )}
+
+      {/* Ledger table */}
+      {entriesLoading ? (
+        <div className="flex justify-center py-8"><LoadingSpinner size="sm" /></div>
+      ) : (
+        <div className="rounded-md border overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Product</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead className="text-right">Quantity</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>DN Ref</TableHead>
+                <TableHead>Recorded By</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {!entries || entries.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">No entries found</TableCell>
+                </TableRow>
+              ) : (entries as any[]).slice(0, 200).map((e: any, i: number) => (
+                <TableRow key={e.id ?? i}>
+                  <TableCell className="whitespace-nowrap">{fmtDate(e.entry_date)}</TableCell>
+                  <TableCell className="font-medium whitespace-nowrap">{e.product_name || `#${e.price_list_id ?? e.product_id}`}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{e.category || '—'}</TableCell>
+                  <TableCell>
+                    <Badge className={e.transaction_type === 'in' ? 'bg-green-600 text-white' : 'bg-orange-500 text-white'}>
+                      {e.transaction_type === 'in'
+                        ? <><ArrowDownToLine className="w-3 h-3 mr-1 inline" />IN</>
+                        : <><ArrowUpFromLine className="w-3 h-3 mr-1 inline" />OUT</>}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right font-medium">{fmt(e.quantity)}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{e.from_to_location || '—'}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{e.delivery_note_ref || '—'}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{e.recorded_by || '—'}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {/* Entry modal */}
+      <Dialog open={showEntry} onOpenChange={setShowEntry}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Record Stock {entryType === 'in' ? 'IN' : 'OUT'}</DialogTitle>
+          </DialogHeader>
+          <EntryForm
+            initialType={entryType}
+            initialFarmId={farmId}
+            initialCategory={categoryFilter !== 'all' ? categoryFilter : CATEGORIES[0].value}
+            farms={farms || []}
+            onClose={() => setShowEntry(false)}
+            onSaved={handleEntrySaved}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

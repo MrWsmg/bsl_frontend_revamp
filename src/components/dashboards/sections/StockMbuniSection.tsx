@@ -42,13 +42,28 @@ export const StockMbuniSection: React.FC = () => {
   const getFarms = useCallback(() => apiService.getStockFarms(), []);
   const { data: farms } = useApi(getFarms);
 
+  const getModalBlocks = useCallback(
+    () => form.farm_id ? apiService.getBlocksForFarm(Number(form.farm_id)) : Promise.resolve([]),
+    [form.farm_id]
+  );
+  const { data: modalBlocks, loading: blocksLoading } = useApi(getModalBlocks, { dependencies: [form.farm_id] });
+
   const getRecords = useCallback(
     () => apiService.getMbuniRecords({ farm_id: selectedFarmId !== 'all' ? Number(selectedFarmId) : undefined }),
     [selectedFarmId]
   );
   const { data: records, loading, refetch } = useApi(getRecords);
 
-  const setField = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }));
+  const setField = (k: string, v: any) => setForm(p => ({
+    ...p,
+    [k]: v,
+    ...(k === 'farm_id' ? { block_name: '', block_code: '' } : {}),
+  }));
+
+  const handleBlockSelect = (blockName: string) => {
+    const block = (modalBlocks || []).find((b: any) => b.name === blockName);
+    setForm(p => ({ ...p, block_name: blockName, block_code: block?.code || '' }));
+  };
 
   const totalKg = records?.reduce((s: number, r: any) => s + (r.mbuni_kg || 0), 0) || 0;
   const totalPayment = records?.reduce((s: number, r: any) => s + (r.total_payment || 0), 0) || 0;
@@ -158,8 +173,30 @@ export const StockMbuniSection: React.FC = () => {
                 <SelectContent>{(farms || []).map((f: any) => <SelectItem key={f.farm_id ?? f.id} value={String(f.farm_id ?? f.id)}>{f.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div><Label>Block Name *</Label><Input value={form.block_name} onChange={e => setField('block_name', e.target.value)} placeholder="e.g. BORRISON A" /></div>
-            <div><Label>Block Code</Label><Input value={form.block_code} onChange={e => setField('block_code', e.target.value)} placeholder="e.g. 8T" /></div>
+            <div>
+              <Label>Block Name *</Label>
+              <Select
+                value={form.block_name}
+                onValueChange={handleBlockSelect}
+                disabled={!form.farm_id || blocksLoading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={!form.farm_id ? 'Select a farm first' : blocksLoading ? 'Loading blocks...' : 'Select block'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {(modalBlocks || []).length === 0 && !blocksLoading ? (
+                    <SelectItem value="__none__" disabled>No blocks available</SelectItem>
+                  ) : (
+                    (modalBlocks || []).map((b: any) => (
+                      <SelectItem key={b.id} value={b.name}>{b.name}{b.code ? ` — ${b.code}` : ''}</SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              {form.block_name && form.block_code && (
+                <p className="text-xs text-muted-foreground mt-1">Code: <span className="font-medium">{form.block_code}</span></p>
+              )}
+            </div>
             <div><Label>Harvest Date *</Label><Input type="date" value={form.harvest_date} onChange={e => setField('harvest_date', e.target.value)} /></div>
             <div className="grid grid-cols-2 gap-3">
               <div><Label>No. of Pickers *</Label><Input type="number" value={form.num_pickers} onChange={e => setField('num_pickers', e.target.value)} /></div>

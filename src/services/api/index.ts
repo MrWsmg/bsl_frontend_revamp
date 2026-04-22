@@ -565,12 +565,18 @@ export class ApiService extends BaseApiService {
   async getPaymentSummary(params: { farm_id: number; start_date: string; end_date: string }) {
     return this.payroll.getPaymentSummary(params);
   }
-  async downloadPaymentSummaryPdf(params: { farm_id: number; start_date: string; end_date: string }) {
+  async downloadPaymentSummaryPdf(farmIdOrParams: number | { farm_id: number; start_date: string; end_date: string }, startDate?: string, endDate?: string) {
+    const params = typeof farmIdOrParams === 'number'
+      ? { farm_id: farmIdOrParams, start_date: startDate!, end_date: endDate! }
+      : farmIdOrParams;
     return this.payroll.downloadPaymentSummaryPdf(params);
   }
 
   // ── Payslip ──
-  async downloadPayslipPdf(params: { worker_name: string; farm_id: number; start_date: string; end_date: string }) {
+  async downloadPayslipPdf(workerNameOrParams: string | { worker_name: string; farm_id: number; start_date: string; end_date: string }, farmId?: number, startDate?: string, endDate?: string) {
+    const params = typeof workerNameOrParams === 'string'
+      ? { worker_name: workerNameOrParams, farm_id: farmId!, start_date: startDate!, end_date: endDate! }
+      : workerNameOrParams;
     return this.payroll.downloadPayslipPdf(params);
   }
 
@@ -578,7 +584,10 @@ export class ApiService extends BaseApiService {
   async getQuickBooksPending() {
     return this.payroll.getQuickBooksPending();
   }
-  async markQuickBooksSynced(data: { record_ids: number[]; transaction_id_prefix: string }) {
+  async markQuickBooksSynced(recordIdsOrData: number[] | { record_ids: number[]; transaction_id_prefix: string }, transactionIdPrefix?: string) {
+    const data = Array.isArray(recordIdsOrData)
+      ? { record_ids: recordIdsOrData, transaction_id_prefix: transactionIdPrefix || 'QB' }
+      : recordIdsOrData;
     return this.payroll.markQuickBooksSynced(data);
   }
 
@@ -886,6 +895,30 @@ export class ApiService extends BaseApiService {
 
   async getManagerPerformance(filters?: Record<string, any>) {
     return this.management.getManagerPerformance(filters);
+  }
+
+  // ===========================
+  // Attendance shortcuts
+  // ===========================
+
+  async checkInWithFace(formData: FormData) {
+    return this.post<any>('/supervisor/attendance/checkin', formData);
+  }
+
+  async getAttendanceRecords(params?: { farm_id?: number; status?: string; date?: string; start_date?: string; end_date?: string }) {
+    return this.attendance.getAttendanceRecords(params);
+  }
+
+  async updateAttendance(attendanceId: number, data: any) {
+    return this.attendance.updateAttendance(attendanceId, data);
+  }
+
+  async deleteAttendance(attendanceId: number) {
+    return this.attendance.deleteAttendance(attendanceId);
+  }
+
+  async getAttendanceReport(farmId: number, reportDate: string) {
+    return this.attendance.getAttendanceReport(farmId, reportDate);
   }
 
   // ===========================
@@ -1407,6 +1440,53 @@ export class ApiService extends BaseApiService {
   async getFertilizerBalances(params?: { farm_id?: number; sub_store?: 'coffee' | 'otc' }) {
     return this.fertilizer.getFertilizerBalances(params);
   }
+  async createFertilizerProduct(data: { name: string; formula?: string; unit: string; sub_store: 'coffee' | 'otc' }) {
+    return this.fertilizer.createFertilizerProduct(data);
+  }
+  async updateFertilizerProduct(productId: number, data: any) {
+    return this.fertilizer.updateFertilizerProduct(productId, data);
+  }
+
+  // Fertilizer Programs
+  async getFertilizerPrograms(params?: { farm_id?: number; season_year?: number }) {
+    return this.fertilizer.getFertilizerPrograms(params);
+  }
+  async createFertilizerProgram(data: { farm_id: number; season_year: number; tree_type: 'mature' | 'young' }) {
+    return this.fertilizer.createFertilizerProgram(data);
+  }
+  async importFertilizerProgramsExcel(file: File, seasonYear: number) {
+    return this.fertilizer.importFertilizerProgramsExcel(file, seasonYear);
+  }
+  async activateFertilizerProgram(id: number) {
+    return this.fertilizer.activateFertilizerProgram(id);
+  }
+  async getFertilizerProgramSchedule(id: number) {
+    return this.fertilizer.getFertilizerProgramSchedule(id);
+  }
+  async applyFertilizerRound(roundId: number, data: any) {
+    return this.fertilizer.applyFertilizerRound(roundId, data);
+  }
+  async getFertilizerProgramReport(id: number) {
+    return this.fertilizer.getFertilizerProgramReport(id);
+  }
+  async getFertilizerProgramSummary(id: number) {
+    return this.fertilizer.getFertilizerProgramSummary(id);
+  }
+  async downloadFertilizerProgramTemplate() {
+    return this.fertilizer.downloadFertilizerProgramTemplate();
+  }
+  async getFertilizerProgram(id: number) {
+    return this.fertilizer.getFertilizerProgram(id);
+  }
+  async getFertilizerProgramBlocks(id: number) {
+    return this.fertilizer.getFertilizerProgramBlocks(id);
+  }
+  async addFertilizerProgramBlock(id: number, data: {
+    block_name: string; area_ha: number; cherry_kg?: number;
+    npk_kg_per_ha?: number; blend1_kg_per_ha?: number; blend2_kg_per_ha?: number; blend3_kg_per_ha?: number;
+  }) {
+    return this.fertilizer.addFertilizerProgramBlock(id, data);
+  }
 
   // ===========================
   // Fuel & Chemicals
@@ -1415,7 +1495,7 @@ export class ApiService extends BaseApiService {
   async getFuelChemProducts(params?: { sub_store?: 'coffee' | 'otc'; category?: string; active_only?: boolean }) {
     return this.fuelChem.getFuelChemProducts(params);
   }
-  async getFuelChemEntries(params?: { farm_id?: number; sub_store?: 'coffee' | 'otc'; category?: string; transaction_type?: 'in' | 'out' }) {
+  async getFuelChemEntries(params?: { farm_id?: number; sub_store?: 'coffee' | 'otc'; category?: string; transaction_type?: 'in' | 'out'; start_date?: string; end_date?: string }) {
     return this.fuelChem.getFuelChemEntries(params);
   }
   async createFuelChemEntry(data: any) { return this.fuelChem.createFuelChemEntry(data); }
