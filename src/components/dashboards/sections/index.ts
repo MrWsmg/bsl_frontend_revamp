@@ -84,3 +84,4 @@ export { StockIrrigationSection } from './StockIrrigationSection';
 export { StockFishFarmingSection } from './StockFishFarmingSection';
 export { StockCsvImportSection } from './StockCsvImportSection';
 export { FertilizerProgramsSection } from './FertilizerProgramsSection';
+export { PayrollUploadSection } from './PayrollUploadSection';

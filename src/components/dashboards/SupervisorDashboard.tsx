@@ -7,7 +7,7 @@ import { ErrorBoundary } from '../common/ErrorBoundary';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { Pagination } from '../common/Pagination';
 import { User } from '../../types';
-import { BarChart3, Users, ClipboardList, TrendingUp, Calendar, CheckCircle, Clock, AlertCircle, Package, UserCheck, LayoutDashboard, FileText, Wallet, Scale } from 'lucide-react';
+import { BarChart3, Users, ClipboardList, TrendingUp, Calendar, CheckCircle, Clock, AlertCircle, Package, UserCheck, LayoutDashboard, FileText, Wallet, Scale, Search } from 'lucide-react';
 import { useApi } from '../../hooks';
 import apiService from '../../services/api';
 import AddWorkerModal from '../shared/AddWorkerModal';
@@ -118,6 +118,7 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
   // Pagination state for Workers table
   const [workersPage, setWorkersPage] = useState(1);
   const [workersPerPage, setWorkersPerPage] = useState(10);
+  const [workerSearch, setWorkerSearch] = useState('');
 
   // Pagination state for Work History table
   const [historyPage, setHistoryPage] = useState(1);
@@ -159,17 +160,24 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
   };
 
   // Pagination calculations for Workers
-  const paginatedWorkers = useMemo(() => {
+  const filteredWorkers = useMemo(() => {
     if (!workers) return [];
+    const q = workerSearch.trim().toLowerCase();
+    if (!q) return workers;
+    return workers.filter((w: any) =>
+      (w.full_name || w.name || '').toLowerCase().includes(q) ||
+      (w.phone || '').toLowerCase().includes(q)
+    );
+  }, [workers, workerSearch]);
+
+  const paginatedWorkers = useMemo(() => {
     const startIndex = (workersPage - 1) * workersPerPage;
-    const endIndex = startIndex + workersPerPage;
-    return workers.slice(startIndex, endIndex);
-  }, [workers, workersPage, workersPerPage]);
+    return filteredWorkers.slice(startIndex, startIndex + workersPerPage);
+  }, [filteredWorkers, workersPage, workersPerPage]);
 
   const workersTotalPages = useMemo(() => {
-    if (!workers) return 0;
-    return Math.ceil(workers.length / workersPerPage);
-  }, [workers, workersPerPage]);
+    return Math.ceil(filteredWorkers.length / workersPerPage);
+  }, [filteredWorkers, workersPerPage]);
 
   // Pagination calculations for Work History
   const paginatedHistory = useMemo(() => {
@@ -186,10 +194,10 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
     return Math.ceil(historyArray.length / historyPerPage);
   }, [workHistory, historyPerPage]);
 
-  // Reset pagination when data changes
+  // Reset pagination when data or search changes
   React.useEffect(() => {
     setWorkersPage(1);
-  }, [workers?.length]);
+  }, [workers?.length, workerSearch]);
 
   React.useEffect(() => {
     setHistoryPage(1);
@@ -469,8 +477,18 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
           </Button>
         </CardHeader>
         <CardContent>
-          {!workers || workers.length === 0 ? (
-            <p className="text-muted-foreground">No workers found.</p>
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search by name or phone…"
+              value={workerSearch}
+              onChange={(e) => setWorkerSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 border border-input rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+          {filteredWorkers.length === 0 ? (
+            <p className="text-muted-foreground">{workerSearch ? 'No workers match your search.' : 'No workers found.'}</p>
           ) : (
             <>
               <div className="overflow-x-auto">
@@ -516,7 +534,7 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
               <Pagination
                 currentPage={workersPage}
                 totalPages={workersTotalPages}
-                totalItems={workers.length}
+                totalItems={filteredWorkers.length}
                 itemsPerPage={workersPerPage}
                 onPageChange={setWorkersPage}
                 onItemsPerPageChange={setWorkersPerPage}

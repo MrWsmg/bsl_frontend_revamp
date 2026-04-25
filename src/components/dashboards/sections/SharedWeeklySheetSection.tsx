@@ -140,38 +140,73 @@ export const SharedWeeklySheetSection: React.FC<SharedWeeklySheetSectionProps> =
         </div>
 
         {/* Sheet preview */}
-        {sheetData && (
-          <div className="overflow-x-auto border rounded-lg">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  {['Worker', 'Type', 'Tasks', 'Days', 'Total (TZS)', 'Payment Method'].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {(sheetData.workers ?? []).map((w: any, i: number) => (
-                  <tr key={i} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-900">{w.name}</td>
-                    <td className="px-4 py-3 text-gray-600 capitalize">{w.type}</td>
-                    <td className="px-4 py-3 text-gray-700">{w.tasks}</td>
-                    <td className="px-4 py-3 text-gray-700">{w.days}</td>
-                    <td className="px-4 py-3 text-gray-900 font-medium">{Number(w.total ?? 0).toLocaleString()}</td>
-                    <td className="px-4 py-3 text-gray-600 capitalize">{(w.payment_method ?? '').replace('_', ' ')}</td>
-                  </tr>
-                ))}
+        {sheetData && (() => {
+          const DAY_LABELS = ['Sat', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+          const workers: any[] = sheetData.workers ?? [];
+
+          return (
+            <div className="space-y-3">
+              {/* Meta */}
+              <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-1">
+                <span><span className="font-medium">Farm:</span> {sheetData.farm_name}</span>
+                <span><span className="font-medium">Week:</span> {sheetData.week_start} → {sheetData.week_end}</span>
                 {sheetData.grand_total != null && (
-                  <tr className="bg-gray-100 font-bold">
-                    <td colSpan={4} className="px-4 py-3 text-gray-900">Grand Total</td>
-                    <td className="px-4 py-3 text-gray-900">{Number(sheetData.grand_total).toLocaleString()}</td>
-                    <td />
-                  </tr>
+                  <span className="ml-auto font-semibold text-gray-900">
+                    Grand Total: TZS {Number(sheetData.grand_total).toLocaleString()}
+                  </span>
                 )}
-              </tbody>
-            </table>
-          </div>
-        )}
+              </div>
+
+              <div className="overflow-x-auto border rounded-lg">
+                <table className="min-w-full divide-y divide-gray-200 text-xs">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-3 py-2 text-left font-medium text-gray-500 uppercase sticky left-0 bg-gray-50 z-10">Worker</th>
+                      {DAY_LABELS.map((d) => (
+                        <th key={d} className="px-3 py-2 text-center font-medium text-gray-500 uppercase min-w-[90px]">{d}</th>
+                      ))}
+                      <th className="px-3 py-2 text-right font-medium text-gray-500 uppercase">Week Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {workers.map((w: any, i: number) => {
+                      const daySlots: any[] = Array.isArray(w.days) ? w.days : [];
+                      return (
+                        <tr key={i} className="hover:bg-gray-50">
+                          <td className="px-3 py-2 font-medium text-gray-900 sticky left-0 bg-white whitespace-nowrap">{w.name}</td>
+                          {DAY_LABELS.map((_, di) => {
+                            const slot = daySlots[di];
+                            if (!slot) return <td key={di} className="px-3 py-2 text-center text-gray-300">—</td>;
+                            return (
+                              <td key={di} className="px-3 py-2 text-center text-gray-700">
+                                <div className="font-medium">{slot.task_code}</div>
+                                {slot.block && <div className="text-gray-400">{slot.block}</div>}
+                                <div className="text-gray-500">{slot.quantity} u</div>
+                                <div className="text-green-700 font-medium">{Number(slot.total_amount ?? 0).toLocaleString()}</div>
+                              </td>
+                            );
+                          })}
+                          <td className="px-3 py-2 text-right font-semibold text-gray-900 whitespace-nowrap">
+                            {Number(w.week_total ?? w.total ?? 0).toLocaleString()}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {sheetData.grand_total != null && (
+                      <tr className="bg-gray-100 font-bold">
+                        <td className="px-3 py-2 sticky left-0 bg-gray-100">Grand Total</td>
+                        {DAY_LABELS.map((_, di) => <td key={di} />)}
+                        <td className="px-3 py-2 text-right text-gray-900">
+                          {Number(sheetData.grand_total).toLocaleString()}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

@@ -17,12 +17,14 @@ import {
   CalendarDays,
   ReceiptText,
   Link2,
+  Upload,
 } from 'lucide-react';
 import {
   PayrollOverviewSection,
   PayrollRecordsSection,
   PayrollSummarySection,
   PayrollPickingSection,
+  PayrollUploadSection,
   SharedWeeklySheetSection,
   SharedPaymentSummarySection,
   SharedPayslipSection,
@@ -40,6 +42,7 @@ const TAB_COMPONENTS: Record<string, React.FC> = {
   records:         PayrollRecordsSection,
   summary:         PayrollSummarySection,
   picking:         PayrollPickingSection,
+  upload_sheet:    PayrollUploadSection,
   weekly_sheet:    SharedWeeklySheetSection,
   payment_summary: SharedPaymentSummarySection,
   payslip:         SharedPayslipSection,
@@ -59,6 +62,7 @@ export const PayrollDashboard: React.FC<PayrollDashboardProps> = ({ user, onLogo
       children: [
         { id: 'records',         label: 'Records',          icon: ClipboardList  },
         { id: 'summary',         label: 'Summary',          icon: NotebookPen    },
+        { id: 'upload_sheet',    label: 'Upload Sheet',     icon: Upload         },
         { id: 'weekly_sheet',    label: 'Weekly Sheet',     icon: CalendarDays   },
         { id: 'payment_summary', label: 'Payment Summary',  icon: ReceiptText    },
         { id: 'payslip',         label: 'Payslip',          icon: FileText       },

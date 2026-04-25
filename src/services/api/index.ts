@@ -557,6 +557,12 @@ export class ApiService extends BaseApiService {
   async downloadWeeklySheetCsv(params: { farm_id: number; week_start: string }) {
     return this.payroll.downloadWeeklySheetCsv(params);
   }
+  async downloadWeeklySheetTemplate() {
+    return this.payroll.downloadWeeklySheetTemplate();
+  }
+  async uploadWeeklySheet(params: { farm_id: number; week_start: string; file: File; overwrite?: boolean }) {
+    return this.payroll.uploadWeeklySheet(params);
+  }
 
   // ── Payment summary ──
   async getPaymentSummaryJson(farmId: number, startDate: string, endDate: string) {

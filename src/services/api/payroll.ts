@@ -414,6 +414,63 @@ export class PayrollApiService extends BaseApiService {
     return this.patch<any>(`/supervisor/workers/${workerId}/payment-details`, data);
   }
 
+  // ==================== WEEKLY SHEET UPLOAD ====================
+
+  /**
+   * Download the blank upload template (.csv)
+   */
+  async downloadWeeklySheetTemplate(): Promise<void> {
+    const blob = await this.fetchBlob('/payroll/weekly-sheet/upload-template');
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'payroll_weekly_template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Upload a filled weekly sheet (.csv or .xlsx)
+   */
+  async uploadWeeklySheet(params: {
+    farm_id: number;
+    week_start: string;
+    file: File;
+    overwrite?: boolean;
+  }): Promise<{
+    created: number;
+    skipped: number;
+    deleted: number;
+    workers_registered: number;
+    grand_total_calculated: number;
+    workers: Array<{ worker_name: string; days_worked: number; total_calculated: number; total_from_file: number }>;
+    errors: Array<{ row: number; worker_name: string; day?: string; reason: string }>;
+    _warning?: string;
+  }> {
+    const formData = new FormData();
+    formData.append('farm_id', String(params.farm_id));
+    formData.append('week_start', params.week_start);
+    formData.append('file', params.file);
+    if (params.overwrite) formData.append('overwrite', 'true');
+
+    const response = await fetch(`${this.baseUrl}/payroll/weekly-sheet/upload`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      // Backend committed the data before failing — if the body contains the result, surface it
+      if (response.status >= 500 && body != null && 'created' in body) {
+        return { ...body, _warning: 'Data was saved but the server reported an error. Please verify the records below.' };
+      }
+      throw new Error(body?.detail || body?.message || `Upload failed: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
   // ==================== QUICKBOOKS ====================
 
   /**
