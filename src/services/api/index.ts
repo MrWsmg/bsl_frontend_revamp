@@ -494,6 +494,10 @@ export class ApiService extends BaseApiService {
     return this.payroll.getFinancialControllerPendingPayroll();
   }
 
+  async getFinancialControllerApprovedPayroll() {
+    return this.payroll.getFinancialControllerApprovedPayroll();
+  }
+
   async approveFinancialControllerPayroll(recordId: number) {
     return this.payroll.approveFinancialControllerPayroll(recordId);
   }

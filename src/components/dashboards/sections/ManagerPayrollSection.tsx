@@ -264,6 +264,9 @@ export const ManagerPayrollSection: React.FC = () => {
                       Task Code
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Block
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Quantity
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -306,10 +309,13 @@ export const ManagerPayrollSection: React.FC = () => {
                         <div className="text-sm text-gray-500">{record.worker_type}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {record.farm_name || record.farm?.name || '—'}
+                        {record.farm_name || '—'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {record.task_code}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {record.block_code || record.block || '—'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {record.quantity}
@@ -321,10 +327,10 @@ export const ManagerPayrollSection: React.FC = () => {
                         TZS {record.total_amount?.toLocaleString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(record.date_worked + 'T00:00:00').toLocaleDateString()}
+                        {new Date((record.date_worked?.split('T')[0] ?? '') + 'T00:00:00').toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {record.entered_by || '—'}
+                        {record.entered_by_name || '—'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <ApprovalStatusBadge status={record.approval_status} />

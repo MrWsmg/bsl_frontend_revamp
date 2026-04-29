@@ -7,12 +7,15 @@ import { User } from '../../types';
 import {
   BarChart3, ClipboardList, TrendingUp, FileText, PackageCheck,
   Warehouse, CalendarDays, ReceiptText, ArrowRight, AlertCircle,
+  Users, BarChart2, AlertTriangle, ListChecks,
 } from 'lucide-react';
 import { FinancialControllerPayrollSection } from './sections/FinancialControllerPayrollSection';
 import {
   SharedSmrSection,
   SharedLpoSection,
   SharedGrnSection,
+  SharedGinSection,
+  SharedSimrSection,
   SharedCardexSection,
   SharedWeeklySheetSection,
   SharedPaymentSummarySection,
@@ -21,6 +24,9 @@ import {
   SharedBudgetManagerSection,
   SharedBudgetSummarySection,
   SharedBudgetTrackingSection,
+  ManagerWorkersSection,
+  ManagerReportsSection,
+  ManagerWarningsSection,
 } from './sections';
 import apiService from '../../services/api';
 import { Card, CardContent } from '@/components/ui/card';
@@ -35,11 +41,16 @@ type Tab =
   | 'proc-smr'
   | 'proc-lpo'
   | 'proc-grn'
+  | 'proc-gin'
+  | 'proc-simr'
   | 'proc-cardex'
   | 'calendar'
   | 'budget-manager'
   | 'budget-summary'
-  | 'budget-tracking';
+  | 'budget-tracking'
+  | 'workers'
+  | 'reports'
+  | 'warnings';
 
 interface Props {
   user: User;
@@ -65,12 +76,17 @@ const SIDEBAR_ITEMS = [
     icon: PackageCheck,
     children: [
       { id: 'proc-smr',    label: 'SMR',    icon: FileText      },
+      { id: 'proc-simr',   label: 'SIMR',   icon: ListChecks    },
       { id: 'proc-lpo',    label: 'LPO',    icon: ClipboardList },
       { id: 'proc-grn',    label: 'GRN',    icon: PackageCheck  },
+      { id: 'proc-gin',    label: 'GIN',    icon: PackageCheck  },
       { id: 'proc-cardex', label: 'CARDEX', icon: Warehouse     },
     ],
   },
-  { id: 'calendar', label: 'Calendar', icon: CalendarDays },
+  { id: 'workers',  label: 'Workers',   icon: Users        },
+  { id: 'reports',  label: 'Reports',   icon: BarChart2    },
+  { id: 'warnings', label: 'Warnings',  icon: AlertTriangle },
+  { id: 'calendar', label: 'Calendar',  icon: CalendarDays },
   {
     id: 'budgets-group', label: 'Budgets', icon: BarChart3,
     children: [
@@ -126,8 +142,23 @@ export const FinancialControllerDashboard: React.FC<Props> = ({ user, onLogout }
           <div hidden={activeTab !== 'proc-grn'}>
             {mountedTabs.current.has('proc-grn') && <SharedGrnSection userRole="financial_controller" />}
           </div>
+          <div hidden={activeTab !== 'proc-gin'}>
+            {mountedTabs.current.has('proc-gin') && <SharedGinSection userRole="financial_controller" />}
+          </div>
+          <div hidden={activeTab !== 'proc-simr'}>
+            {mountedTabs.current.has('proc-simr') && <SharedSimrSection userRole="financial_controller" />}
+          </div>
           <div hidden={activeTab !== 'proc-cardex'}>
             {mountedTabs.current.has('proc-cardex') && <SharedCardexSection userRole="financial_controller" />}
+          </div>
+          <div hidden={activeTab !== 'workers'}>
+            {mountedTabs.current.has('workers') && <ManagerWorkersSection />}
+          </div>
+          <div hidden={activeTab !== 'reports'}>
+            {mountedTabs.current.has('reports') && <ManagerReportsSection />}
+          </div>
+          <div hidden={activeTab !== 'warnings'}>
+            {mountedTabs.current.has('warnings') && <ManagerWarningsSection />}
           </div>
           <div hidden={activeTab !== 'calendar'}>
             {mountedTabs.current.has('calendar') && <SharedCalendarSection userRole="financial_controller" />}

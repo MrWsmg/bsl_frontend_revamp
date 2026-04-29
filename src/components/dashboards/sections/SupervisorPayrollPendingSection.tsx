@@ -102,7 +102,7 @@ export const SupervisorPayrollPendingSection: React.FC = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {records.map((r) => (
                     <tr key={r.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{r.date_worked}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{new Date((r.date_worked?.split('T')[0] ?? '') + 'T00:00:00').toLocaleDateString()}</td>
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">{r.worker_name}</td>
                       <td className="px-4 py-3 text-sm text-gray-700">{r.task_code}</td>
                       <td className="px-4 py-3 text-sm text-gray-500">{r.block ?? '—'}</td>
@@ -183,7 +183,7 @@ export const SupervisorPayrollPendingSection: React.FC = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Block</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Block Code</label>
                 <input
                   type="text"
                   value={editForm.block}

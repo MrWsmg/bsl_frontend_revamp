@@ -98,10 +98,15 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
       name: workerToEdit?.name || '',
       full_name: workerToEdit?.full_name || workerToEdit?.name || '',
       phone: workerToEdit?.phone || '',
+      birth_date: workerToEdit?.birth_date
+        ? new Date(workerToEdit.birth_date).toISOString().split('T')[0]
+        : '',
       worker_type: workerToEdit?.worker_type || 'contract',
       skills: workerToEdit?.skills || '',
       is_active: workerToEdit?.is_active !== undefined ? workerToEdit.is_active : true,
       farm_assignments: getDefaultFarmAssignments(),
+      bank_name: workerToEdit?.bank_name || '',
+      bank_account_number: workerToEdit?.bank_account_number || '',
     },
   });
 
@@ -330,10 +335,15 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
         name: workerToEdit?.name || '',
         full_name: workerToEdit?.full_name || workerToEdit?.name || '',
         phone: workerToEdit?.phone || '',
+        birth_date: workerToEdit?.birth_date
+          ? new Date(workerToEdit.birth_date).toISOString().split('T')[0]
+          : '',
         worker_type: workerToEdit?.worker_type || 'contract',
         skills: workerToEdit?.skills || '',
         is_active: workerToEdit?.is_active !== undefined ? workerToEdit.is_active : true,
         farm_assignments: getDefaultFarmAssignments(),
+        bank_name: workerToEdit?.bank_name || '',
+        bank_account_number: workerToEdit?.bank_account_number || '',
       });
       setError('');
     } else {
@@ -359,11 +369,14 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
       const workerData: any = {
         name: data.name || data.full_name,
         full_name: data.full_name,
-        phone: data.phone,
+        phone: data.phone || null,
+        birth_date: data.birth_date || null,
         worker_type: data.worker_type,
-        skills: data.skills,
+        skills: data.skills || null,
         is_active: data.is_active,
         farm_assignments: JSON.stringify(data.farm_assignments),
+        bank_name: data.bank_name || null,
+        bank_account_number: data.bank_account_number || null,
       };
 
       let targetWorkerId: number | null = workerToEdit ? workerToEdit.id : null;
@@ -553,6 +566,20 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
 
                 <FormField
                   control={form.control}
+                  name="birth_date"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Date of Birth</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="date" max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="worker_type"
                   render={({ field }) => (
                     <FormItem>
@@ -647,6 +674,37 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
                   </FormItem>
                 )}
               />
+
+              {/* Bank Details */}
+              <fieldset className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <legend className="text-sm font-medium mb-2 col-span-full">Bank Details (for payroll)</legend>
+                <FormField
+                  control={form.control}
+                  name="bank_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Bank Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="e.g. NMB, CRDB, NBC" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="bank_account_number"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Account Number</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Enter bank account number" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </fieldset>
 
               {/* Media Upload Section */}
               <fieldset className="border border-blue-100 bg-blue-50/60 rounded-lg p-4 space-y-4">

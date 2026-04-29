@@ -137,7 +137,7 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
   const getTaskAssignments = useCallback(() => apiService.getManagerTaskAssignments(), []);
 
   const { data: dailyTotals, loading: loadingDailyTotals, error: dailyTotalsError } = useApi(getDailyTotals);
-  const { data: workHistory, loading: loadingWorkHistory } = useApi(getWorkHistory);
+  const { data: workHistory, loading: loadingWorkHistory, refetch: refetchWorkHistory } = useApi(getWorkHistory);
   const { data: itemRequests, loading: loadingItemRequests } = useApi(getItemRequests);
   const { data: workers, loading: loadingWorkers, refetch: refetchWorkers } = useApi(getWorkers);
   const { data: farms } = useApi(getFarms);
@@ -585,8 +585,8 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
                 />
               </div>
               <div className="flex items-end">
-                <Button className="w-full" onClick={() => window.location.reload()}>
-                  Generate Report
+                <Button className="w-full" onClick={() => refetchWorkHistory()} disabled={loadingWorkHistory}>
+                  {loadingWorkHistory ? 'Loading…' : 'Generate Report'}
                 </Button>
               </div>
             </div>

@@ -74,7 +74,9 @@ export interface PayrollRecord {
   crop_type?: string;
   notes?: string;
   receipt_image_url?: string;
-  entered_by?: string;
+  entered_by?: number | string;
+  entered_by_name?: string;
+  block_code?: string;
   // Approval workflow
   approval_status: 'supervisor_pending' | 'manager_approved' | 'approved' | 'rejected' | 'pending';
   approval_level?: 1 | 2 | 3;

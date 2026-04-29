@@ -1,13 +1,13 @@
 "use client";
 
 // Supervisor Tasks Section - Assign and manage worker tasks
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
-import { Plus, CheckCircle, User } from 'lucide-react';
+import { Plus, CheckCircle, User, Search, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { taskAssignmentSchema, taskCompletionSchema, type TaskAssignmentFormData, type TaskCompletionFormData } from '@/lib/schemas';
 import { Button } from '@/components/ui/button';
@@ -34,6 +34,8 @@ export const SupervisorTasksSection: React.FC = () => {
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [selectedWorker, setSelectedWorker] = useState<any>(null);
   const [blocks, setBlocks] = useState<any[]>([]);
+  const [workerSearch, setWorkerSearch] = useState('');
+  const [showOffsite, setShowOffsite] = useState(false);
 
   // Task Assignment Form
   const assignForm = useForm<TaskAssignmentFormData>({
@@ -73,6 +75,36 @@ export const SupervisorTasksSection: React.FC = () => {
   const { data: farms } = useApi(getFarms);
   const { data: taskCodes } = useApi(getTaskCodes);
   const { data: taskAssignments, loading: loadingTasks, refetch: refetchTasks } = useApi(getTaskAssignments);
+
+  // Fetch today's attendance to know who is currently checked in
+  const today = new Date().toISOString().split('T')[0];
+  const getTodayAttendance = useCallback(
+    () => apiService.getAttendanceRecords({ start_date: today, end_date: today }),
+    [today]
+  );
+  const { data: todayAttendance } = useApi(getTodayAttendance);
+
+  // Set of worker_ids that are currently checked in (have check_in_time, no check_out_time)
+  const checkedInWorkerIds = useMemo<Set<number>>(() => {
+    const records: any[] = Array.isArray(todayAttendance) ? todayAttendance : [];
+    const ids = records
+      .filter((r: any) => r.check_in_time && !r.check_out_time && r.worker_id)
+      .map((r: any) => r.worker_id as number);
+    return new Set(ids);
+  }, [todayAttendance]);
+
+  // Checked-in workers filtered by selected farm (for the assign modal dropdown)
+  const checkedInWorkersForFarm = useMemo(() => {
+    const allActive: any[] = (workers ?? []).filter((w: any) => w.is_active !== false);
+    if (!watchedFarmId || !todayAttendance) return allActive.filter((w: any) => checkedInWorkerIds.has(w.id));
+    const records: any[] = Array.isArray(todayAttendance) ? todayAttendance : [];
+    const farmCheckedInIds = new Set(
+      records
+        .filter((r: any) => r.check_in_time && !r.check_out_time && r.farm_id === watchedFarmId && r.worker_id)
+        .map((r: any) => r.worker_id as number)
+    );
+    return allActive.filter((w: any) => farmCheckedInIds.has(w.id));
+  }, [workers, todayAttendance, watchedFarmId, checkedInWorkerIds]);
 
   // Fetch blocks when farm changes
   useEffect(() => {
@@ -241,6 +273,7 @@ export const SupervisorTasksSection: React.FC = () => {
     setShowAssignModal(false);
     assignForm.reset({ worker_id: 0, farm_id: 0, task_code: '', block_id: undefined, crop_type: '', quantity: undefined, rate: undefined, date_worked: new Date().toISOString().split('T')[0], payment_method: 'per_task' });
     setBlocks([]);
+    setWorkerSearch('');
   };
 
   const handleCloseCompleteModal = () => {
@@ -286,120 +319,143 @@ export const SupervisorTasksSection: React.FC = () => {
         </div>
       </div>
 
-      {/* Workers List with Task Assignment */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Active Workers</h3>
+      {/* Workers List */}
+      <div className="bg-white rounded-lg shadow-md p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-base font-semibold text-gray-900">
+            Workers
+            <span className="ml-2 text-xs font-normal text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
+              {checkedInWorkerIds.size} on-site
+            </span>
+          </h3>
+        </div>
+
         {!workers || workers.length === 0 ? (
-          <p className="text-gray-500 text-center py-4">No workers found</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {workers
-              .filter((w: any) => w.is_active !== false)
-              .map((worker: any) => (
-                <div key={worker.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                  <div className="flex items-center mb-3">
-                    <div className="bg-blue-100 p-2 rounded-full mr-3">
-                      <User className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-gray-900">{worker.full_name || worker.name}</h4>
-                      <p className="text-sm text-gray-600">{worker.phone || 'No phone'}</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => openAssignModal(worker.id)}
-                    >
-                      Assign Task
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => openCompleteModal(worker)}
-                    >
-                      Complete Task
-                    </Button>
-                  </div>
+          <p className="text-gray-500 text-center py-4 text-sm">No workers found</p>
+        ) : (() => {
+          const allActive = (workers as any[]).filter((w: any) => w.is_active !== false);
+          const onSite = allActive.filter((w: any) => checkedInWorkerIds.has(w.id));
+          const offSite = allActive.filter((w: any) => !checkedInWorkerIds.has(w.id));
+          const initials = (w: any) => {
+            const n = (w.full_name || w.name || '?').trim().split(' ');
+            return (n[0]?.[0] || '') + (n[1]?.[0] || '');
+          };
+          return (
+            <div>
+              {/* On-site rows */}
+              {onSite.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-6">No workers checked in today.</p>
+              ) : (
+                <ul className="divide-y divide-gray-100 list-none m-0 p-0">
+                  {onSite.map((worker: any) => (
+                    <li key={worker.id} className="flex items-center gap-3 py-2.5 px-1 hover:bg-gray-50 rounded-md transition-colors">
+                      <span className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
+                      <span className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center shrink-0 uppercase">
+                        {initials(worker)}
+                      </span>
+                      <span className="flex-1 min-w-0">
+                        <span className="text-sm font-medium text-gray-900 truncate block">{worker.full_name || worker.name}</span>
+                        <span className="text-xs text-gray-400">{worker.worker_type || 'Worker'}</span>
+                      </span>
+                      <div className="flex gap-1.5 shrink-0">
+                        <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => openAssignModal(worker.id)}>
+                          <Plus className="w-3 h-3 mr-1" />Assign
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-7 px-2.5 text-xs" onClick={() => openCompleteModal(worker)}>
+                          <CheckCircle className="w-3 h-3 mr-1" />Complete
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {/* Off-site collapsible */}
+              {offSite.length > 0 && (
+                <div className="mt-2 border-t border-gray-100 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowOffsite((v) => !v)}
+                    className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 cursor-pointer select-none py-1"
+                  >
+                    <span className={`transition-transform duration-150 ${showOffsite ? 'rotate-90' : ''}`}>▶</span>
+                    Not on-site ({offSite.length})
+                  </button>
+                  {showOffsite && (
+                    <ul className="divide-y divide-gray-50 list-none m-0 p-0 mt-1 opacity-60">
+                      {offSite.map((worker: any) => (
+                        <li key={worker.id} className="flex items-center gap-3 py-2 px-1">
+                          <span className="w-2 h-2 rounded-full bg-gray-300 shrink-0" />
+                          <span className="w-8 h-8 rounded-full bg-gray-100 text-gray-400 text-xs font-bold flex items-center justify-center shrink-0 uppercase">
+                            {initials(worker)}
+                          </span>
+                          <span className="flex-1 min-w-0">
+                            <span className="text-sm text-gray-500 truncate block">{worker.full_name || worker.name}</span>
+                            <span className="text-xs text-gray-400">{worker.worker_type || 'Worker'}</span>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
-              ))}
-          </div>
-        )}
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Assigned Tasks */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Assigned Tasks</h3>
+      <div className="bg-white rounded-lg shadow-md p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-base font-semibold text-gray-900">Assigned Tasks</h3>
+          <Button size="sm" variant="ghost" onClick={() => refetchTasks()} disabled={loadingTasks} className="h-7 px-2 text-xs text-gray-500">
+            <RefreshCw className={`w-3.5 h-3.5 mr-1 ${loadingTasks ? 'animate-spin' : ''}`} />Refresh
+          </Button>
+        </div>
+
         {loadingTasks ? (
-          <div className="flex justify-center items-center py-4">
-            <LoadingSpinner size="sm" />
-          </div>
+          <div className="flex justify-center py-6"><LoadingSpinner size="sm" /></div>
         ) : !taskAssignments || taskAssignments.length === 0 ? (
-          <p className="text-gray-500 text-center py-4">No assigned tasks found</p>
+          <p className="text-gray-500 text-center py-6 text-sm">No assigned tasks found</p>
         ) : (
-          <div className="space-y-4">
-            {taskAssignments.map((task: any) => (
-              <div key={task.id} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h4 className="font-semibold text-gray-900">{task.task_code}</h4>
-                    <p className="text-sm text-gray-600">
-                      Worker: {task.worker?.full_name || task.worker?.name || task.worker_name || 'Unknown'}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Date: {new Date(task.date_worked).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      task.status === 'completed' || task.status === 'Completed'
-                        ? 'bg-green-100 text-green-800'
-                        : task.status === 'in_progress' || task.status === 'In Progress' || task.status === 'assigned' || task.status === 'Assigned'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {task.status === 'in_progress' || task.status === 'In Progress' ? 'In Progress' :
-                       task.status === 'assigned' || task.status === 'Assigned' ? 'Assigned' :
-                       task.status.charAt(0).toUpperCase() + task.status.slice(1)}
-                    </span>
-                    <div className="flex gap-1">
-                      {!task.started_at && task.status !== 'completed' && task.status !== 'Completed' && (
-                        <Button size="sm" onClick={() => handleStartTask(task)}>
-                          Start Task
-                        </Button>
-                      )}
-                      {task.started_at && task.status !== 'completed' && task.status !== 'Completed' && (
-                        <Button size="sm" variant="secondary" onClick={() => handleQuickComplete(task)}>
-                          Complete Task
-                        </Button>
-                      )}
+          <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 list-none m-0 p-0">
+            {taskAssignments.map((task: any) => {
+              const isCompleted = task.status === 'completed' || task.status === 'Completed';
+              const isInProgress = task.status === 'in_progress' || task.status === 'In Progress';
+              const statusLabel = isCompleted ? 'Completed' : isInProgress ? 'In Progress' : 'Assigned';
+              const statusClass = isCompleted ? 'bg-green-100 text-green-700' : isInProgress ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700';
+              const workerName = task.worker?.full_name || task.worker?.name || task.worker_name || 'Unknown';
+              const farmName = (farms as any[])?.find((f: any) => (f.id ?? f.farm_id) === task.farm_id)?.name || `Farm ${task.farm_id}`;
+              return (
+                <li key={task.id} className="flex items-center gap-3 border border-gray-200 rounded-lg px-4 py-3">
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-semibold text-gray-900">{task.task_code}</span>
+                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${statusClass}`}>{statusLabel}</span>
                     </div>
+                    <p className="text-xs text-gray-500 mt-0.5 truncate">
+                      {workerName} &middot; {farmName} {task.block ? `· ${task.block}` : ''} &middot; {new Date(task.date_worked).toLocaleDateString()}
+                      {task.total_amount ? ` · TZS ${Number(task.total_amount).toLocaleString()}` : ''}
+                    </p>
                   </div>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-500">Worker ID:</span>
-                    <span className="ml-1 font-medium">{task.worker_id}</span>
+                  {/* Single action */}
+                  <div className="shrink-0 w-28 flex justify-end">
+                    {!isCompleted && !task.started_at && (
+                      <Button size="sm" className="h-7 px-3 text-xs w-full" onClick={() => handleStartTask(task)}>
+                        Start Task
+                      </Button>
+                    )}
+                    {!isCompleted && task.started_at && (
+                      <Button size="sm" variant="secondary" className="h-7 px-3 text-xs w-full" onClick={() => handleQuickComplete(task)}>
+                        Complete
+                      </Button>
+                    )}
                   </div>
-                  <div>
-                    <span className="text-gray-500">Farm ID:</span>
-                    <span className="ml-1 font-medium">{task.farm_id}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Total Amount:</span>
-                    <span className="ml-1 font-medium">{task.total_amount || 'N/A'}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Payment Method:</span>
-                    <span className="ml-1 font-medium">{task.payment_method || 'N/A'}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </div>
 
@@ -418,7 +474,16 @@ export const SupervisorTasksSection: React.FC = () => {
                 control={assignForm.control}
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel>Select Worker *</FieldLabel>
+                    <FieldLabel>Select Worker * ({checkedInWorkersForFarm.length} checked in)</FieldLabel>
+                    <div className="relative mb-1">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <Input
+                        placeholder="Search by name…"
+                        value={workerSearch}
+                        onChange={(e) => setWorkerSearch(e.target.value)}
+                        className="pl-8"
+                      />
+                    </div>
                     <Select
                       value={field.value ? String(field.value) : ''}
                       onValueChange={(val) => field.onChange(Number(val))}
@@ -427,11 +492,22 @@ export const SupervisorTasksSection: React.FC = () => {
                         <SelectValue placeholder="Select a Worker" />
                       </SelectTrigger>
                       <SelectContent>
-                        {workers?.filter((w: any) => w.is_active !== false).map((worker: any) => (
-                          <SelectItem key={worker.id} value={String(worker.id)}>
-                            {worker.full_name || worker.name} - {worker.phone}
-                          </SelectItem>
-                        ))}
+                        {checkedInWorkersForFarm
+                          .filter((w: any) =>
+                            !workerSearch ||
+                            (w.full_name || w.name || '').toLowerCase().includes(workerSearch.toLowerCase())
+                          )
+                          .map((worker: any) => (
+                            <SelectItem key={worker.id} value={String(worker.id)}>
+                              {worker.full_name || worker.name} - {worker.phone}
+                            </SelectItem>
+                          ))}
+                        {checkedInWorkersForFarm.filter((w: any) =>
+                          !workerSearch ||
+                          (w.full_name || w.name || '').toLowerCase().includes(workerSearch.toLowerCase())
+                        ).length === 0 && (
+                          <div className="py-3 text-center text-sm text-muted-foreground">No workers match.</div>
+                        )}
                       </SelectContent>
                     </Select>
                     {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
@@ -521,6 +597,7 @@ export const SupervisorTasksSection: React.FC = () => {
                       <FieldLabel>Quantity *</FieldLabel>
                       <Input
                         {...field}
+                        value={field.value ?? ''}
                         type="number"
                         step="0.01"
                         min="0.01"
@@ -543,6 +620,7 @@ export const SupervisorTasksSection: React.FC = () => {
                     <FieldLabel>Rate *</FieldLabel>
                     <Input
                       {...field}
+                      value={field.value ?? ''}
                       type="number"
                       step="0.01"
                       min="0.01"
@@ -589,7 +667,7 @@ export const SupervisorTasksSection: React.FC = () => {
                       <SelectContent>
                         {blocks.map((block: any) => (
                           <SelectItem key={block.id} value={String(block.id)}>
-                            {block.name || block.block_name}
+                            {block.code || block.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -645,7 +723,7 @@ export const SupervisorTasksSection: React.FC = () => {
                 <FieldLabel>Select Worker *</FieldLabel>
                 <Select
                   onValueChange={(val) => {
-                    const worker = workers?.find((w: any) => w.id === Number(val));
+                    const worker = checkedInWorkersForFarm.find((w: any) => w.id === Number(val));
                     setSelectedWorker(worker);
                   }}
                 >
@@ -653,7 +731,7 @@ export const SupervisorTasksSection: React.FC = () => {
                     <SelectValue placeholder="Select a Worker" />
                   </SelectTrigger>
                   <SelectContent>
-                    {workers?.filter((w: any) => w.is_active !== false).map((worker: any) => (
+                    {checkedInWorkersForFarm.map((worker: any) => (
                       <SelectItem key={worker.id} value={String(worker.id)}>
                         {worker.full_name || worker.name}
                       </SelectItem>

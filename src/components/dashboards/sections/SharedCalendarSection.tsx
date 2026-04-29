@@ -142,7 +142,7 @@ export function SharedCalendarSection({ userRole, farmId }: SharedCalendarSectio
   const fcEvents = useMemo(() =>
     filteredEvents.map(e => ({
       id: e.id,
-      title: e.title,
+      title: e.farm_name ? `${e.title} · ${e.farm_name}` : e.title,
       start: e.start,
       end: e.end,
       allDay: e.all_day,
@@ -382,7 +382,7 @@ export function SharedCalendarSection({ userRole, farmId }: SharedCalendarSectio
             const endDt = e.end ? parseISO(e.end) : null;
 
             // Known meta keys handled explicitly — rest shown generically
-            const KNOWN_META = new Set(['description', 'event_type', 'visibility', 'recurrence', 'created_by']);
+            const KNOWN_META = new Set(['description', 'event_type', 'visibility', 'recurrence', 'created_by', 'record_ids', 'approval_status', 'worker_name']);
             const extraMeta = e.meta
               ? Object.entries(e.meta).filter(([k]) => !KNOWN_META.has(k))
               : [];

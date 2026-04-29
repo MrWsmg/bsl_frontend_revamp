@@ -179,6 +179,10 @@ export class PayrollApiService extends BaseApiService {
     return this.get<PayrollRecord[]>('/financial-controller/pending-payroll');
   }
 
+  async getFinancialControllerApprovedPayroll(): Promise<PayrollRecord[]> {
+    return this.get<PayrollRecord[]>('/financial-controller/approved-payroll');
+  }
+
   /**
    * Approve financial controller payroll (final approval + budget deduction)
    */

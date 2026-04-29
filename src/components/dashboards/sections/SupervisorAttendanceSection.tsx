@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useCallback, useEffect } from 'react';
-import { Upload, RefreshCw, Filter, BarChart3, Users, ClipboardList, PenLine } from 'lucide-react';
+import { Upload, RefreshCw, Filter, BarChart3, Users, ClipboardList, PenLine, LogOut, Clock } from 'lucide-react';
 import { WorkerAttendanceList } from '../../attendance/WorkerAttendanceList';
 import { WorkerPhotoUploadModal } from '../../attendance/WorkerPhotoUploadModal';
 import { AttendanceRecordsTable } from '../../attendance/AttendanceRecordsTable';
+import { FaceVerificationCapture } from '../../attendance/FaceVerificationCapture';
 import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
@@ -28,6 +29,12 @@ import {
 } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import type { Worker } from '../../../types';
 import type { AttendanceReportResponse } from '../../../types/farm-clerk';
@@ -64,6 +71,17 @@ export function SupervisorAttendanceSection() {
     notes: '',
   });
   const [savingManual, setSavingManual] = useState(false);
+  const [checkingOutId, setCheckingOutId] = useState<number | null>(null);
+
+  // Face-verification checkout dialog state
+  const [checkoutRecord, setCheckoutRecord] = useState<any | null>(null);
+  const [checkoutWorker, setCheckoutWorker] = useState<Worker | null>(null);
+  const [checkoutProcessing, setCheckoutProcessing] = useState(false);
+  const [checkoutVerification, setCheckoutVerification] = useState<{
+    status: 'verified' | 'failed' | null;
+    confidence?: number;
+    message?: string;
+  }>({ status: null });
 
   // Data fetching
   const getWorkers = useCallback(() => apiService.getSupervisorWorkers(), []);
@@ -77,9 +95,89 @@ export function SupervisorAttendanceSection() {
     return apiService.attendance.getSupervisorAttendance(params);
   }, [selectedFarmId, filters]);
 
+  const getTodayRecords = useCallback(() => {
+    const params: Record<string, any> = { start_date: today, end_date: today };
+    if (selectedFarmId) params.farm_id = Number(selectedFarmId);
+    return apiService.attendance.getSupervisorAttendance(params);
+  }, [selectedFarmId]);
+
   const { data: workers, loading: loadingWorkers, refetch: refetchWorkers, setData: setWorkers } = useApi(getWorkers);
   const { data: farms, loading: loadingFarms } = useApi(getFarms);
   const { data: attendanceRecords, loading: loadingAttendance, refetch: refetchAttendance } = useApi(getAttendance);
+  const { data: todayRecordsRaw, loading: loadingToday, refetch: refetchToday } = useApi(getTodayRecords);
+
+  const todayRecords: any[] = Array.isArray(todayRecordsRaw) ? todayRecordsRaw : [];
+  const stillCheckedIn = todayRecords.filter((r: any) => r.check_in_time && !r.check_out_time);
+  const alreadyCheckedOut = todayRecords.filter((r: any) => r.check_in_time && r.check_out_time);
+
+  const openCheckoutDialog = (record: any) => {
+    const worker = (workers || []).find((w: Worker) => w.id === record.worker_id) ?? null;
+    setCheckoutRecord(record);
+    setCheckoutWorker(worker);
+    setCheckoutVerification({ status: null });
+  };
+
+  const closeCheckoutDialog = () => {
+    setCheckoutRecord(null);
+    setCheckoutWorker(null);
+    setCheckoutVerification({ status: null });
+  };
+
+  const handleFaceCheckout = async (file: File) => {
+    if (!checkoutRecord || !checkoutWorker) return;
+    setCheckoutProcessing(true);
+    setCheckoutVerification({ status: null });
+    try {
+      const result = await apiService.attendance.checkOutWithFaceVerification({
+        worker_id: checkoutWorker.id,
+        farm_id: Number(selectedFarmId),
+        file,
+      });
+      const verified = result.face_verification_status === 'verified';
+      setCheckoutVerification({
+        status: verified ? 'verified' : 'failed',
+        confidence: result.confidence,
+        message: result.message,
+      });
+      const workerName = checkoutWorker.full_name || checkoutWorker.name;
+      if (result.success) {
+        toast.success(
+          `${workerName} checked out${result.hours_worked != null ? ` — ${result.hours_worked.toFixed(1)}h worked` : ''}.`
+        );
+      } else {
+        toast.warning(result.message || `${workerName} checked out manually — face not matched.`);
+      }
+      refetchToday();
+      refetchAttendance();
+      setTimeout(closeCheckoutDialog, 1800);
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail || err?.message || 'Check-out failed';
+      toast.error(msg);
+      setCheckoutVerification({ status: 'failed', message: msg });
+    } finally {
+      setCheckoutProcessing(false);
+    }
+  };
+
+  const handleManualCheckout = async () => {
+    if (!checkoutRecord) return;
+    setCheckingOutId(checkoutRecord.worker_id);
+    try {
+      await apiService.attendance.manualCheckOut({
+        worker_id: checkoutRecord.worker_id,
+        attendance_id: checkoutRecord.id,
+      });
+      const name = checkoutWorker?.full_name || checkoutWorker?.name || checkoutRecord.worker_name || `Worker #${checkoutRecord.worker_id}`;
+      toast.success(`${name} checked out.`);
+      refetchToday();
+      refetchAttendance();
+      closeCheckoutDialog();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || 'Failed to check out worker.');
+    } finally {
+      setCheckingOutId(null);
+    }
+  };
 
   // Auto-select first farm when farms load
   useEffect(() => {
@@ -224,9 +322,12 @@ export function SupervisorAttendanceSection() {
 
       {/* Main tabs */}
       <Tabs defaultValue="workers">
-        <TabsList className="grid grid-cols-4 w-full">
+        <TabsList className="grid grid-cols-5 w-full">
           <TabsTrigger value="workers" className="flex items-center gap-1.5 text-xs sm:text-sm">
             <Users className="w-4 h-4" /> Today
+          </TabsTrigger>
+          <TabsTrigger value="checkedinout" className="flex items-center gap-1.5 text-xs sm:text-sm">
+            <LogOut className="w-4 h-4" /> Check In/Out
           </TabsTrigger>
           <TabsTrigger value="records" className="flex items-center gap-1.5 text-xs sm:text-sm">
             <ClipboardList className="w-4 h-4" /> Records
@@ -258,6 +359,99 @@ export function SupervisorAttendanceSection() {
                   onActionComplete={refetchAttendance}
                   onUploadPhotoClick={handleUploadPhotoClick}
                 />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── CHECKED IN / OUT tab ── */}
+        <TabsContent value="checkedinout">
+          <Card>
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-3">
+              <div>
+                <CardTitle className="text-base">Today&apos;s Check-In / Check-Out</CardTitle>
+                <CardDescription>
+                  {new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                </CardDescription>
+              </div>
+              <Button variant="secondary" size="sm" onClick={() => refetchToday()} disabled={loadingToday}>
+                <RefreshCw className={`w-4 h-4 mr-2 ${loadingToday ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {!selectedFarmId ? (
+                <p className="text-sm text-gray-500 text-center py-8">Select a farm above to view today&apos;s status.</p>
+              ) : loadingToday ? (
+                <div className="flex justify-center py-8"><LoadingSpinner /></div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Still checked in — needs check-out */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="w-2.5 h-2.5 rounded-full bg-green-500 inline-block" />
+                      <h3 className="font-semibold text-sm text-gray-900">
+                        On-site ({stillCheckedIn.length})
+                      </h3>
+                    </div>
+                    {stillCheckedIn.length === 0 ? (
+                      <p className="text-sm text-gray-400 text-center py-6 border rounded-lg">No workers currently checked in.</p>
+                    ) : (
+                      <ul className="space-y-2 list-none m-0 p-0">
+                        {stillCheckedIn.map((rec: any) => (
+                          <li key={rec.id} className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2.5">
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">{rec.worker_name || `Worker #${rec.worker_id}`}</p>
+                              <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                                <Clock className="w-3 h-3" />
+                                In: {new Date(rec.check_in_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-orange-400 text-orange-700 hover:bg-orange-50"
+                              onClick={() => openCheckoutDialog(rec)}
+                            >
+                              <LogOut className="w-3.5 h-3.5 mr-1.5" />
+                              Check Out
+                            </Button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  {/* Already checked out */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="w-2.5 h-2.5 rounded-full bg-gray-400 inline-block" />
+                      <h3 className="font-semibold text-sm text-gray-900">
+                        Checked Out ({alreadyCheckedOut.length})
+                      </h3>
+                    </div>
+                    {alreadyCheckedOut.length === 0 ? (
+                      <p className="text-sm text-gray-400 text-center py-6 border rounded-lg">No workers have checked out yet.</p>
+                    ) : (
+                      <ul className="space-y-2 list-none m-0 p-0">
+                        {alreadyCheckedOut.map((rec: any) => (
+                          <li key={rec.id} className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5">
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">{rec.worker_name || `Worker #${rec.worker_id}`}</p>
+                              <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                                <Clock className="w-3 h-3" />
+                                {new Date(rec.check_in_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {' → '}
+                                {new Date(rec.check_out_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
+                            <Badge className="bg-gray-100 text-gray-600 border-gray-300">Done</Badge>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -520,6 +714,50 @@ export function SupervisorAttendanceSection() {
         workers={photoTargetWorker ? [photoTargetWorker, ...(workers || []).filter((w: Worker) => w.id !== photoTargetWorker.id)] : (workers || [])}
         onPhotoUploaded={handlePhotoUploaded}
       />
+
+      {/* Face-verification Check-Out Dialog */}
+      <Dialog open={!!checkoutRecord} onOpenChange={(open) => !open && closeCheckoutDialog()}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              Check Out — {checkoutWorker?.full_name || checkoutWorker?.name || checkoutRecord?.worker_name || `Worker #${checkoutRecord?.worker_id}`}
+            </DialogTitle>
+          </DialogHeader>
+
+          {checkoutRecord && (
+            <div className="space-y-3">
+              {checkoutWorker ? (
+                <FaceVerificationCapture
+                  worker={checkoutWorker}
+                  onCapture={handleFaceCheckout}
+                  onCancel={closeCheckoutDialog}
+                  isProcessing={checkoutProcessing}
+                  verificationResult={checkoutVerification}
+                />
+              ) : (
+                <p className="text-sm text-gray-500 text-center py-4">
+                  Worker details not loaded — use manual check-out below.
+                </p>
+              )}
+              <div className="border-t pt-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleManualCheckout}
+                  disabled={checkoutProcessing || checkingOutId === checkoutRecord?.worker_id}
+                  className="w-full text-gray-500 text-xs"
+                >
+                  {checkingOutId === checkoutRecord?.worker_id ? (
+                    <LoadingSpinner size="sm" />
+                  ) : (
+                    'Skip camera — record as manual check-out'
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

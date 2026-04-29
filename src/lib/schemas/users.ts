@@ -42,10 +42,13 @@ export const addWorkerSchema = z.object({
   name: z.string().optional(),
   full_name: z.string().min(1, "Full name is required"),
   phone: z.string().optional(),
+  birth_date: z.string().optional(),
   worker_type: z.enum(workerTypes),
   skills: z.string().optional(),
   is_active: z.boolean(),
   farm_assignments: z.array(z.number()),
+  bank_name: z.string().optional(),
+  bank_account_number: z.string().optional(),
 });
 
 export type AddWorkerFormData = z.infer<typeof addWorkerSchema>;
