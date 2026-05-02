@@ -27,6 +27,7 @@ export {
   addWorkerSchema,
   userRoles,
   workerTypes,
+  paymentMethods,
   type AddUserFormData,
   type AddWorkerFormData,
 } from "./users";

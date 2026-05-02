@@ -246,6 +246,22 @@ export class ApiService extends BaseApiService {
     return this.workers.getWorkerStats(workerId);
   }
 
+  async reactivateWorker(workerId: number) {
+    return this.workers.reactivateWorker(workerId);
+  }
+
+  async getSupervisorWorkerTasks(workerId: number, params?: { status?: string; task_code?: string; skip?: number; limit?: number }) {
+    return this.workers.getSupervisorWorkerTasks(workerId, params);
+  }
+
+  async cancelTaskAssignment(taskId: number) {
+    return this.workers.cancelTaskAssignment(taskId);
+  }
+
+  async getAttendanceById(attendanceId: number) {
+    return this.attendance.getAttendanceById(attendanceId);
+  }
+
   async getAdminTotalArea() {
     return this.activities.getAdminTotalArea();
   }

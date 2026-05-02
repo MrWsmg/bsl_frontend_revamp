@@ -304,23 +304,23 @@ export const ManagerAttendanceSection: React.FC = () => {
                 </div>
                 <div className="bg-green-50 p-4 rounded-lg">
                   <p className="text-sm text-gray-600">Present</p>
-                  <p className="text-2xl font-bold text-green-600">{report.present}</p>
+                  <p className="text-2xl font-bold text-green-600">{report.present_count}</p>
                 </div>
                 <div className="bg-red-50 p-4 rounded-lg">
                   <p className="text-sm text-gray-600">Absent</p>
-                  <p className="text-2xl font-bold text-red-600">{report.absent}</p>
+                  <p className="text-2xl font-bold text-red-600">{report.absent_count}</p>
                 </div>
                 <div className="bg-yellow-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600">On Leave</p>
-                  <p className="text-2xl font-bold text-yellow-600">{report.on_leave}</p>
+                  <p className="text-sm text-gray-600">Late</p>
+                  <p className="text-2xl font-bold text-yellow-600">{report.late_count}</p>
                 </div>
                 <div className="bg-orange-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600">Sick</p>
-                  <p className="text-2xl font-bold text-orange-600">{report.sick}</p>
+                  <p className="text-sm text-gray-600">Half Day</p>
+                  <p className="text-2xl font-bold text-orange-600">{report.half_day_count}</p>
                 </div>
               </div>
 
-              {report.attendance_records && report.attendance_records.length > 0 && (
+              {(report as any).attendance_records && (report as any).attendance_records.length > 0 && (
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
@@ -337,7 +337,7 @@ export const ManagerAttendanceSection: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {report.attendance_records.map((record: any) => (
+                      {(report as any).attendance_records.map((record: any) => (
                         <tr key={record.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                             {record.worker_name}

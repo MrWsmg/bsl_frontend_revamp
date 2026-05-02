@@ -41,4 +41,11 @@ export class TasksApiService extends BaseApiService {
   async createTaskCode(data: Record<string, any>): Promise<any> {
     return this.post<any>('/admin/task-codes', data);
   }
+
+  /**
+   * Get all supervisor task assignments — GET /supervisor/task-assignments/{id}
+   */
+  async getSupervisorTaskAssignment(taskId: number): Promise<TaskAssignment> {
+    return this.get<TaskAssignment>(`/supervisor/task-assignments/${taskId}`);
+  }
 }

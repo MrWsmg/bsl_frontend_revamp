@@ -563,9 +563,9 @@ export function SupervisorAttendanceSection() {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     {[
                       { label: 'Total', value: report.total_workers, color: 'text-gray-700' },
-                      { label: 'Present', value: report.present, color: 'text-green-600' },
-                      { label: 'Absent', value: report.absent, color: 'text-red-600' },
-                      { label: 'On Leave', value: report.on_leave, color: 'text-blue-600' },
+                      { label: 'Present', value: report.present_count, color: 'text-green-600' },
+                      { label: 'Absent', value: report.absent_count, color: 'text-red-600' },
+                      { label: 'Late', value: report.late_count, color: 'text-blue-600' },
                     ].map(({ label, value, color }) => (
                       <div key={label} className="bg-gray-50 rounded-lg p-4 text-center">
                         <p className={`text-2xl font-bold ${color}`}>{value}</p>
@@ -580,27 +580,6 @@ export function SupervisorAttendanceSection() {
                     </div>
                     <Progress value={report.attendance_rate} className="h-2" />
                   </div>
-
-                  {report.details && report.details.length > 0 && (
-                    <ul className="divide-y divide-gray-100 border border-gray-200 rounded-lg overflow-hidden list-none m-0 p-0">
-                      {report.details.map((rec: any) => (
-                        <li key={rec.id} className="flex items-center justify-between px-4 py-2.5 bg-white">
-                          <span className="text-sm font-medium text-gray-900">{rec.worker_name}</span>
-                          <Badge
-                            className={
-                              rec.status === 'present'
-                                ? 'bg-green-100 text-green-800 border-green-200'
-                                : rec.status === 'absent'
-                                ? 'bg-red-100 text-red-800 border-red-200'
-                                : 'bg-blue-100 text-blue-800 border-blue-200'
-                            }
-                          >
-                            {rec.status}
-                          </Badge>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
                 </div>
               )}
             </CardContent>

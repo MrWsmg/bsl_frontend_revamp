@@ -125,10 +125,11 @@ export const SharedBudgetSummarySection: React.FC<Props> = ({ userRole }) => {
   const [fiscalYear, setFiscalYear] = useState(new Date().getFullYear());
 
   // ── Farms ──
-  const getFarms = useCallback(() =>
-    allFarms ? apiService.getFarms() : apiService.getManagerFarms(),
-    [allFarms]
-  );
+  const getFarms = useCallback(() => {
+    if (allFarms) return apiService.getFarms();
+    if (userRole === 'supervisor') return apiService.getFarms('supervisor');
+    return apiService.getManagerFarms();
+  }, [allFarms, userRole]);
   const { data: farmsRaw } = useApi(getFarms);
   const farms: any[] = (Array.isArray(farmsRaw) ? farmsRaw : [])
     .map((f: any) => ({ id: f.id ?? f.farm_id, name: f.name }))

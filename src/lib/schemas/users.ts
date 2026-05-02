@@ -37,6 +37,8 @@ export type AddUserFormData = z.infer<typeof addUserSchema>;
 // Worker Types
 export const workerTypes = ["permanent", "contract"] as const;
 
+export const paymentMethods = ["bank", "mobile_money", "cash"] as const;
+
 // Add Worker Schema
 export const addWorkerSchema = z.object({
   name: z.string().optional(),
@@ -49,6 +51,10 @@ export const addWorkerSchema = z.object({
   farm_assignments: z.array(z.number()),
   bank_name: z.string().optional(),
   bank_account_number: z.string().optional(),
+  payment_method: z.enum(paymentMethods).optional(),
+  mobile_money_provider: z.string().optional(),
+  mobile_money_number: z.string().optional(),
+  user_id: z.number().optional(),
 });
 
 export type AddWorkerFormData = z.infer<typeof addWorkerSchema>;

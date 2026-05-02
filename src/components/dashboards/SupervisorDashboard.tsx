@@ -29,6 +29,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 // Grouped navigation items with accordions
 const SUPERVISOR_NAV_ITEMS = [
@@ -157,6 +158,16 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
   const handleCloseWorkerModal = () => {
     setShowAddWorkerModal(false);
     setWorkerToEdit(null);
+  };
+
+  const handleReactivateWorker = async (worker: any) => {
+    try {
+      await apiService.workers.reactivateWorker(worker.id);
+      toast.success(`${worker.full_name || worker.name} reactivated`);
+      refetchWorkers();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to reactivate worker');
+    }
   };
 
   // Pagination calculations for Workers
@@ -521,10 +532,15 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
                             {worker.is_active ? 'Active' : 'Inactive'}
                           </Badge>
                         </td>
-                        <td className="px-4 py-4">
+                        <td className="px-4 py-4 flex gap-2">
                           <Button variant="link" size="sm" onClick={() => handleEditWorker(worker)}>
                             Edit
                           </Button>
+                          {!worker.is_active && (
+                            <Button variant="outline" size="sm" className="text-green-600 border-green-300 hover:bg-green-50" onClick={() => handleReactivateWorker(worker)}>
+                              Reactivate
+                            </Button>
+                          )}
                         </td>
                       </tr>
                     ))}

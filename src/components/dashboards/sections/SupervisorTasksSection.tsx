@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
-import { Plus, CheckCircle, User, Search, RefreshCw } from 'lucide-react';
+import { Plus, CheckCircle, User, Search, RefreshCw, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { taskAssignmentSchema, taskCompletionSchema, type TaskAssignmentFormData, type TaskCompletionFormData } from '@/lib/schemas';
 import { Button } from '@/components/ui/button';
@@ -65,6 +65,7 @@ export const SupervisorTasksSection: React.FC = () => {
 
   const watchedFarmId = assignForm.watch('farm_id');
   const watchedPaymentMethod = assignForm.watch('payment_method');
+  const watchedDateWorked = assignForm.watch('date_worked');
 
   // Fetch data
   const getWorkers = useCallback(() => apiService.getWorkers(), []);
@@ -93,9 +94,14 @@ export const SupervisorTasksSection: React.FC = () => {
     return new Set(ids);
   }, [todayAttendance]);
 
+  // For backdated tasks, skip the check-in filter — only enforce it for today
+  const isBackdating = watchedDateWorked && watchedDateWorked < today;
+
   // Checked-in workers filtered by selected farm (for the assign modal dropdown)
   const checkedInWorkersForFarm = useMemo(() => {
     const allActive: any[] = (workers ?? []).filter((w: any) => w.is_active !== false);
+    // Backdated task: all active workers are eligible (backend relaxed check-in requirement)
+    if (isBackdating) return allActive;
     if (!watchedFarmId || !todayAttendance) return allActive.filter((w: any) => checkedInWorkerIds.has(w.id));
     const records: any[] = Array.isArray(todayAttendance) ? todayAttendance : [];
     const farmCheckedInIds = new Set(
@@ -104,7 +110,7 @@ export const SupervisorTasksSection: React.FC = () => {
         .map((r: any) => r.worker_id as number)
     );
     return allActive.filter((w: any) => farmCheckedInIds.has(w.id));
-  }, [workers, todayAttendance, watchedFarmId, checkedInWorkerIds]);
+  }, [workers, todayAttendance, watchedFarmId, checkedInWorkerIds, isBackdating]);
 
   // Fetch blocks when farm changes
   useEffect(() => {
@@ -252,6 +258,17 @@ export const SupervisorTasksSection: React.FC = () => {
     } catch (error: any) {
       console.error('Failed to complete task:', error);
       toast.error(error.message || 'Failed to complete task');
+    }
+  };
+
+  const handleCancelTask = async (task: any) => {
+    if (!confirm(`Cancel task "${task.task_code}" for ${task.worker_name || 'this worker'}?`)) return;
+    try {
+      await apiService.workers.cancelTaskAssignment(task.id);
+      toast.success('Task cancelled');
+      refetchTasks();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to cancel task');
     }
   };
 
@@ -422,8 +439,9 @@ export const SupervisorTasksSection: React.FC = () => {
             {taskAssignments.map((task: any) => {
               const isCompleted = task.status === 'completed' || task.status === 'Completed';
               const isInProgress = task.status === 'in_progress' || task.status === 'In Progress';
-              const statusLabel = isCompleted ? 'Completed' : isInProgress ? 'In Progress' : 'Assigned';
-              const statusClass = isCompleted ? 'bg-green-100 text-green-700' : isInProgress ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700';
+              const isCancelled = task.status === 'cancelled';
+              const statusLabel = isCompleted ? 'Completed' : isInProgress ? 'In Progress' : isCancelled ? 'Cancelled' : 'Assigned';
+              const statusClass = isCompleted ? 'bg-green-100 text-green-700' : isInProgress ? 'bg-amber-100 text-amber-700' : isCancelled ? 'bg-gray-100 text-gray-500' : 'bg-blue-100 text-blue-700';
               const workerName = task.worker?.full_name || task.worker?.name || task.worker_name || 'Unknown';
               const farmName = (farms as any[])?.find((f: any) => (f.id ?? f.farm_id) === task.farm_id)?.name || `Farm ${task.farm_id}`;
               return (
@@ -439,16 +457,21 @@ export const SupervisorTasksSection: React.FC = () => {
                       {task.total_amount ? ` · TZS ${Number(task.total_amount).toLocaleString()}` : ''}
                     </p>
                   </div>
-                  {/* Single action */}
-                  <div className="shrink-0 w-28 flex justify-end">
-                    {!isCompleted && !task.started_at && (
-                      <Button size="sm" className="h-7 px-3 text-xs w-full" onClick={() => handleStartTask(task)}>
+                  {/* Actions */}
+                  <div className="shrink-0 flex flex-col gap-1 items-end">
+                    {!isCompleted && task.status !== 'cancelled' && !task.started_at && (
+                      <Button size="sm" className="h-7 px-3 text-xs w-28" onClick={() => handleStartTask(task)}>
                         Start Task
                       </Button>
                     )}
-                    {!isCompleted && task.started_at && (
-                      <Button size="sm" variant="secondary" className="h-7 px-3 text-xs w-full" onClick={() => handleQuickComplete(task)}>
+                    {!isCompleted && task.status !== 'cancelled' && task.started_at && (
+                      <Button size="sm" variant="secondary" className="h-7 px-3 text-xs w-28" onClick={() => handleQuickComplete(task)}>
                         Complete
+                      </Button>
+                    )}
+                    {!isCompleted && task.status !== 'cancelled' && (
+                      <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 w-28" onClick={() => handleCancelTask(task)}>
+                        <XCircle className="w-3 h-3 mr-1" />Cancel
                       </Button>
                     )}
                   </div>
@@ -474,7 +497,9 @@ export const SupervisorTasksSection: React.FC = () => {
                 control={assignForm.control}
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel>Select Worker * ({checkedInWorkersForFarm.length} checked in)</FieldLabel>
+                    <FieldLabel>
+                      Select Worker * {isBackdating ? `(${checkedInWorkersForFarm.length} active)` : `(${checkedInWorkersForFarm.length} checked in)`}
+                    </FieldLabel>
                     <div className="relative mb-1">
                       <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
                       <Input

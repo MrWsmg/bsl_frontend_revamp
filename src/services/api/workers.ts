@@ -81,4 +81,28 @@ export class WorkersApiService extends BaseApiService {
   async getWorkerStats(workerId: number): Promise<any> {
     return this.get<any>(`/calculations/worker/stats/${workerId}`);
   }
+
+  /**
+   * Reactivate a deactivated worker — POST /supervisor/workers/{worker_id}/reactivate
+   */
+  async reactivateWorker(workerId: number): Promise<Worker> {
+    return this.post<Worker>(`/supervisor/workers/${workerId}/reactivate`);
+  }
+
+  /**
+   * Get task assignments for a specific worker — GET /supervisor/workers/{worker_id}/tasks
+   */
+  async getSupervisorWorkerTasks(
+    workerId: number,
+    params?: { status?: string; task_code?: string; skip?: number; limit?: number }
+  ): Promise<any[]> {
+    return this.get<any[]>(`/supervisor/workers/${workerId}/tasks`, params);
+  }
+
+  /**
+   * Cancel a task assignment — DELETE /supervisor/task-assignments/{task_id}
+   */
+  async cancelTaskAssignment(taskId: number): Promise<any> {
+    return this.delete<any>(`/supervisor/task-assignments/${taskId}`);
+  }
 }

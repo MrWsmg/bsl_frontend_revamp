@@ -92,8 +92,17 @@ export class AttendanceApiService extends BaseApiService {
     start_date?: string;
     end_date?: string;
     status?: string;
+    skip?: number;
+    limit?: number;
   }): Promise<AttendanceRecord[]> {
     return this.get<AttendanceRecord[]>('/supervisor/attendance', filters);
+  }
+
+  /**
+   * Get single attendance record — GET /supervisor/attendance/{id}
+   */
+  async getAttendanceById(attendanceId: number): Promise<AttendanceRecord> {
+    return this.get<AttendanceRecord>(`/supervisor/attendance/${attendanceId}`);
   }
 
   /**

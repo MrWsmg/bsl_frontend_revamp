@@ -92,6 +92,9 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
     }
   };
 
+  const getUsers = useCallback(() => apiService.getUsers(), []);
+  const { data: users } = useApi(getUsers);
+
   const form = useForm<AddWorkerFormData>({
     resolver: zodResolver(addWorkerSchema),
     defaultValues: {
@@ -107,6 +110,10 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
       farm_assignments: getDefaultFarmAssignments(),
       bank_name: workerToEdit?.bank_name || '',
       bank_account_number: workerToEdit?.bank_account_number || '',
+      payment_method: workerToEdit?.payment_method || undefined,
+      mobile_money_provider: workerToEdit?.mobile_money_provider || '',
+      mobile_money_number: workerToEdit?.mobile_money_number || '',
+      user_id: workerToEdit?.user_id || undefined,
     },
   });
 
@@ -344,6 +351,10 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
         farm_assignments: getDefaultFarmAssignments(),
         bank_name: workerToEdit?.bank_name || '',
         bank_account_number: workerToEdit?.bank_account_number || '',
+        payment_method: workerToEdit?.payment_method || undefined,
+        mobile_money_provider: workerToEdit?.mobile_money_provider || '',
+        mobile_money_number: workerToEdit?.mobile_money_number || '',
+        user_id: workerToEdit?.user_id || undefined,
       });
       setError('');
     } else {
@@ -377,6 +388,10 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
         farm_assignments: JSON.stringify(data.farm_assignments),
         bank_name: data.bank_name || null,
         bank_account_number: data.bank_account_number || null,
+        payment_method: data.payment_method || null,
+        mobile_money_provider: data.mobile_money_provider || null,
+        mobile_money_number: data.mobile_money_number || null,
+        user_id: data.user_id || null,
       };
 
       let targetWorkerId: number | null = workerToEdit ? workerToEdit.id : null;
@@ -675,36 +690,140 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
                 )}
               />
 
-              {/* Bank Details */}
+              {/* Payment Method */}
               <fieldset className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <legend className="text-sm font-medium mb-2 col-span-full">Bank Details (for payroll)</legend>
+                <legend className="text-sm font-medium mb-2 col-span-full">Payment Details (for payroll)</legend>
+
                 <FormField
                   control={form.control}
-                  name="bank_name"
+                  name="payment_method"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Bank Name</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="e.g. NMB, CRDB, NBC" />
-                      </FormControl>
+                      <FormLabel>Payment Method</FormLabel>
+                      <Select value={field.value || ''} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select payment method" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="bank">Bank Transfer</SelectItem>
+                          <SelectItem value="mobile_money">Mobile Money</SelectItem>
+                          <SelectItem value="cash">Cash</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="bank_account_number"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Account Number</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Enter bank account number" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+
+                {form.watch('payment_method') === 'bank' && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="bank_name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Bank Name</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="e.g. NMB, CRDB, NBC" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="bank_account_number"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Account Number</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="Enter bank account number" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
+
+                {form.watch('payment_method') === 'mobile_money' && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="mobile_money_provider"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Mobile Money Provider</FormLabel>
+                          <Select value={field.value || ''} onValueChange={field.onChange}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select provider" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="M-Pesa">M-Pesa</SelectItem>
+                              <SelectItem value="Airtel Money">Airtel Money</SelectItem>
+                              <SelectItem value="Tigo Pesa">Tigo Pesa</SelectItem>
+                              <SelectItem value="Halotel">Halotel</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="mobile_money_number"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Mobile Number</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="tel" placeholder="e.g. 0712345678" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
               </fieldset>
+
+              {/* Link User Account */}
+              <FormField
+                control={form.control}
+                name="user_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Linked User Account (Optional)</FormLabel>
+                    <Select
+                      value={field.value ? String(field.value) : ''}
+                      onValueChange={(val) => field.onChange(val ? Number(val) : undefined)}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Link to a system user account" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="">None</SelectItem>
+                        {(users as any[] || [])
+                          .filter((u: any) => u.role === 'worker')
+                          .map((u: any) => (
+                            <SelectItem key={u.id} value={String(u.id)}>
+                              {u.full_name} (@{u.username})
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Links a worker-role user account so they can self-check-in.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               {/* Media Upload Section */}
               <fieldset className="border border-blue-100 bg-blue-50/60 rounded-lg p-4 space-y-4">

@@ -51,8 +51,12 @@ export interface Worker {
   is_active?: boolean;
   farm_assignments?: string;
   blocks?: string;
-  face_id?: string | null; // AWS Rekognition face ID
-  photo_url?: string | null; // Worker photo URL
+  face_id?: string | null;
+  photo_url?: string | null;
+  user_id?: number | null;
+  payment_method?: 'bank' | 'mobile_money' | 'cash' | null;
+  mobile_money_provider?: string | null;
+  mobile_money_number?: string | null;
 }
 
 export interface PayrollRecord {
@@ -121,6 +125,8 @@ export interface TaskAssignment {
   farm_id: number;
   task_code: string;
   block?: string;
+  block_id?: number;
+  block_code?: string;
   crop_type?: string;
   quantity: number;
   rate: number;
@@ -131,8 +137,29 @@ export interface TaskAssignment {
   assigned_at: string;
   started_at?: string;
   completed_at?: string;
+  cancelled_at?: string;
   notes?: string;
 }
+
+export interface SupervisorPerformanceMetrics {
+  supervisor_id: number;
+  supervisor_name: string;
+  attendance_recording_rate: number;
+  worker_attendance_rate: number;
+  supervision_effectiveness: number;
+}
+
+export interface WorkerPerformanceMetrics {
+  worker_id: number;
+  worker_name: string;
+  attendance_rate: number;
+  punctuality_score: number;
+  average_hours_worked: number;
+  performance_score: number;
+  performance_grade: 'excellent' | 'good' | 'needs_improvement' | 'poor';
+}
+
+export type PerformanceMetrics = SupervisorPerformanceMetrics | WorkerPerformanceMetrics;
 
 export interface ItemRequest {
   id: number;
@@ -383,17 +410,18 @@ export interface AttendanceRecord {
 export interface AttendanceReport {
   farm_id: number;
   farm_name: string;
-  report_date: string;
+  date: string;
   total_workers: number;
-  present: number;
-  absent: number;
-  on_leave: number;
-  sick: number;
-  attendance_records: AttendanceRecord[];
+  present_count: number;
+  absent_count: number;
+  late_count: number;
+  half_day_count: number;
+  attendance_rate: number;
+  total_hours_worked: number;
 }
 
-// Performance types
-export interface PerformanceMetrics {
+// Performance types — legacy manager-level metrics (task completion, etc.)
+export interface TaskPerformanceMetrics {
   id: number;
   user_id?: number;
   worker_id?: number;

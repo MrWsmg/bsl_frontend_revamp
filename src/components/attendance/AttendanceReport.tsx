@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useCallback } from 'react';
-import { Users, UserCheck, UserX, Clock, Calendar, RefreshCw, BarChart3, Download } from 'lucide-react';
+import { Users, UserCheck, UserX, Calendar, RefreshCw, BarChart3 } from 'lucide-react';
 import { useApi } from '@/hooks';
 import apiService from '@/services/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -10,8 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
 import {
   Select,
   SelectContent,
@@ -39,32 +37,6 @@ export const AttendanceReport: React.FC<AttendanceReportProps> = ({ farms }) => 
   const { data: report, loading, error, refetch } = useApi<AttendanceReportResponse | null>(getAttendanceReport, {
     dependencies: [selectedFarmId, selectedDate],
   });
-
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'present':
-        return 'bg-green-500';
-      case 'absent':
-        return 'bg-red-500';
-      case 'half_day':
-        return 'bg-yellow-500';
-      case 'leave':
-        return 'bg-blue-500';
-      case 'sick':
-        return 'bg-purple-500';
-      default:
-        return 'bg-gray-500';
-    }
-  };
 
   if (!selectedFarmId && farms.length > 0) {
     setSelectedFarmId(farms[0].id.toString());
@@ -155,7 +127,7 @@ export const AttendanceReport: React.FC<AttendanceReportProps> = ({ farms }) => 
       ) : (
         <>
           {/* Summary Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
@@ -173,7 +145,7 @@ export const AttendanceReport: React.FC<AttendanceReportProps> = ({ farms }) => 
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-medium text-muted-foreground">Present</p>
-                    <p className="text-2xl font-bold text-green-600">{report.present}</p>
+                    <p className="text-2xl font-bold text-green-600">{report.present_count}</p>
                   </div>
                   <UserCheck className="h-8 w-8 text-green-500" />
                 </div>
@@ -185,7 +157,7 @@ export const AttendanceReport: React.FC<AttendanceReportProps> = ({ farms }) => 
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-medium text-muted-foreground">Absent</p>
-                    <p className="text-2xl font-bold text-red-600">{report.absent}</p>
+                    <p className="text-2xl font-bold text-red-600">{report.absent_count}</p>
                   </div>
                   <UserX className="h-8 w-8 text-red-500" />
                 </div>
@@ -195,26 +167,17 @@ export const AttendanceReport: React.FC<AttendanceReportProps> = ({ farms }) => 
             <Card>
               <CardContent className="p-4">
                 <div>
+                  <p className="text-xs font-medium text-muted-foreground">Late</p>
+                  <p className="text-2xl font-bold text-yellow-600">{report.late_count}</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-4">
+                <div>
                   <p className="text-xs font-medium text-muted-foreground">Half Day</p>
-                  <p className="text-2xl font-bold text-yellow-600">{report.half_day}</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">On Leave</p>
-                  <p className="text-2xl font-bold text-blue-600">{report.on_leave}</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground">Sick</p>
-                  <p className="text-2xl font-bold text-purple-600">{report.sick}</p>
+                  <p className="text-2xl font-bold text-orange-600">{report.half_day_count}</p>
                 </div>
               </CardContent>
             </Card>
@@ -249,59 +212,19 @@ export const AttendanceReport: React.FC<AttendanceReportProps> = ({ farms }) => 
                 </div>
                 <Progress value={report.attendance_rate} className="h-3" />
                 <p className="text-sm text-muted-foreground">
-                  {report.present} out of {report.total_workers} workers present
+                  {report.present_count} out of {report.total_workers} workers present
+                  {report.total_hours_worked > 0 && ` · ${report.total_hours_worked.toFixed(1)} hrs total`}
                 </p>
               </div>
             </CardContent>
           </Card>
 
-          {/* Worker Details */}
+          {/* Summary footer */}
           <Card>
-            <CardHeader>
-              <CardTitle>Worker Attendance Details</CardTitle>
-              <CardDescription>Individual attendance status for {report.report_date}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {report.details && report.details.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {report.details.map((record) => (
-                    <div
-                      key={record.id}
-                      className="flex items-center gap-3 p-3 rounded-lg border"
-                    >
-                      <div className="relative">
-                        <Avatar className="h-10 w-10">
-                          <AvatarFallback>{getInitials(record.worker_name)}</AvatarFallback>
-                        </Avatar>
-                        <div
-                          className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${getStatusColor(
-                            record.status
-                          )}`}
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{record.worker_name}</p>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          {record.check_in_time && (
-                            <>
-                              <Clock className="h-3 w-3" />
-                              <span>{new Date(record.check_in_time).toLocaleTimeString()}</span>
-                            </>
-                          )}
-                          <Badge variant="outline" className="text-xs capitalize">
-                            {record.status.replace('_', ' ')}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 bg-muted/50 rounded-lg">
-                  <Users className="mx-auto h-12 w-12 text-muted-foreground" />
-                  <p className="mt-2 text-muted-foreground">No attendance records for this date</p>
-                </div>
-              )}
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground">
+                Report for {report.farm_name} · {report.date}
+              </p>
             </CardContent>
           </Card>
         </>

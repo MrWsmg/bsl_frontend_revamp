@@ -38,15 +38,14 @@ export interface AttendanceResponse {
 export interface AttendanceReportResponse {
   farm_id: number;
   farm_name: string;
-  report_date: string;
+  date: string;
   total_workers: number;
-  present: number;
-  absent: number;
-  half_day: number;
-  on_leave: number;
-  sick: number;
+  present_count: number;
+  absent_count: number;
+  late_count: number;
+  half_day_count: number;
   attendance_rate: number;
-  details: AttendanceResponse[];
+  total_hours_worked: number;
 }
 
 export interface CheckInResponse {
