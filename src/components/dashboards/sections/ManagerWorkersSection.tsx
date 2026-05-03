@@ -17,9 +17,24 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
+function parseFarmAssignments(raw: any): number[] {
+  if (!raw) return [];
+  try {
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    return Array.isArray(parsed) ? parsed.map(Number) : [];
+  } catch {
+    return [];
+  }
+}
+
 export const ManagerWorkersSection: React.FC = () => {
   const getWorkers = useCallback(() => apiService.getManagerWorkers(), []);
+  const getFarms  = useCallback(() => apiService.getFarms(), []);
   const { data: workers, loading } = useApi(getWorkers);
+  const { data: farmsRaw } = useApi(getFarms);
+  const farmMap = new Map<number, string>(
+    (Array.isArray(farmsRaw) ? farmsRaw : []).map((f: any) => [f.farm_id ?? f.id, f.name])
+  );
 
   const activeWorkers = workers?.filter((w: any) => w.is_active) || [];
   const permanentWorkers = workers?.filter((w: any) => w.worker_type === 'permanent') || [];
@@ -95,7 +110,21 @@ export const ManagerWorkersSection: React.FC = () => {
                       </TableCell>
                       <TableCell>{worker.phone || 'N/A'}</TableCell>
                       <TableCell>{worker.skills || 'N/A'}</TableCell>
-                      <TableCell>{worker.farm_assignments || 'N/A'}</TableCell>
+                      <TableCell>
+                        {(() => {
+                          const ids = parseFarmAssignments(worker.farm_assignments);
+                          if (ids.length === 0) return <span className="text-muted-foreground text-xs">N/A</span>;
+                          return (
+                            <div className="flex flex-wrap gap-1">
+                              {ids.map(id => (
+                                <span key={id} className="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-blue-50 text-blue-700 font-medium">
+                                  {farmMap.get(id) ?? `Farm ${id}`}
+                                </span>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </TableCell>
                       <TableCell>
                         <Badge variant={worker.is_active ? 'default' : 'destructive'}>
                           {worker.is_active ? 'Active' : 'Inactive'}

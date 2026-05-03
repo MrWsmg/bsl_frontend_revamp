@@ -36,7 +36,7 @@ export const GmHrSection: React.FC = () => {
 
   const fetchRecords = useCallback(async (): Promise<any[]> => {
     try {
-      return await (apiService.analytics as any).get('/disciplinary', buildParams());
+      return await (apiService.analytics as any).get('/warnings', buildParams());
     } catch {
       return [];
     }
@@ -50,7 +50,7 @@ export const GmHrSection: React.FC = () => {
   const handleProcess = async (id: number, action: 'approve' | 'escalate') => {
     setProcessingId(id);
     try {
-      await (apiService.analytics as any).post(`/disciplinary/${id}/${action}`, {});
+      await (apiService.analytics as any).post(`/warnings/${id}/${action}`, {});
       refetch();
     } catch {
       // silent — table will show stale state, user can refresh

@@ -38,400 +38,139 @@ import {
   AdminAuditLogsSection,
 } from './sections';
 
-// ============ METRIC CARD COMPONENT ============
-interface MetricCardProps {
+// ── Formatting helpers ────────────────────────────────────────────────────
+const fmtTZS = (n: number): string => {
+  if (n >= 1_000_000) return `TZS ${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `TZS ${(n / 1_000).toFixed(0)}K`;
+  return `TZS ${Math.round(n).toLocaleString()}`;
+};
+const fmtShort = (n: number): string => {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
+  return Math.round(n).toLocaleString();
+};
+const budgetPct = (spent: number, alloc: number) =>
+  alloc > 0 ? Math.min(Math.round((spent / alloc) * 100), 999) : 0;
+
+const WORKER_TYPE_LABELS: Record<string, string> = {
+  permanent: 'Permanent',
+  contract: 'Contract',
+  cont_d: 'Contract',
+  contractor: 'Contract',
+  casual: 'Casual',
+  unknown: 'Unknown',
+};
+const workerTypeLabel = (raw: string): string => {
+  const key = (raw ?? '').toLowerCase().replace(/[\s-]/g, '_');
+  return WORKER_TYPE_LABELS[key] ?? raw;
+};
+
+// ── KPI Card ─────────────────────────────────────────────────────────────
+interface KpiCardProps {
   title: string;
   value: string | number;
   icon: LucideIcon;
-  trend?: { value: string; isPositive: boolean };
-  iconColor?: string;
+  sub?: string;
+  subPositive?: boolean;
+  accent: string;  // Tailwind bg class
+  iconAccent: string;
 }
-
-const MetricCard = ({ title, value, icon: Icon, trend, iconColor = "text-primary" }: MetricCardProps) => (
-  <Card className="overflow-hidden transition-all hover:shadow-lg">
-    <CardContent className="p-6">
-      <div className="flex items-start justify-between">
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <p className="text-3xl font-bold tracking-tight">{value}</p>
-          {trend && (
-            <p className={`text-xs font-medium ${trend.isPositive ? 'text-success' : 'text-destructive'}`}>
-              {trend.isPositive ? '↑' : '↓'} {trend.value}
+const KpiCard = ({ title, value, icon: Icon, sub, subPositive, accent, iconAccent }: KpiCardProps) => (
+  <Card className="transition-all hover:shadow-md">
+    <CardContent className="p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">{title}</p>
+          <p className="text-2xl font-bold tracking-tight text-gray-900 truncate">{value}</p>
+          {sub && (
+            <p className={`text-xs mt-1 font-medium ${subPositive ? 'text-emerald-600' : 'text-red-500'}`}>
+              {subPositive ? '▲' : '▼'} {sub}
             </p>
           )}
         </div>
-        <div className={`rounded-lg bg-muted p-3 ${iconColor}`}>
-          <Icon className="h-6 w-6" />
+        <div className={`${accent} rounded-xl p-2.5 flex-shrink-0`}>
+          <Icon className={`h-5 w-5 ${iconAccent}`} />
         </div>
       </div>
     </CardContent>
   </Card>
 );
 
-// ============ PERIOD TOGGLE COMPONENT ============
-interface PeriodToggleProps {
-  period: "weekly" | "yearly";
-  onPeriodChange: (period: "weekly" | "yearly") => void;
-}
-
-const PeriodToggle = ({ period, onPeriodChange }: PeriodToggleProps) => (
-  <div className="inline-flex rounded-lg border border-border bg-muted/50 p-1">
-    <Button
-      variant={period === "weekly" ? "default" : "ghost"}
-      size="sm"
-      onClick={() => onPeriodChange("weekly")}
-      className="gap-2"
-    >
-      <Calendar className="h-4 w-4" />
-      Weekly
-    </Button>
-    <Button
-      variant={period === "yearly" ? "default" : "ghost"}
-      size="sm"
-      onClick={() => onPeriodChange("yearly")}
-      className="gap-2"
-    >
-      <CalendarDays className="h-4 w-4" />
-      Yearly
-    </Button>
+// ── Period toggle ─────────────────────────────────────────────────────────
+const PeriodToggle = ({ period, onPeriodChange }: { period: "weekly" | "yearly"; onPeriodChange: (p: "weekly" | "yearly") => void }) => (
+  <div className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5 gap-0.5">
+    {(["weekly", "yearly"] as const).map(p => (
+      <button key={p} onClick={() => onPeriodChange(p)}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all capitalize ${
+          period === p ? 'bg-white shadow-sm text-gray-900' : 'text-muted-foreground hover:text-gray-700'
+        }`}>
+        {p === 'weekly' ? <Calendar className="h-3.5 w-3.5" /> : <CalendarDays className="h-3.5 w-3.5" />}
+        {p}
+      </button>
+    ))}
   </div>
 );
 
-// ============ BUDGET CARD COMPONENT ============
-interface BudgetCardProps {
-  farmName: string;
-  budgetAllocated: number;
-  budgetSpent: number;
-  period: "weekly" | "yearly";
-}
-
-const BudgetCard = ({ farmName, budgetAllocated, budgetSpent, period }: BudgetCardProps) => {
-  const percentageUsed = Math.round((budgetSpent / budgetAllocated) * 100);
-  const overrun = budgetSpent - budgetAllocated;
-  const isOverBudget = overrun > 0;
-  const isNearLimit = percentageUsed >= 85 && percentageUsed <= 100;
-
-  const statusColor = isOverBudget ? "border-destructive" : isNearLimit ? "border-warning" : "border-success";
-  const progressColor = isOverBudget ? "bg-destructive" : isNearLimit ? "bg-warning" : "bg-success";
-
+// ── Budget farm row ────────────────────────────────────────────────────────
+const BudgetFarmRow = ({ farmName, budgetAllocated, budgetSpent }: { farmName: string; budgetAllocated: number; budgetSpent: number }) => {
+  const p = budgetPct(budgetSpent, budgetAllocated);
+  const over = p >= 100;
+  const warn = p >= 85 && !over;
   return (
-    <Card className={`border-2 ${statusColor} transition-all hover:shadow-lg`}>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base">{farmName}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="space-y-1">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Allocated</span>
-            <span className="font-semibold">${budgetAllocated.toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Spent</span>
-            <span className="font-semibold">${budgetSpent.toLocaleString()}</span>
-          </div>
+    <div className="flex items-center gap-3 py-2.5 border-b border-gray-100 last:border-0">
+      <div className="w-28 min-w-[7rem] truncate text-sm font-medium text-gray-800">{farmName}</div>
+      <div className="flex-1 min-w-0">
+        <div className="flex justify-between text-xs text-muted-foreground mb-1">
+          <span>{fmtTZS(budgetSpent)} spent</span>
+          <span>{fmtTZS(budgetAllocated)} alloc</span>
         </div>
-
-        <div className="space-y-2">
-          <Progress value={Math.min(percentageUsed, 100)} className="h-2">
-            <div className={`h-full ${progressColor} transition-all`} style={{ width: `${Math.min(percentageUsed, 100)}%` }} />
-          </Progress>
-          <div className="flex justify-between items-center text-xs">
-            <span className="font-medium">{percentageUsed}% used</span>
-            {isOverBudget && (
-              <Badge variant="destructive" className="text-xs">
-                ${Math.abs(overrun).toLocaleString()} over
-              </Badge>
-            )}
-            {!isOverBudget && isNearLimit && (
-              <Badge variant="secondary" className="text-xs bg-warning/20 text-warning">
-                Near limit
-              </Badge>
-            )}
-            {!isOverBudget && !isNearLimit && (
-              <Badge variant="secondary" className="text-xs bg-success/20 text-success">
-                On budget
-              </Badge>
-            )}
-          </div>
+        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all ${over ? 'bg-red-500' : warn ? 'bg-amber-400' : 'bg-emerald-500'}`}
+            style={{ width: `${Math.min(p, 100)}%` }}
+          />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+      <div className="w-20 text-right flex-shrink-0">
+        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+          over ? 'bg-red-100 text-red-700' : warn ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
+        }`}>
+          {p}% {over ? '▲' : ''}
+        </span>
+      </div>
+    </div>
   );
 };
 
-// ============ FARM CARD COMPONENT ============
-interface FarmCardProps {
-  name: string;
-  location: string;
-  crops?: string;
-  total_area?: number;
-}
-
-const FarmCard = ({ name, location, crops, total_area }: FarmCardProps) => (
-  <Card className="transition-all hover:shadow-lg">
-    <CardHeader className="pb-3">
-      <CardTitle className="text-lg">{name}</CardTitle>
-      {location && <p className="text-sm text-muted-foreground mt-1">{location}</p>}
-    </CardHeader>
-    <CardContent className="space-y-2 text-sm">
-      {crops && (
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Crops</span>
-          <span className="font-medium">{crops}</span>
-        </div>
-      )}
-      {total_area != null && (
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Total Area</span>
-          <span className="font-medium">{total_area} ha</span>
-        </div>
-      )}
-    </CardContent>
-  </Card>
-);
-
-// ============ BUDGET OVERVIEW CHART ============
-const BudgetOverviewChart = ({ period, weeklyBudgets, yearlyBudgets }: { period: "weekly" | "yearly", weeklyBudgets: any[], yearlyBudgets: any[] }) => {
-  const data = period === "weekly"
-    ? weeklyBudgets.map(budget => ({
-        farm: budget.farmName,
-        budget: budget.budgetAllocated,
-        spent: budget.budgetSpent,
-        overrun: Math.max(0, budget.budgetSpent - budget.budgetAllocated)
-      }))
-    : yearlyBudgets.map(budget => ({
-        farm: budget.farmName,
-        budget: budget.budgetAllocated,
-        spent: budget.budgetSpent,
-        overrun: Math.max(0, budget.budgetSpent - budget.budgetAllocated)
-      }));
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Budget vs Actual Spending ({period})</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={350}>
-          <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis dataKey="farm" className="text-xs" />
-            <YAxis className="text-xs" />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "hsl(var(--card))",
-                border: "1px solid hsl(var(--border))",
-                borderRadius: "var(--radius)",
-              }}
-              formatter={(value: number) => `$${value.toLocaleString()}`}
-            />
-            <Legend />
-            <ReferenceLine y={0} stroke="hsl(var(--border))" />
-            <Bar dataKey="budget" fill="hsl(var(--chart-2))" name="Budget Allocated" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="spent" fill="hsl(var(--chart-1))" name="Actual Spent" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="overrun" fill="hsl(var(--destructive))" name="Over Budget" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </CardContent>
-    </Card>
-  );
+// ── Tooltip style ─────────────────────────────────────────────────────────
+const TOOLTIP_STYLE = {
+  backgroundColor: "hsl(var(--card))",
+  border: "1px solid hsl(var(--border))",
+  borderRadius: "8px",
+  fontSize: "12px",
 };
 
-// ============ PAYROLL CHART ============
-const PayrollChart = ({ payrollData }: { payrollData: any[] }) => (
-  <Card>
-    <CardHeader>
-      <CardTitle>Payroll Trends</CardTitle>
-    </CardHeader>
-    <CardContent>
-      <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={payrollData}>
-          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-          <XAxis dataKey="month" className="text-xs" />
-          <YAxis className="text-xs" />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: "hsl(var(--card))",
-              border: "1px solid hsl(var(--border))",
-              borderRadius: "var(--radius)",
-            }}
-          />
-          <Legend />
-          <Line type="monotone" dataKey="permanent" stroke="hsl(var(--chart-1))" strokeWidth={2} name="Permanent Workers" />
-          <Line type="monotone" dataKey="contract" stroke="hsl(var(--chart-2))" strokeWidth={2} name="Contract Workers" />
-        </LineChart>
-      </ResponsiveContainer>
-    </CardContent>
-  </Card>
-);
-
-// ============ STOCK CHART ============
-const StockChart = ({ stockData }: { stockData: any[] }) => (
-  <Card>
-    <CardHeader>
-      <CardTitle>Stock Levels by Farm</CardTitle>
-    </CardHeader>
-    <CardContent>
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={stockData}>
-          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-          <XAxis dataKey="farm" className="text-xs" />
-          <YAxis className="text-xs" />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: "hsl(var(--card))",
-              border: "1px solid hsl(var(--border))",
-              borderRadius: "var(--radius)",
-            }}
-          />
-          <Legend />
-          <Bar dataKey="coffee" fill="hsl(var(--chart-1))" name="Coffee (kg)" />
-          <Bar dataKey="maize" fill="hsl(var(--chart-2))" name="Maize (kg)" />
-          <Bar dataKey="beans" fill="hsl(var(--chart-3))" name="Beans (kg)" />
-        </BarChart>
-      </ResponsiveContainer>
-    </CardContent>
-  </Card>
-);
-
-// ============ WORKER DISTRIBUTION ============
-const WorkerDistribution = ({ workerData }: { workerData: any[] }) => (
-  <Card>
-    <CardHeader>
-      <CardTitle>Worker Distribution</CardTitle>
-    </CardHeader>
-    <CardContent>
-      <ResponsiveContainer width="100%" height={300}>
-        <PieChart>
-          <Pie
-            data={workerData}
-            cx="50%"
-            cy="50%"
-            labelLine={false}
-            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-            outerRadius={100}
-            fill="#8884d8"
-            dataKey="value"
-          >
-            {workerData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.color} />
-            ))}
-          </Pie>
-          <Tooltip
-            contentStyle={{
-              backgroundColor: "hsl(var(--card))",
-              border: "1px solid hsl(var(--border))",
-              borderRadius: "var(--radius)",
-            }}
-          />
-          <Legend />
-        </PieChart>
-      </ResponsiveContainer>
-    </CardContent>
-  </Card>
-);
-
-// ============ EXPENSES CHART ============
-const ExpensesChart = ({ expensesData }: { expensesData: any[] }) => (
-  <Card>
-    <CardHeader>
-      <CardTitle>Monthly Expenses</CardTitle>
-    </CardHeader>
-    <CardContent>
-      <ResponsiveContainer width="100%" height={300}>
-        <AreaChart data={expensesData}>
-          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-          <XAxis dataKey="month" className="text-xs" />
-          <YAxis className="text-xs" />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: "hsl(var(--card))",
-              border: "1px solid hsl(var(--border))",
-              borderRadius: "var(--radius)",
-            }}
-          />
-          <Area
-            type="monotone"
-            dataKey="expenses"
-            stroke="hsl(var(--chart-3))"
-            fill="hsl(var(--chart-3))"
-            fillOpacity={0.6}
-            name="Expenses"
-          />
-        </AreaChart>
-      </ResponsiveContainer>
-    </CardContent>
-  </Card>
-);
-
-// ============ ACTIVITY TABLE ============
-const ActivityTable = ({ activities }: { activities: any[] }) => (
-  <Card>
-    <CardHeader>
-      <CardTitle>Recent Activities</CardTitle>
-    </CardHeader>
-    <CardContent>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>User</TableHead>
-            <TableHead>Action</TableHead>
-            <TableHead>Farm</TableHead>
-            <TableHead>Time</TableHead>
-            <TableHead>Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {activities.map((activity) => (
-            <TableRow key={activity.id}>
-              <TableCell className="font-medium">{activity.user}</TableCell>
-              <TableCell>{activity.action}</TableCell>
-              <TableCell>{activity.farm}</TableCell>
-              <TableCell className="text-muted-foreground">{activity.time}</TableCell>
-              <TableCell>
-                <Badge
-                  variant={
-                    activity.status === "approved" || activity.status === "completed"
-                      ? "default"
-                      : activity.status === "pending"
-                      ? "secondary"
-                      : "outline"
-                  }
-                  className={
-                    activity.status === "approved" || activity.status === "completed"
-                      ? "bg-success/20 text-success border-success"
-                      : activity.status === "pending"
-                      ? "bg-warning/20 text-warning border-warning"
-                      : ""
-                  }
-                >
-                  {activity.status}
-                </Badge>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </CardContent>
-  </Card>
-);
-
-// ============ MD OVERVIEW TAB ============
+// ── MD OVERVIEW TAB ───────────────────────────────────────────────────────
 const MdOverviewTab = () => {
   const [period, setPeriod] = useState<"weekly" | "yearly">("weekly");
-  const [farms, setFarms] = useState<any[]>([]);
-  const [budgets, setBudgets] = useState<any[]>([]);
+  const [farms, setFarms]           = useState<any[]>([]);
+  const [budgets, setBudgets]       = useState<any[]>([]);
   const [payrollData, setPayrollData] = useState<any[]>([]);
-  const [stockData, setStockData] = useState<any[]>([]);
+  const [stockData, setStockData]   = useState<any[]>([]);
   const [workerData, setWorkerData] = useState<any[]>([]);
   const [expensesData, setExpensesData] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [workerCount, setWorkerCount] = useState<number | null>(null);
+  const [loading, setLoading]       = useState(true);
+  const [error, setError]           = useState<string | null>(null);
 
-  const currentBudgets = period === "weekly"
-    ? budgets.filter(b => b.period === 'weekly')
-    : budgets.filter(b => b.period === 'yearly');
+  const currentBudgets = budgets.filter(b => b.period === period);
+  const totalAllocated = currentBudgets.reduce((s, b) => s + (b.budgetAllocated ?? 0), 0);
+  const totalSpent     = currentBudgets.reduce((s, b) => s + (b.budgetSpent ?? 0), 0);
+  const overBudgetFarms = currentBudgets.filter(b => (b.budgetSpent ?? 0) > (b.budgetAllocated ?? 0)).length;
+  const healthPct = currentBudgets.length > 0
+    ? Math.round(((currentBudgets.length - overBudgetFarms) / currentBudgets.length) * 100)
+    : null;
 
   useEffect(() => {
     const loadData = async () => {
@@ -440,11 +179,12 @@ const MdOverviewTab = () => {
       const results = await Promise.allSettled([
         apiService.getAdminManagerFarms(),
         apiService.getAdminManagerBudgets(period),
-        apiService.getAdminManagerPayrollData(),
+        apiService.analytics.getPayrollTrends('monthly'),
         apiService.getAdminManagerStockData(),
         apiService.getAdminManagerWorkerData(),
         apiService.getAdminManagerExpensesData(),
         apiService.getAdminManagerActivities(),
+        apiService.getWorkers(),
       ]);
       const ok = <T,>(r: PromiseSettledResult<T>, fallback: T): T =>
         r.status === 'fulfilled' ? r.value : fallback;
@@ -455,104 +195,304 @@ const MdOverviewTab = () => {
       setWorkerData(ok(results[4], []));
       setExpensesData(ok(results[5], []));
       setActivities(ok(results[6], []));
-      const failed = results.filter(r => r.status === 'rejected');
-      if (failed.length === results.length) {
-        setError('Failed to load dashboard data');
-      }
+      const workers = ok(results[7], []) as any[];
+      setWorkerCount(Array.isArray(workers) ? workers.filter((w: any) => w.is_active !== false).length : null);
+      if (results.every(r => r.status === 'rejected')) setError('Failed to load dashboard data');
       setLoading(false);
     };
     loadData();
   }, [period]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-24">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading overview data…</p>
-        </div>
+  if (loading) return (
+    <div className="flex items-center justify-center py-32">
+      <div className="text-center space-y-3">
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary border-t-transparent mx-auto" />
+        <p className="text-sm text-muted-foreground">Loading financial overview…</p>
       </div>
-    );
-  }
+    </div>
+  );
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center py-24">
-        <div className="text-center">
-          <p className="text-destructive mb-4">Error: {error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-          >
-            Retry
-          </button>
-        </div>
+  if (error) return (
+    <div className="flex items-center justify-center py-32">
+      <div className="text-center space-y-3">
+        <p className="text-sm text-destructive">{error}</p>
+        <button onClick={() => window.location.reload()}
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm hover:bg-primary/90">
+          Retry
+        </button>
       </div>
-    );
-  }
+    </div>
+  );
+
+  const diff = totalSpent - totalAllocated;
 
   return (
-    <div className="p-6 space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="p-5 space-y-6 max-w-[1400px]">
+
+      {/* ── Header ── */}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold">Financial Overview</h2>
-          <p className="text-sm text-muted-foreground">Track budgets and spending across all farms</p>
+          <h2 className="text-xl font-bold text-gray-900">Financial Overview</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">Track budgets and spending across all farms</p>
         </div>
         <PeriodToggle period={period} onPeriodChange={setPeriod} />
       </div>
 
-      {(() => {
-        const totalAllocated = currentBudgets.reduce((s, b) => s + (b.budgetAllocated ?? 0), 0);
-        const totalSpent = currentBudgets.reduce((s, b) => s + (b.budgetSpent ?? 0), 0);
-        const diff = totalSpent - totalAllocated;
-        const fmtNum = (n: number) => n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `${(n / 1_000).toFixed(1)}K` : String(Math.round(n));
-        const totalWorkers = workerData.reduce((s, w) => s + (w.value ?? 0), 0);
-        return (
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            <MetricCard title="Total Farms" value={farms.length} icon={Building2} iconColor="text-primary" />
-            <MetricCard title="Active Workers" value={totalWorkers || '—'} icon={Users} iconColor="text-accent" />
-            <MetricCard
-              title={period === "weekly" ? "Weekly Budget" : "Yearly Budget"}
-              value={totalAllocated ? fmtNum(totalAllocated) : '—'}
-              icon={DollarSign}
-              trend={totalAllocated ? { value: `${fmtNum(Math.abs(diff))} ${diff > 0 ? 'over' : 'under'}`, isPositive: diff <= 0 } : undefined}
-              iconColor="text-success"
-            />
-          </div>
-        );
-      })()}
-
-      <div>
-        <h2 className="text-xl sm:text-2xl font-bold mb-4">Budget Status by Farm</h2>
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-          {budgets.map((budget) => (
-            <BudgetCard key={budget.farmName} {...budget} period={period} />
-          ))}
-        </div>
+      {/* ── KPI Row ── */}
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+        <KpiCard
+          title="Total Farms"
+          value={farms.length || '—'}
+          icon={Building2}
+          accent="bg-blue-50"
+          iconAccent="text-blue-600"
+        />
+        <KpiCard
+          title="Active Workers"
+          value={workerCount ?? '—'}
+          icon={Users}
+          sub={workerData.length > 0 ? `${workerData[0]?.name}: ${workerData[0]?.value}%` : undefined}
+          subPositive={true}
+          accent="bg-violet-50"
+          iconAccent="text-violet-600"
+        />
+        <KpiCard
+          title={period === "weekly" ? "Weekly Budget" : "Yearly Budget"}
+          value={totalAllocated ? fmtTZS(totalAllocated) : '—'}
+          icon={DollarSign}
+          sub={totalAllocated && diff !== 0 ? `${fmtTZS(Math.abs(diff))} ${diff > 0 ? 'over' : 'under'}` : undefined}
+          subPositive={diff <= 0}
+          accent="bg-emerald-50"
+          iconAccent="text-emerald-600"
+        />
+        <KpiCard
+          title="Budget Health"
+          value={healthPct !== null ? `${healthPct}%` : '—'}
+          icon={TrendingUp}
+          sub={overBudgetFarms > 0 ? `${overBudgetFarms} farm${overBudgetFarms > 1 ? 's' : ''} over budget` : 'All farms on track'}
+          subPositive={overBudgetFarms === 0}
+          accent={healthPct !== null && healthPct < 70 ? 'bg-red-50' : 'bg-emerald-50'}
+          iconAccent={healthPct !== null && healthPct < 70 ? 'text-red-500' : 'text-emerald-600'}
+        />
       </div>
 
-      <BudgetOverviewChart period={period} weeklyBudgets={currentBudgets} yearlyBudgets={currentBudgets} />
+      {/* ── Budget by Farm + Budget Chart ── */}
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-5">
+        {/* Farm budget rows */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-gray-700">Budget Status by Farm</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {currentBudgets.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-6 text-center">No budget data for this period</p>
+            ) : (
+              currentBudgets.map((b, i) => (
+                <BudgetFarmRow key={i} farmName={b.farmName || b.farm_name || `Farm ${i + 1}`}
+                  budgetAllocated={b.budgetAllocated ?? 0} budgetSpent={b.budgetSpent ?? 0} />
+              ))
+            )}
+          </CardContent>
+        </Card>
 
-      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-        <PayrollChart payrollData={payrollData} />
-        <StockChart stockData={stockData} />
+        {/* Budget vs Actual chart */}
+        <Card className="lg:col-span-3">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-gray-700">Budget vs Actual ({period})</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {currentBudgets.length === 0 ? (
+              <div className="flex items-center justify-center h-48 text-sm text-muted-foreground">No data</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={currentBudgets.map(b => ({
+                  farm: b.farmName || b.farm_name || '—',
+                  Allocated: b.budgetAllocated ?? 0,
+                  Spent: b.budgetSpent ?? 0,
+                }))} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="farm" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} tickFormatter={fmtShort} width={52} />
+                  <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => fmtTZS(v)} />
+                  <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="Allocated" fill="#93c5fd" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="Spent" fill="#3b82f6" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-        <WorkerDistribution workerData={workerData} />
-        <ExpensesChart expensesData={expensesData} />
+      {/* ── Payroll Trends + Worker Distribution ── */}
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-5">
+        <Card className="lg:col-span-3">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-gray-700">Payroll Trends</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {payrollData.length === 0 ? (
+              <div className="flex items-center justify-center h-48 text-sm text-muted-foreground">No payroll data</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={payrollData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} tickFormatter={fmtShort} width={52} />
+                  <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => fmtTZS(v)} />
+                  <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+                  <Line type="monotone" dataKey="permanent" stroke="#10b981" strokeWidth={2} dot={false} name="Permanent" />
+                  <Line type="monotone" dataKey="contract" stroke="#f59e0b" strokeWidth={2} dot={false} name="Contract" />
+                  <Line type="monotone" dataKey="total" stroke="#6366f1" strokeWidth={2} strokeDasharray="4 2" dot={false} name="Total" />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-gray-700">
+              Worker Distribution
+              {workerCount !== null && <span className="ml-1.5 text-xs font-normal text-muted-foreground">({workerCount} total)</span>}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {workerData.length === 0 ? (
+              <div className="flex items-center justify-center h-48 text-sm text-muted-foreground">No worker data</div>
+            ) : (
+              <>
+                <ResponsiveContainer width="100%" height={160}>
+                  <PieChart>
+                    <Pie data={workerData} cx="50%" cy="50%" innerRadius={45} outerRadius={70} dataKey="value" paddingAngle={3}>
+                      {workerData.map((entry: any, i: number) => (
+                        <Cell key={i} fill={entry.color || `hsl(${i * 60 + 180}, 60%, 55%)`} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number, _: string, p: any) => [`${v}%`, workerTypeLabel(p.name)]} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="space-y-1.5 mt-1">
+                  {workerData.map((w: any, i: number) => (
+                    <div key={i} className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                          style={{ background: w.color || `hsl(${i * 60 + 180}, 60%, 55%)` }} />
+                        <span className="text-gray-600">{workerTypeLabel(w.name)}</span>
+                      </div>
+                      <span className="font-semibold text-gray-800">{w.value}%
+                        {workerCount ? <span className="text-muted-foreground font-normal"> · {Math.round(workerCount * w.value / 100)}</span> : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
-      <ActivityTable activities={activities} />
+      {/* ── Stock + Expenses ── */}
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-5">
+        <Card className="lg:col-span-3">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-gray-700">Stock Levels by Farm</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {stockData.length === 0 ? (
+              <div className="flex items-center justify-center h-48 text-sm text-muted-foreground">No stock data</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={stockData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="farm" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} tickFormatter={fmtShort} width={44} />
+                  <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => `${fmtShort(v)} kg`} />
+                  <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="coffee" fill="#92400e" radius={[3, 3, 0, 0]} name="Coffee (kg)" />
+                  <Bar dataKey="maize"  fill="#d97706" radius={[3, 3, 0, 0]} name="Maize (kg)" />
+                  <Bar dataKey="beans"  fill="#65a30d" radius={[3, 3, 0, 0]} name="Beans (kg)" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
 
-      <div>
-        <h2 className="text-xl sm:text-2xl font-bold mb-4">Farm Overview</h2>
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-          {farms.map((farm) => (
-            <FarmCard key={farm.name} {...farm} />
-          ))}
-        </div>
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-gray-700">Monthly Expenses</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {expensesData.length === 0 ? (
+              <div className="flex items-center justify-center h-48 text-sm text-muted-foreground">No expense data</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={expensesData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} tickFormatter={fmtShort} width={52} />
+                  <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => fmtTZS(v)} />
+                  <Area type="monotone" dataKey="expenses" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.15} strokeWidth={2} name="Expenses" />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
       </div>
+
+      {/* ── Recent Activity ── */}
+      {activities.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-gray-700">Recent Activities</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-xs">User</TableHead>
+                  <TableHead className="text-xs">Action</TableHead>
+                  <TableHead className="text-xs">Farm</TableHead>
+                  <TableHead className="text-xs">Time</TableHead>
+                  <TableHead className="text-xs">Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {activities.slice(0, 8).map((a: any) => {
+                  const actLabel =
+                    a.type === 'payroll'  ? `Payroll${a.task_code ? ` · ${a.task_code}` : ''}${a.worker_name ? ` — ${a.worker_name}` : ''}` :
+                    a.type === 'stock'    ? `Stock${a.item_description ? ` · ${a.item_description}` : ''}` :
+                    a.type === 'expense'  ? `Expense${a.description ? ` · ${a.description}` : ''}` :
+                    a.type ?? '—';
+                  const timeStr = a.created_at
+                    ? new Date(a.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })
+                    : '—';
+                  const status = a.approval_status ?? a.type ?? '—';
+                  return (
+                    <TableRow key={a.id} className="text-sm">
+                      <TableCell className="font-medium py-2">{a.entered_by ?? '—'}</TableCell>
+                      <TableCell className="py-2 max-w-[200px] truncate">{actLabel}</TableCell>
+                      <TableCell className="py-2 text-muted-foreground">{a.farm ?? '—'}</TableCell>
+                      <TableCell className="py-2 text-muted-foreground text-xs whitespace-nowrap">{timeStr}</TableCell>
+                      <TableCell className="py-2">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                          status === 'approved' || status === 'completed'
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : status === 'pending' || status === 'supervisor_pending' || status === 'manager_approved'
+                            ? 'bg-amber-100 text-amber-700'
+                            : status === 'rejected'
+                            ? 'bg-red-100 text-red-700'
+                            : 'bg-gray-100 text-gray-600'
+                        }`}>{status}</span>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

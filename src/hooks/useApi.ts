@@ -13,7 +13,9 @@ export const useApi = <T>(
   options: UseApiOptions = {}
 ) => {
   const { immediate = true, dependencies = [] } = options;
-  
+  // Serialize deps to a string so the useEffect array stays constant-length
+  const depsKey = JSON.stringify(dependencies);
+
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +46,8 @@ export const useApi = <T>(
     if (immediate) {
       execute();
     }
-  }, [execute, immediate, ...dependencies]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [execute, immediate, depsKey]);
 
   const refetch = useCallback(() => {
     return execute();
@@ -66,6 +69,7 @@ export const useMultipleApi = <T extends Record<string, any>>(
   options: UseApiOptions = {}
 ) => {
   const { immediate = true, dependencies = [] } = options;
+  const depsKey = JSON.stringify(dependencies);
   
   const [data, setData] = useState<Partial<Record<keyof T, any>>>({});
   const [loading, setLoading] = useState(false);
@@ -119,7 +123,8 @@ export const useMultipleApi = <T extends Record<string, any>>(
     if (immediate) {
       execute();
     }
-  }, [execute, immediate, ...dependencies]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [execute, immediate, depsKey]);
 
   const refetch = useCallback(() => {
     return execute();

@@ -133,9 +133,9 @@ export const FarmClerkClimateSection: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                      {num(r.temperature_min)} / {num(r.temperature_max)}
+                      {num(r.min_temperature ?? r.temperature_min)} / {num(r.max_temperature ?? r.temperature_max)}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{num(r.rainfall_mm)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{num(r.rain ?? r.rainfall_mm)}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{num(r.humidity_pct)}</td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{num(r.wind_speed_kmh)}</td>
                     <td className="px-4 py-3 text-sm text-gray-600 max-w-xs">

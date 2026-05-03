@@ -16,7 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Target, Plus, RefreshCw, AlertCircle, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const KPI_BASE = '/kpi';
+const KPI_BASE = '/kpis';
 
 export const GmKpiSection: React.FC = () => {
   const [showForm, setShowForm]     = useState(false);

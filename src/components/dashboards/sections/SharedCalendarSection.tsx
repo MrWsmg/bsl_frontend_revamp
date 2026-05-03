@@ -136,12 +136,8 @@ export function SharedCalendarSection({ userRole, farmId }: SharedCalendarSectio
   const { data: farmsData } = useApi(getFarms);
   const farms: any[] = Array.isArray(farmsData) ? farmsData : [];
 
-  // ── Event types ──
-  const fetchEventTypes = useCallback(() => apiService.calendar.getEventTypes(), []);
-  const { data: eventTypesRaw } = useApi(fetchEventTypes);
-  const availableCategories: string[] = Array.isArray(eventTypesRaw) && eventTypesRaw.length > 0
-    ? (eventTypesRaw as any[]).map((t) => (typeof t === 'string' ? t : t.name ?? t.type ?? String(t)))
-    : Object.keys(CATEGORY_CONFIG);
+  // Always show all known categories — don't flicker based on API response
+  const availableCategories: string[] = Object.keys(CATEGORY_CONFIG);
 
   // ── Events ──
   const resolvedFarmId = farmFilter ? Number(farmFilter) : (farmId ?? undefined);

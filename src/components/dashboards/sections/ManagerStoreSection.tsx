@@ -11,15 +11,18 @@ const LOW_STOCK_THRESHOLD = 10;
 
 export const ManagerStoreSection: React.FC = () => {
   const { user } = useAuth();
-  const farmId: number = (user as any)?.farm_id;
+  const farmId: number | null = (user as any)?.farm_id ?? null;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [searchTriggered, setSearchTriggered] = useState(false);
 
-  // Farm stock from CARDEX
-  const fetchStore = useCallback(() => apiService.getStoreDetail(farmId), [farmId]);
-  const { data: storeRaw, loading: storeLoading } = useApi(fetchStore);
+  // Farm stock from CARDEX — only fetch once we have a real farm_id
+  const fetchStore = useCallback(
+    () => farmId != null ? apiService.getStoreDetail(farmId) : Promise.resolve(null),
+    [farmId]
+  );
+  const { data: storeRaw, loading: storeLoading } = useApi(fetchStore, { dependencies: [farmId] });
 
   // Normalize — backend may return { items: [] } or []
   const storeItems: any[] = Array.isArray(storeRaw)
