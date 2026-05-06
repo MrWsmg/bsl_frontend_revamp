@@ -140,7 +140,7 @@ export class AttendanceApiService extends BaseApiService {
   /**
    * List attendance records with filters — GET /supervisor/attendance
    */
-  async getAttendanceRecords(params?: Record<string, string>): Promise<AttendanceResponse[]> {
+  async getAttendanceRecords(params?: Record<string, any>): Promise<AttendanceResponse[]> {
     return this.get<AttendanceResponse[]>('/supervisor/attendance', params);
   }
 
