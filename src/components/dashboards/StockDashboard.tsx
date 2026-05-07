@@ -15,6 +15,7 @@ import {
   Droplets,
   Fish,
   FileUp,
+  Sprout,
 } from 'lucide-react';
 import {
   StockOverviewSection,
@@ -29,6 +30,7 @@ import {
   StockFishFarmingSection,
   StockCsvImportSection,
   FertilizerProgramsSection,
+  StockCherryParchmentSection,
 } from './sections';
 
 interface StockDashboardProps {
@@ -37,16 +39,17 @@ interface StockDashboardProps {
 }
 
 const TAB_COMPONENTS: Record<string, React.FC> = {
-  overview:       StockOverviewSection,
-  stock:          StockRecordsSection,
-  othercrops:     StockOtherCropsSection,
-  mbuni:          StockMbuniSection,
-  fertilizer:     StockFertilizerSection,
-  'fert-programs': FertilizerProgramsSection,
-  fuelchem:       StockFuelChemicalsSection,
-  irrigation:     StockIrrigationSection,
-  csvimport:      StockCsvImportSection,
-  reports:        StockReportsSection,
+  overview:         StockOverviewSection,
+  stock:            StockRecordsSection,
+  othercrops:       StockOtherCropsSection,
+  mbuni:            StockMbuniSection,
+  fertilizer:       StockFertilizerSection,
+  'fert-programs':  FertilizerProgramsSection,
+  fuelchem:         StockFuelChemicalsSection,
+  irrigation:       StockIrrigationSection,
+  csvimport:        StockCsvImportSection,
+  'cherry-parch':   StockCherryParchmentSection,
+  reports:          StockReportsSection,
 };
 
 export const StockDashboard: React.FC<StockDashboardProps> = ({ user, onLogout }) => {
@@ -54,24 +57,18 @@ export const StockDashboard: React.FC<StockDashboardProps> = ({ user, onLogout }
   const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set(['overview']));
 
   const sidebarItems = [
-    { id: 'overview',   label: 'Overview',        icon: BarChart3 },
-    { id: 'stock',      label: 'Stock Records',   icon: Package },
-    {
-      id: 'inventory',
-      label: 'Inventory',
-      icon: Leaf,
-      children: [
-        { id: 'othercrops', label: 'Other Crops',     icon: Leaf },
-        { id: 'mbuni',      label: 'Mbuni',            icon: Coffee },
-        { id: 'fertilizer', label: 'Fertilizer',       icon: Leaf },
-        { id: 'fuelchem',   label: 'Fuel & Chemicals', icon: Fuel },
-        { id: 'irrigation', label: 'Irrigation Parts', icon: Droplets },
-      ],
-    },
-    { id: 'fish',      label: 'Fish Farming',     icon: Fish },
-    { id: 'csvimport', label: 'CSV Import',       icon: FileUp },
-    { id: 'cardex',   label: 'Farm CARDEX',      icon: ClipboardList },
-    { id: 'reports',  label: 'Reports',           icon: TrendingUp },
+    { id: 'overview',     label: 'Overview',          icon: BarChart3 },
+    { id: 'stock',        label: 'Stock Records',     icon: Package },
+    { id: 'othercrops',   label: 'Other Crops',       icon: Leaf },
+    { id: 'mbuni',        label: 'Mbuni',              icon: Coffee },
+    { id: 'fertilizer',   label: 'Fertilizer',         icon: Leaf },
+    { id: 'fuelchem',     label: 'Fuel & Chemicals',   icon: Fuel },
+    { id: 'irrigation',   label: 'Irrigation Parts',   icon: Droplets },
+    { id: 'fish',         label: 'Fish Farming',       icon: Fish },
+    { id: 'cherry-parch', label: 'Cherry & Parchment', icon: Sprout },
+    { id: 'csvimport',    label: 'CSV Import',         icon: FileUp },
+    { id: 'cardex',       label: 'Farm CARDEX',        icon: ClipboardList },
+    { id: 'reports',      label: 'Reports',            icon: TrendingUp },
   ];
 
   const handleTabChange = (tabId: string) => {

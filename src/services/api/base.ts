@@ -2,6 +2,17 @@
 import { API_BASE_URL, STORAGE_KEYS } from '../../constants';
 import { ApiResponse } from '../../types';
 
+// FastAPI `detail` can be a string or an array of validation error objects.
+function extractDetail(detail: unknown): string {
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail)) {
+    return detail
+      .map((e: any) => (typeof e?.msg === 'string' ? e.msg : JSON.stringify(e)))
+      .join('; ');
+  }
+  return JSON.stringify(detail);
+}
+
 export interface RequestOptions extends RequestInit {
   retryCount?: number;
 }
@@ -118,7 +129,7 @@ export class BaseApiService {
         try {
           const errorData = await response.json();
           if (errorData.detail) {
-            errorMessage = errorData.detail;
+            errorMessage = extractDetail(errorData.detail);
           } else if (errorData.message) {
             errorMessage = errorData.message;
           }
@@ -146,7 +157,7 @@ export class BaseApiService {
         try {
           errorData = await response.json();
           if (errorData.detail) {
-            errorMessage = errorData.detail;
+            errorMessage = extractDetail(errorData.detail);
           } else if (errorData.message) {
             errorMessage = errorData.message;
           } else if (typeof errorData === 'string') {

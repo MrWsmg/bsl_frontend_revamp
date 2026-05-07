@@ -26,6 +26,7 @@ import { IrrigationStockApiService } from './irrigation-stock';
 import { FishFarmingApiService } from './fish-farming';
 import { CsvImportApiService, CsvTemplateName } from './csv-import';
 import { StoreCardexApiService } from './store-cardex';
+import { CherryParchmentApiService } from './cherry-parchment';
 
 export class ApiService extends BaseApiService {
   public auth: AuthApiService;
@@ -54,6 +55,7 @@ export class ApiService extends BaseApiService {
   public fishFarming: FishFarmingApiService;
   public csvImport: CsvImportApiService;
   public storeCardex: StoreCardexApiService;
+  public cherryParchment: CherryParchmentApiService;
 
   constructor() {
     super();
@@ -83,6 +85,7 @@ export class ApiService extends BaseApiService {
     this.fishFarming = new FishFarmingApiService();
     this.csvImport = new CsvImportApiService();
     this.storeCardex = new StoreCardexApiService();
+    this.cherryParchment = new CherryParchmentApiService();
   }
 
   // Legacy methods for backward compatibility
