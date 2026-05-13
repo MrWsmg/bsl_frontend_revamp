@@ -23,7 +23,7 @@ export const userRoles = [
 // Add User Schema
 export const addUserSchema = z.object({
   username: z.string().min(1, "Username is required"),
-  password: z.string().min(1, "Password is required"),
+  password: z.string().optional(),
   full_name: z.string().min(1, "Full name is required"),
   email: z.string().email("Invalid email address").optional().or(z.literal("")),
   phone: z.string().optional(),

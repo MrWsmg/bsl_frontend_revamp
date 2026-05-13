@@ -7,7 +7,7 @@ import { ErrorBoundary } from '../common/ErrorBoundary';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { Pagination } from '../common/Pagination';
 import { User } from '../../types';
-import { BarChart3, Users, ClipboardList, TrendingUp, Calendar, CheckCircle, Clock, AlertCircle, Package, UserCheck, LayoutDashboard, FileText, Wallet, Scale, Search } from 'lucide-react';
+import { BarChart3, Users, ClipboardList, TrendingUp, Calendar, CheckCircle, Clock, AlertCircle, Package, UserCheck, LayoutDashboard, FileText, Wallet, Scale, Search, Leaf } from 'lucide-react';
 import { useApi } from '../../hooks';
 import apiService from '../../services/api';
 import AddWorkerModal from '../shared/AddWorkerModal';
@@ -25,6 +25,7 @@ import {
   SharedBudgetManagerSection,
   SharedBudgetSummarySection,
   SharedBudgetTrackingSection,
+  FieldApplicationSection,
 } from './sections';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -93,6 +94,11 @@ const SUPERVISOR_NAV_ITEMS = [
     id: 'reports',
     label: 'Reports',
     icon: FileText,
+  },
+  {
+    id: 'field-applications',
+    label: 'Field Applications',
+    icon: Leaf,
   },
 ];
 
@@ -716,7 +722,8 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
         <div className={activeTab === 'proc-gin'    ? '' : 'hidden'}>{mountedTabs.has('proc-gin')    && <SharedGinSection userRole="supervisor" />}</div>
         <div className={activeTab === 'proc-tv'     ? '' : 'hidden'}>{mountedTabs.has('proc-tv')     && <SharedTransportVoucherSection userRole="supervisor" />}</div>
         <div className={activeTab === 'proc-dn'     ? '' : 'hidden'}>{mountedTabs.has('proc-dn')     && <SharedDeliveryNoteSection userRole="supervisor" />}</div>
-        <div className={activeTab === 'proc-cardex' ? '' : 'hidden'}>{mountedTabs.has('proc-cardex') && <SharedCardexSection userRole="supervisor" />}</div>
+        <div className={activeTab === 'proc-cardex'        ? '' : 'hidden'}>{mountedTabs.has('proc-cardex')        && <SharedCardexSection userRole="supervisor" />}</div>
+        <div className={activeTab === 'field-applications' ? '' : 'hidden'}>{mountedTabs.has('field-applications') && <FieldApplicationSection userRole="supervisor" />}</div>
       </Layout>
 
       {/* Add Worker Modal */}

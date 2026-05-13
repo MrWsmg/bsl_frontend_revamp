@@ -375,7 +375,6 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onUserAdde
     try {
       const userData: any = {
         username: data.username,
-        password: data.password,
         full_name: data.full_name,
         role: data.role,
         email: data.email || '',
@@ -383,6 +382,9 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onUserAdde
         farm_id: data.farm_id ? parseInt(data.farm_id) : null,
         assigned_farms: JSON.stringify(data.assigned_farms),
       };
+      if (!userToEdit || data.password) {
+        userData.password = data.password || '';
+      }
 
       let targetUserId: number | null = userToEdit ? userToEdit.id : null;
 
@@ -571,12 +573,12 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ isOpen, onClose, onUserAdde
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel>Password{userToEdit && <span className="ml-1 text-gray-400 font-normal text-xs">(leave blank to keep current)</span>}</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
                           type="password"
-                          placeholder="Enter password"
+                          placeholder={userToEdit ? 'Leave blank to keep current' : 'Enter password'}
                         />
                       </FormControl>
                       <FormMessage />

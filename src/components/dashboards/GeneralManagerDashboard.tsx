@@ -6,7 +6,7 @@ import {
   FileText, ShoppingCart, Package, Truck, ArrowLeftRight, BookOpen,
   CreditCard, Receipt, ReceiptText, Wallet, ClipboardList, PackageCheck,
   PackageOpen, SendHorizontal, ShieldCheck, Target, ShieldAlert, Scale,
-  Building2, UserCog, Activity,
+  Building2, UserCog, Activity, Upload, Leaf,
 } from 'lucide-react';
 
 import { Layout } from '../layout/Layout';
@@ -42,6 +42,8 @@ import {
   ManagerWorkersSection,
   UsersSection,
   ActivitiesSection,
+  StockCsvImportSection,
+  FieldApplicationSection,
 } from './sections';
 
 // ── Sidebar definition ────────────────────────────────────────────────────────
@@ -106,8 +108,10 @@ const GM_SIDEBAR = [
       { id: 'budget-tracking', label: 'Live Tracking',  icon: TrendingUp },
     ],
   },
-  { id: 'users',      label: 'Users',     icon: UserCog   },
-  { id: 'activities', label: 'Activities', icon: Building2 },
+  { id: 'users',             label: 'Users',             icon: UserCog   },
+  { id: 'activities',        label: 'Activities',        icon: Building2 },
+  { id: 'field-applications',label: 'Field Applications',icon: Leaf      },
+  { id: 'csv-import',        label: 'CSV Import',        icon: Upload    },
 ];
 
 type GmTab =
@@ -117,7 +121,8 @@ type GmTab =
   | 'payroll-approval' | 'weekly-sheet' | 'payment-summary' | 'payslip'
   | 'picking'  | 'kpi' | 'hr'
   | 'workers'  | 'calendar' | 'users' | 'activities'
-  | 'budget-manager' | 'budget-summary' | 'budget-tracking';
+  | 'budget-manager' | 'budget-summary' | 'budget-tracking'
+  | 'field-applications' | 'csv-import';
 
 interface GeneralManagerDashboardProps {
   user: User;
@@ -240,6 +245,12 @@ export const GeneralManagerDashboard: React.FC<GeneralManagerDashboardProps> = (
         </div>
         <div className={show('budget-tracking')}>
           {mounted('budget-tracking') && <SharedBudgetTrackingSection userRole={ROLE} />}
+        </div>
+        <div className={show('field-applications')}>
+          {mounted('field-applications') && <FieldApplicationSection userRole={ROLE} />}
+        </div>
+        <div className={show('csv-import')}>
+          {mounted('csv-import') && <StockCsvImportSection />}
         </div>
       </Layout>
     </ErrorBoundary>

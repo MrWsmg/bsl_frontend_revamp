@@ -91,19 +91,23 @@ export const OverviewSection: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {farms?.map((farm: any, index: number) => (
-                  <TableRow key={farm.id ?? index}>
+                {farms?.map((farm: any, index: number) => {
+                  let crops: string[] = [];
+                  try { crops = Array.isArray(farm.crops) ? farm.crops : JSON.parse(farm.crops ?? '[]'); } catch { crops = []; }
+                  return (
+                  <TableRow key={farm.farm_id ?? farm.id ?? index}>
                     <TableCell className="font-medium">{farm.name}</TableCell>
                     <TableCell>{farm.location}</TableCell>
-                    <TableCell>{JSON.parse(farm.crops).join(', ')}</TableCell>
-                    <TableCell>{Math.round(farm.total_area * 10) / 10}</TableCell>
+                    <TableCell>{crops.join(', ') || '—'}</TableCell>
+                    <TableCell>{Math.round((farm.total_area ?? 0) * 10) / 10}</TableCell>
                     <TableCell>
                       <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-100">
                         Active
                       </Badge>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

@@ -27,6 +27,7 @@ import { FishFarmingApiService } from './fish-farming';
 import { CsvImportApiService, CsvTemplateName } from './csv-import';
 import { StoreCardexApiService } from './store-cardex';
 import { CherryParchmentApiService } from './cherry-parchment';
+import { FieldApplicationApiService } from './field-applications';
 
 export class ApiService extends BaseApiService {
   public auth: AuthApiService;
@@ -56,6 +57,7 @@ export class ApiService extends BaseApiService {
   public csvImport: CsvImportApiService;
   public storeCardex: StoreCardexApiService;
   public cherryParchment: CherryParchmentApiService;
+  public fieldApplications: FieldApplicationApiService;
 
   constructor() {
     super();
@@ -86,6 +88,7 @@ export class ApiService extends BaseApiService {
     this.csvImport = new CsvImportApiService();
     this.storeCardex = new StoreCardexApiService();
     this.cherryParchment = new CherryParchmentApiService();
+    this.fieldApplications = new FieldApplicationApiService();
   }
 
   // Legacy methods for backward compatibility
@@ -1569,6 +1572,26 @@ export class ApiService extends BaseApiService {
   async uploadFishWaterCsv(file: File) { return this.csvImport.uploadFishWater(file); }
   async uploadFishFeedingCsv(file: File) { return this.csvImport.uploadFishFeeding(file); }
   async uploadFishWeightCsv(file: File) { return this.csvImport.uploadFishWeight(file); }
+
+  // ===========================
+  // Field Applications
+  // ===========================
+
+  async getFertilizerApplications(params?: Parameters<FieldApplicationApiService['getFertilizerApplications']>[0]) {
+    return this.fieldApplications.getFertilizerApplications(params);
+  }
+  async createFertilizerApplication(data: any) { return this.fieldApplications.createFertilizerApplication(data); }
+  async deleteFertilizerApplication(id: number) { return this.fieldApplications.deleteFertilizerApplication(id); }
+
+  async getChemicalApplications(params?: Parameters<FieldApplicationApiService['getChemicalApplications']>[0]) {
+    return this.fieldApplications.getChemicalApplications(params);
+  }
+  async createChemicalApplication(data: any) { return this.fieldApplications.createChemicalApplication(data); }
+  async deleteChemicalApplication(id: number) { return this.fieldApplications.deleteChemicalApplication(id); }
+
+  async getBlockApplicationTimeline(blockId: number, params?: { start_date?: string; end_date?: string }) {
+    return this.fieldApplications.getBlockTimeline(blockId, params);
+  }
 }
 
 // Create and export a singleton instance

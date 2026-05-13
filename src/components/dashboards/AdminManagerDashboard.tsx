@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Building2, Users, DollarSign, Calendar, CalendarDays, LucideIcon, TrendingUp, ChevronLeft, ChevronRight, Bell, FileText, TrendingUp as TrendUp, BarChart3, ClipboardList, ShoppingCart, Package, Truck, ArrowLeftRight, BookOpen, CreditCard, Receipt, UserCog, LayoutDashboard, ShieldCheck } from "lucide-react";
+import { Building2, Users, DollarSign, Calendar, CalendarDays, LucideIcon, TrendingUp, ChevronLeft, ChevronRight, Bell, FileText, TrendingUp as TrendUp, BarChart3, ClipboardList, ShoppingCart, Package, Truck, ArrowLeftRight, BookOpen, CreditCard, Receipt, UserCog, LayoutDashboard, ShieldCheck, Upload, Leaf } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine, LineChart, Line, PieChart, Pie, Cell, AreaChart, Area } from "recharts";
 import { Layout } from '../layout/Layout';
 import { ErrorBoundary } from '../common/ErrorBoundary';
@@ -36,6 +36,8 @@ import {
   UsersSection,
   ActivitiesSection,
   AdminAuditLogsSection,
+  StockCsvImportSection,
+  FieldApplicationSection,
 } from './sections';
 
 // ── Formatting helpers ────────────────────────────────────────────────────
@@ -503,7 +505,8 @@ type MdTab =
   | 'smr' | 'lpo' | 'grn' | 'simr' | 'gin' | 'tv' | 'dn' | 'gate-pass' | 'transfers' | 'cardex'
   | 'weekly-sheet' | 'payment-summary' | 'payslip'
   | 'calendar' | 'users' | 'activities' | 'audit-logs'
-  | 'budget-manager' | 'budget-summary' | 'budget-tracking';
+  | 'budget-manager' | 'budget-summary' | 'budget-tracking'
+  | 'field-applications' | 'csv-import';
 
 interface AdminManagerDashboardProps {
   user: User;
@@ -560,7 +563,9 @@ const MD_SIDEBAR = [
   },
   { id: 'activities', label: 'Activities', icon: Bell },
   { id: 'users',      label: 'Users',      icon: UserCog },
-  { id: 'audit-logs', label: 'Audit Logs', icon: ShieldCheck },
+  { id: 'audit-logs',          label: 'Audit Logs',         icon: ShieldCheck },
+  { id: 'field-applications',  label: 'Field Applications', icon: Leaf        },
+  { id: 'csv-import',          label: 'CSV Import',         icon: Upload      },
 ];
 
 const AdminManagerDashboard = ({ user, onLogout }: AdminManagerDashboardProps) => {
@@ -653,6 +658,12 @@ const AdminManagerDashboard = ({ user, onLogout }: AdminManagerDashboardProps) =
         </div>
         <div className={activeTab !== 'budget-tracking' ? 'hidden' : ''}>
           {mountedTabs.current.has('budget-tracking') && <SharedBudgetTrackingSection userRole="managing_director" />}
+        </div>
+        <div className={activeTab !== 'field-applications' ? 'hidden' : ''}>
+          {mountedTabs.current.has('field-applications') && <FieldApplicationSection userRole="managing_director" />}
+        </div>
+        <div className={activeTab !== 'csv-import' ? 'hidden' : ''}>
+          {mountedTabs.current.has('csv-import') && <StockCsvImportSection />}
         </div>
       </Layout>
     </ErrorBoundary>

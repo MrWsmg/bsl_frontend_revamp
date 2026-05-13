@@ -46,6 +46,7 @@ import {
   SharedBudgetManagerSection,
   SharedBudgetSummarySection,
   SharedBudgetTrackingSection,
+  FieldApplicationSection,
 } from './sections';
 import { ManagerInterFarmSection } from './sections/ManagerInterFarmSection';
 
@@ -144,8 +145,9 @@ const MANAGER_SIDEBAR = (() => {
   });
   result.push({ id: 'warnings',  label: 'Warnings',      icon: ShieldAlert });
   result.push({ id: 'store',     label: 'Store',         icon: Warehouse  });
-  result.push({ id: 'blocks',    label: 'Blocks',        icon: LayoutGrid });
-  result.push({ id: 'calendar',  label: 'Calendar',      icon: Calendar   });
+  result.push({ id: 'blocks',             label: 'Blocks',             icon: LayoutGrid });
+  result.push({ id: 'calendar',           label: 'Calendar',           icon: Calendar   });
+  result.push({ id: 'field-applications', label: 'Field Applications', icon: Leaf       });
   return result;
 })();
 
@@ -191,7 +193,8 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ user, onLogo
         <div className={activeTab === 'calendar'        ? '' : 'hidden'}>{mountedTabs.has('calendar')        && <SharedCalendarSection userRole={ROLE} />}</div>
         <div className={activeTab === 'budget-manager'  ? '' : 'hidden'}>{mountedTabs.has('budget-manager')  && <SharedBudgetManagerSection  userRole={ROLE} />}</div>
         <div className={activeTab === 'budget-summary'  ? '' : 'hidden'}>{mountedTabs.has('budget-summary')  && <SharedBudgetSummarySection   userRole={ROLE} />}</div>
-        <div className={activeTab === 'budget-tracking' ? '' : 'hidden'}>{mountedTabs.has('budget-tracking') && <SharedBudgetTrackingSection  userRole={ROLE} />}</div>
+        <div className={activeTab === 'budget-tracking'     ? '' : 'hidden'}>{mountedTabs.has('budget-tracking')     && <SharedBudgetTrackingSection  userRole={ROLE} />}</div>
+        <div className={activeTab === 'field-applications'  ? '' : 'hidden'}>{mountedTabs.has('field-applications')  && <FieldApplicationSection userRole={ROLE} />}</div>
       </Layout>
     </ErrorBoundary>
   );

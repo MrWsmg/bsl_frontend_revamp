@@ -1662,6 +1662,47 @@ export interface FuelChemBalance {
 }
 
 // ===========================
+// Field Application Types
+// ===========================
+
+export interface FertilizerFieldApplication {
+  id: number;
+  farm_id: number;
+  farm_name?: string;
+  block_id?: number;
+  block_code?: string;
+  application_date: string;
+  price_list_id?: number;
+  product_name: string;
+  quantity_kg: number;
+  quantity_bags?: number;
+  application_method?: string;
+  notes?: string;
+  recorded_by: number;
+  created_at: string;
+}
+
+export interface ChemicalFieldApplication {
+  id: number;
+  farm_id: number;
+  farm_name?: string;
+  block_id?: number;
+  block_code?: string;
+  application_date: string;
+  price_list_id?: number;
+  product_name: string;
+  chemical_type: 'AGROCHEMICAL' | 'HERBICIDE' | 'FUNGICIDE' | 'OTHER';
+  quantity_applied: number;
+  unit: string;
+  dilution_rate?: string;
+  target_pest_weed?: string;
+  application_method?: string;
+  notes?: string;
+  recorded_by: number;
+  created_at: string;
+}
+
+// ===========================
 // Irrigation Spare Parts Types
 // ===========================
 

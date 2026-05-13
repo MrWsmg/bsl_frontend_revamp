@@ -20,6 +20,7 @@ import {
   SharedCardexSection,
   AdminAuditLogsSection,
 } from './sections';
+import AnalyticalDashboard from './AnalyticalDashboard';
 import apiService from '../../services/api';
 import { useApi } from '../../hooks';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -109,7 +110,7 @@ export const AdminDashboard: React.FC<Props> = ({ user, onLogout }) => {
           {mountedTabs.current.has('analytics')  && <AnalyticsSection />}
         </div>
         <div hidden={activeTab !== 'analytical'}>
-          {mountedTabs.current.has('analytical') && <AnalyticsSection />}
+          {mountedTabs.current.has('analytical') && <AnalyticalDashboard />}
         </div>
         <div hidden={activeTab !== 'calendar'}>
           {mountedTabs.current.has('calendar')   && <SharedCalendarSection userRole="admin" />}
@@ -143,21 +144,15 @@ export const AdminDashboard: React.FC<Props> = ({ user, onLogout }) => {
 // ── Manager Activities ────────────────────────────────────────────────────────
 
 const ManagerActivitiesSection: React.FC = () => {
-  const [farmId, setFarmId]     = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo]     = useState('');
 
-  const fetchFarms = useCallback(() => apiService.getFarms('admin'), []);
-  const { data: farms } = useApi(fetchFarms);
-  const farmList = Array.isArray(farms) ? farms : [];
-
   const buildParams = useCallback(() => {
     const p: Record<string, any> = {};
-    if (farmId)   p.farm_id   = parseInt(farmId);
-    if (dateFrom) p.date_from = dateFrom;
-    if (dateTo)   p.date_to   = dateTo;
+    if (dateFrom) p.start_date = dateFrom;
+    if (dateTo)   p.end_date   = dateTo;
     return p;
-  }, [farmId, dateFrom, dateTo]);
+  }, [dateFrom, dateTo]);
 
   const fetchActivities = useCallback(
     () => apiService.getManagerActivities(buildParams()),
@@ -178,13 +173,6 @@ const ManagerActivitiesSection: React.FC = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-3 items-end">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Farm</label>
-              <select value={farmId} onChange={e => setFarmId(e.target.value)} className={inputCls}>
-                <option value="">All farms</option>
-                {farmList.map((f: any) => { const fid = f.id ?? f.farm_id; return <option key={fid} value={fid}>{f.name}</option>; })}
-              </select>
-            </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">From</label>
               <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className={inputCls} />
@@ -248,28 +236,44 @@ const ManagerActivitiesSection: React.FC = () => {
 
 // ── Task Codes ────────────────────────────────────────────────────────────────
 
+const ACTIVITY_TYPES = ['picking', 'pruning', 'spraying', 'weeding', 'planting', 'maintenance', 'other'];
+
 const TaskCodesSection: React.FC = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError]   = useState('');
-  const [form, setForm] = useState({ code: '', description: '', category: '', unit: '' });
+  const [form, setForm] = useState({
+    code: '', name: '', unit: '', cost_per_unit: '',
+    task_group_code: '', task_group: '', activity_type: '',
+  });
 
   const fetchCodes = useCallback(() => apiService.getTaskCodes(), []);
   const { data: raw, loading, error, refetch } = useApi<any>(fetchCodes);
   const codes: any[] = Array.isArray(raw) ? raw : (raw as any)?.task_codes ?? [];
 
-  const handleClose = () => { setShowCreate(false); setFormError(''); setForm({ code: '', description: '', category: '', unit: '' }); };
+  const emptyForm = { code: '', name: '', unit: '', cost_per_unit: '', task_group_code: '', task_group: '', activity_type: '' };
+  const handleClose = () => { setShowCreate(false); setFormError(''); setForm(emptyForm); };
 
   const handleSubmit = async () => {
     setFormError('');
-    if (!form.code.trim()) { setFormError('Code is required.'); return; }
+    if (!form.code.trim())           { setFormError('Code is required.'); return; }
+    if (!form.name.trim())           { setFormError('Name is required.'); return; }
+    if (!form.unit.trim())           { setFormError('Unit is required.'); return; }
+    if (!form.cost_per_unit)         { setFormError('Cost per unit is required.'); return; }
+    if (!form.task_group_code)       { setFormError('Task group code is required.'); return; }
+    if (!form.task_group.trim())     { setFormError('Task group is required.'); return; }
+    if (!form.activity_type.trim())  { setFormError('Activity type is required.'); return; }
     setSubmitting(true);
     try {
-      const payload: Record<string, any> = { code: form.code.trim() };
-      if (form.description.trim()) payload.description = form.description.trim();
-      if (form.category.trim())    payload.category    = form.category.trim();
-      if (form.unit.trim())        payload.unit        = form.unit.trim();
-      await apiService.createTaskCode(payload);
+      await apiService.createTaskCode({
+        code:            form.code.trim(),
+        name:            form.name.trim(),
+        unit:            form.unit.trim(),
+        cost_per_unit:   parseFloat(form.cost_per_unit),
+        task_group_code: parseInt(form.task_group_code),
+        task_group:      form.task_group.trim(),
+        activity_type:   form.activity_type.trim(),
+      });
       toast.success('Task code created');
       handleClose();
       refetch();
@@ -316,18 +320,22 @@ const TaskCodesSection: React.FC = () => {
                 <thead>
                   <tr className="bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide">
                     <th className="text-left px-3 py-2">Code</th>
-                    <th className="text-left px-3 py-2">Description</th>
-                    <th className="text-left px-3 py-2">Category</th>
+                    <th className="text-left px-3 py-2">Name</th>
                     <th className="text-left px-3 py-2">Unit</th>
+                    <th className="text-left px-3 py-2">Cost/Unit</th>
+                    <th className="text-left px-3 py-2">Task Group</th>
+                    <th className="text-left px-3 py-2">Activity Type</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {codes.map((c: any, i: number) => (
                     <tr key={c.id ?? i} className="hover:bg-gray-50">
                       <td className="px-3 py-2 font-mono font-semibold text-gray-800">{c.code}</td>
-                      <td className="px-3 py-2 text-gray-600">{c.description ?? '—'}</td>
-                      <td className="px-3 py-2 text-gray-500">{c.category ?? '—'}</td>
+                      <td className="px-3 py-2 text-gray-700">{c.name ?? '—'}</td>
                       <td className="px-3 py-2 text-gray-500">{c.unit ?? '—'}</td>
+                      <td className="px-3 py-2 text-gray-500">{c.cost_per_unit != null ? Number(c.cost_per_unit).toLocaleString() : '—'}</td>
+                      <td className="px-3 py-2 text-gray-500">{c.task_group ?? '—'}</td>
+                      <td className="px-3 py-2 text-gray-500 capitalize">{c.activity_type ?? '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -351,23 +359,46 @@ const TaskCodesSection: React.FC = () => {
                 <AlertDescription>{formError}</AlertDescription>
               </Alert>
             )}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Code *</label>
-              <Input value={form.code} onChange={e => setForm(p => ({ ...p, code: e.target.value }))} placeholder="e.g. PRUNE-01" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-              <Input value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="e.g. Pruning activity" />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Code *</label>
+                <Input value={form.code} onChange={e => setForm(p => ({ ...p, code: e.target.value }))} placeholder="e.g. 108" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                <Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Coffee Picking" />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                <Input value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} placeholder="e.g. field" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Unit *</label>
+                <Input value={form.unit} onChange={e => setForm(p => ({ ...p, unit: e.target.value }))} placeholder="e.g. kg" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
-                <Input value={form.unit} onChange={e => setForm(p => ({ ...p, unit: e.target.value }))} placeholder="e.g. trees" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Cost per Unit *</label>
+                <Input type="number" min="0" step="0.01" value={form.cost_per_unit} onChange={e => setForm(p => ({ ...p, cost_per_unit: e.target.value }))} placeholder="e.g. 150" />
               </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Task Group Code *</label>
+                <Input type="number" min="1" value={form.task_group_code} onChange={e => setForm(p => ({ ...p, task_group_code: e.target.value }))} placeholder="e.g. 1" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Task Group *</label>
+                <Input value={form.task_group} onChange={e => setForm(p => ({ ...p, task_group: e.target.value }))} placeholder="e.g. Field Work" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Activity Type *</label>
+              <select
+                value={form.activity_type}
+                onChange={e => setForm(p => ({ ...p, activity_type: e.target.value }))}
+                className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm bg-white"
+              >
+                <option value="">Select activity type</option>
+                {ACTIVITY_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+              </select>
             </div>
           </div>
           <DialogFooter>

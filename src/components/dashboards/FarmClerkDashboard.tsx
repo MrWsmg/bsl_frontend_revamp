@@ -25,6 +25,7 @@ import {
   Lightbulb,
   Plus,
   X,
+  Leaf,
 } from 'lucide-react';
 import { useApi } from '../../hooks';
 import { LoadingSpinner } from '../common/LoadingSpinner';
@@ -57,6 +58,7 @@ import {
   FarmClerkClimateSection,
   FarmClerkRecommendationsSection,
   FarmClerkWorkersSection,
+  FieldApplicationSection,
 } from './sections';
 
 interface User {
@@ -134,8 +136,9 @@ const sidebarItems = [
   { id: 'expenses', label: 'Expenses', icon: DollarSign },
   { id: 'climate', label: 'Climate Reports', icon: CloudRain },
   { id: 'recommendations', label: 'Recommendations', icon: Lightbulb },
-  { id: 'farm-workers', label: 'Workers', icon: Users },
-  { id: 'calendar', label: 'Calendar', icon: CalendarDays },
+  { id: 'farm-workers',        label: 'Workers',             icon: Users       },
+  { id: 'calendar',            label: 'Calendar',            icon: CalendarDays },
+  { id: 'field-applications',  label: 'Field Applications',  icon: Leaf        },
 ];
 
 const FarmClerkDashboard: React.FC<FarmClerkDashboardProps> = ({ user, onLogout }) => {
@@ -685,7 +688,8 @@ const FarmClerkDashboard: React.FC<FarmClerkDashboardProps> = ({ user, onLogout 
         <div className={activeTab === 'climate'         ? '' : 'hidden'}>{mountedTabs.has('climate')         && <FarmClerkClimateSection />}</div>
         <div className={activeTab === 'recommendations' ? '' : 'hidden'}>{mountedTabs.has('recommendations') && <FarmClerkRecommendationsSection />}</div>
         <div className={activeTab === 'farm-workers'    ? '' : 'hidden'}>{mountedTabs.has('farm-workers')    && <FarmClerkWorkersSection />}</div>
-        <div className={activeTab === 'calendar'        ? '' : 'hidden'}>{mountedTabs.has('calendar')        && <SharedCalendarSection userRole="farm_clerk" />}</div>
+        <div className={activeTab === 'calendar'           ? '' : 'hidden'}>{mountedTabs.has('calendar')           && <SharedCalendarSection userRole="farm_clerk" />}</div>
+        <div className={activeTab === 'field-applications' ? '' : 'hidden'}>{mountedTabs.has('field-applications') && <FieldApplicationSection userRole="farm_clerk" />}</div>
       </Layout>
     </ErrorBoundary>
   );

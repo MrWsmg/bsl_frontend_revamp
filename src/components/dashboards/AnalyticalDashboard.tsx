@@ -13,16 +13,13 @@ import { AreaChart, Area } from "recharts";
 import { LineChart, Line } from "recharts";
 import { PieChart, Pie, Cell } from "recharts";
 
-const activities: any[] = [];
-
 const statusColors: Record<string, string> = {
   pending: "bg-warning/10 text-warning hover:bg-warning/20",
   approved: "bg-success/10 text-success hover:bg-success/20",
   completed: "bg-accent/10 text-accent hover:bg-accent/20",
 };
 
-export const ActivityTable = () => {
-  const data = (window as any).activities || [];
+export const ActivityTable = ({ data = [] }: { data?: any[] }) => {
   return (
     <Card>
       <CardHeader>
@@ -40,7 +37,7 @@ export const ActivityTable = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {activities.map((activity, index) => (
+            {data.map((activity: any, index: number) => (
               <TableRow key={index}>
                 <TableCell className="font-medium">{activity.user}</TableCell>
                 <TableCell>{activity.action}</TableCell>
@@ -155,11 +152,8 @@ interface BudgetOverviewChartProps {
   period: "weekly" | "yearly";
 }
 
-const weeklyData: any[] = [];
-const yearlyData: any[] = [];
-
-export const BudgetOverviewChart = ({ period }: BudgetOverviewChartProps) => {
-  const data = period === "weekly" ? (window as any).weeklyData || [] : (window as any).yearlyData || [];
+export const BudgetOverviewChart = ({ period, weeklyData = [], yearlyData = [] }: BudgetOverviewChartProps & { weeklyData?: any[]; yearlyData?: any[] }) => {
+  const data = period === "weekly" ? weeklyData : yearlyData;
 
   return (
     <Card>
@@ -207,10 +201,7 @@ export const BudgetOverviewChart = ({ period }: BudgetOverviewChartProps) => {
   );
 };
 
-const expensesData: any[] = [];
-
-export const ExpensesChart = () => {
-  const data = (window as any).expensesData || [];
+export const ExpensesChart = ({ data = [] }: { data?: any[] }) => {
   return (
     <Card>
       <CardHeader>
@@ -218,7 +209,7 @@ export const ExpensesChart = () => {
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
-          <AreaChart data={expensesData}>
+          <AreaChart data={data}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
             <XAxis dataKey="month" className="text-xs" />
             <YAxis className="text-xs" />
@@ -287,10 +278,12 @@ export const FarmCard = ({ name, location, activeWorkers, productivity, status, 
             <Users className="h-4 w-4 text-primary" />
             <span className="text-sm font-medium">{activeWorkers} Workers</span>
           </div>
-          <div className="flex items-center gap-1 text-success">
-            <TrendingUp className="h-4 w-4" />
-            <span className="text-sm font-semibold">{productivity}</span>
-          </div>
+          {productivity && (
+            <div className="flex items-center gap-1 text-success">
+              <TrendingUp className="h-4 w-4" />
+              <span className="text-sm font-semibold">{productivity}</span>
+            </div>
+          )}
         </div>
 
         {budgetUsed > 0 && (
@@ -346,10 +339,7 @@ export const MetricCard = ({ title, value, icon: Icon, trend, iconColor = "text-
   );
 };
 
-const payrollData: any[] = [];
-
-export const PayrollChart = () => {
-  const data = (window as any).payrollData || [];
+export const PayrollChart = ({ data = [] }: { data?: any[] }) => {
   return (
     <Card>
       <CardHeader>
@@ -357,7 +347,7 @@ export const PayrollChart = () => {
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={payrollData}>
+          <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
             <XAxis dataKey="month" className="text-xs" />
             <YAxis className="text-xs" />
@@ -422,10 +412,7 @@ export const PeriodToggle = ({ period, onPeriodChange }: PeriodToggleProps) => {
   );
 };
 
-const stockData: any[] = [];
-
-export const StockChart = () => {
-  const data = (window as any).stockData || [];
+export const StockChart = ({ data = [] }: { data?: any[] }) => {
   return (
     <Card>
       <CardHeader>
@@ -433,7 +420,7 @@ export const StockChart = () => {
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={stockData}>
+          <BarChart data={data}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
             <XAxis dataKey="farm" className="text-xs" />
             <YAxis className="text-xs" />
@@ -455,10 +442,7 @@ export const StockChart = () => {
   );
 };
 
-const workerData: any[] = [];
-
-export const WorkerDistribution = () => {
-  const data = (window as any).workerData || [];
+export const WorkerDistribution = ({ data = [] }: { data?: any[] }) => {
   return (
     <Card>
       <CardHeader>
@@ -468,7 +452,7 @@ export const WorkerDistribution = () => {
         <ResponsiveContainer width="100%" height={300}>
           <PieChart>
             <Pie
-              data={workerData}
+              data={data}
               cx="50%"
               cy="50%"
               labelLine={false}
@@ -477,7 +461,7 @@ export const WorkerDistribution = () => {
               fill="#8884d8"
               dataKey="value"
             >
-              {workerData.map((entry, index) => (
+              {data.map((entry: any, index: number) => (
                 <Cell key={`cell-${index}`} fill={entry.color} />
               ))}
             </Pie>
@@ -500,9 +484,16 @@ const AnalyticalDashboard: React.FC = () => {
   const [period, setPeriod] = useState<"weekly" | "yearly">("weekly");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [dashboardData, setDashboardData]   = useState<any>(null);
+  const [weeklyData, setWeeklyData]         = useState<any[]>([]);
+  const [yearlyData, setYearlyData]         = useState<any[]>([]);
+  const [payrollData, setPayrollData]       = useState<any[]>([]);
+  const [stockData, setStockData]           = useState<any[]>([]);
+  const [workerData, setWorkerData]         = useState<any[]>([]);
+  const [expensesData, setExpensesData]     = useState<any[]>([]);
+  const [activitiesData, setActivitiesData] = useState<any[]>([]);
+  const [farmsData, setFarmsData]           = useState<any[]>([]);
 
-  // Load data on component mount and when period changes
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -517,34 +508,27 @@ const AnalyticalDashboard: React.FC = () => {
           apiService.getAnalyticalWorkerData(),
           apiService.getAnalyticalExpensesData(),
           apiService.getAnalyticalActivities(),
-          apiService.getAnalyticalFarms()
+          apiService.getAnalyticalFarms(),
         ]);
 
         const ok = <T,>(r: PromiseSettledResult<T>, fallback: T): T =>
           r.status === 'fulfilled' ? r.value : fallback;
 
-        const dashboardData = ok(results[0], null);
-        const budgetsData   = ok(results[1], [] as any[]);
-        const payrollData   = ok(results[2], [] as any[]);
-        const stockData     = ok(results[3], [] as any[]);
-        const workerData    = ok(results[4], [] as any[]);
-        const expensesData  = ok(results[5], [] as any[]);
-        const activitiesData = ok(results[6], [] as any[]);
-        const farmsData     = ok(results[7], [] as any[]);
+        const budgets = ok(results[1], [] as any[]);
 
-        setDashboardData(dashboardData);
-        (window as any).weeklyData = budgetsData.filter((b: any) => b.period === 'weekly');
-        (window as any).yearlyData = budgetsData.filter((b: any) => b.period === 'yearly');
-        (window as any).payrollData = payrollData;
-        (window as any).stockData = stockData;
-        (window as any).workerData = workerData;
-        (window as any).expensesData = expensesData;
-        (window as any).activities = activitiesData;
-        (window as any).farmsData = farmsData;
+        setDashboardData(ok(results[0], null));
+        setWeeklyData(budgets.filter((b: any) => b.period === 'weekly'));
+        setYearlyData(budgets.filter((b: any) => b.period === 'yearly'));
+        setPayrollData(ok(results[2], []));
+        setStockData(ok(results[3], []));
+        setWorkerData(ok(results[4], []));
+        setExpensesData(ok(results[5], []));
+        setActivitiesData(ok(results[6], []));
+        setFarmsData(ok(results[7], []));
 
-        if (results.every(r => r.status === 'rejected')) {
-          setError('Failed to load dashboard data');
-        }
+        if (results.every(r => r.status === 'rejected')) setError('Failed to load dashboard data');
+      } catch {
+        setError('Failed to load dashboard data');
       } finally {
         setLoading(false);
       }
@@ -555,9 +539,9 @@ const AnalyticalDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="space-y-6 flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
           <p className="text-muted-foreground">Loading analytical data...</p>
         </div>
       </div>
@@ -566,11 +550,11 @@ const AnalyticalDashboard: React.FC = () => {
 
   if (error) {
     return (
-      <div className="space-y-6 flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <p className="text-destructive mb-4">Error: {error}</p>
+          <p className="text-destructive mb-4">{error}</p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => setLoading(true)}
             className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
           >
             Retry
@@ -580,6 +564,8 @@ const AnalyticalDashboard: React.FC = () => {
     );
   }
 
+  const budgetCards = period === 'weekly' ? weeklyData : yearlyData;
+
   return (
     <div className="space-y-6">
       {/* Header with Period Toggle */}
@@ -588,78 +574,84 @@ const AnalyticalDashboard: React.FC = () => {
         <PeriodToggle period={period} onPeriodChange={setPeriod} />
       </div>
 
-      {/* Metric Cards */}
+      {/* Metric Cards — real data from dashboardData */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <MetricCard
-          title="Total Revenue"
-          value="$2.4M"
+          title="Total Payroll"
+          value={dashboardData?.total_payroll != null ? `TZS ${Number(dashboardData.total_payroll).toLocaleString()}` : '—'}
           icon={DollarSign}
-          trend={{ value: "12%", isPositive: true }}
           iconColor="text-green-600"
         />
         <MetricCard
           title="Active Farms"
-          value={12}
+          value={dashboardData?.active_farms ?? farmsData.length}
           icon={MapPin}
-          trend={{ value: "2", isPositive: true }}
           iconColor="text-blue-600"
         />
         <MetricCard
           title="Total Workers"
-          value={245}
+          value={dashboardData?.total_workers ?? '—'}
           icon={Users}
-          trend={{ value: "5%", isPositive: false }}
           iconColor="text-purple-600"
         />
         <MetricCard
-          title="Productivity"
-          value="94%"
+          title="Active Workers"
+          value={dashboardData?.active_workers ?? '—'}
           icon={TrendingUp}
-          trend={{ value: "3%", isPositive: true }}
           iconColor="text-orange-600"
         />
       </div>
 
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <BudgetOverviewChart period={period} />
-        <ExpensesChart />
+        <BudgetOverviewChart period={period} weeklyData={weeklyData} yearlyData={yearlyData} />
+        <ExpensesChart data={expensesData} />
       </div>
 
       {/* Charts Row 2 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <PayrollChart />
-        <StockChart />
+        <PayrollChart data={payrollData} />
+        <StockChart data={stockData} />
       </div>
 
       {/* Charts Row 3 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <WorkerDistribution />
-        <ActivityTable />
+        <WorkerDistribution data={workerData} />
+        <ActivityTable data={activitiesData} />
       </div>
 
       {/* Budget Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {((window as any).weeklyData || []).filter((b: any) => period === 'weekly' ? b.period === 'weekly' : b.period === 'yearly').map((budget: any, index: number) => (
-          <BudgetCard key={index} farmName={budget.farmName} budgetAllocated={budget.budgetAllocated} budgetSpent={budget.budgetSpent} period={period} />
-        ))}
-      </div>
+      {budgetCards.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {budgetCards.map((budget: any, index: number) => (
+            <BudgetCard
+              key={index}
+              farmName={budget.farm_name ?? budget.farmName ?? `Farm ${index + 1}`}
+              budgetAllocated={budget.budget_allocated ?? budget.budgetAllocated ?? 0}
+              budgetSpent={budget.budget_spent ?? budget.budgetSpent ?? 0}
+              period={period}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Farm Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {((window as any).farmsData || []).map((farm: any, index: number) => (
-          <FarmCard
-            key={index}
-            name={farm.name}
-            location={farm.location}
-            activeWorkers={farm.activeWorkers}
-            productivity={farm.productivity}
-            status={farm.status}
-            budgetUsed={farm.budgetUsed}
-            budgetStatus={farm.budgetStatus}
-          />
-        ))}
-      </div>
+      {farmsData.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {farmsData.map((farm: any, index: number) => (
+            <FarmCard
+              key={index}
+              name={farm.name}
+              location={farm.location}
+              activeWorkers={farm.active_workers ?? farm.activeWorkers ?? 0}
+              productivity={farm.productivity ?? '—'}
+              status={farm.status ?? 'active'}
+              budgetUsed={farm.budget_used ?? farm.budgetUsed ?? 0}
+              budgetStatus={farm.budget_status ?? farm.budgetStatus ?? 'on-budget'}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };
