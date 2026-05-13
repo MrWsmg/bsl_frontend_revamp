@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2 } from 'lucide-react';
+import { Loader2, SwitchCamera } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -71,6 +71,9 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
   const [cameraTarget, setCameraTarget] = useState<UploadKind | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [videoReady, setVideoReady] = useState(false);
+  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
+  const [hasMultipleCameras, setHasMultipleCameras] = useState(false);
+  const [flipping, setFlipping] = useState(false);
 
   const fileInputRefs = useRef<{ photo: HTMLInputElement | null; id: HTMLInputElement | null }>({
     photo: null,
@@ -182,6 +185,23 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
     if (input) input.click();
   }, []);
 
+  const startStream = useCallback(async (mode: 'environment' | 'user') => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: mode } },
+      audio: false,
+    });
+    streamRef.current = stream;
+    if (videoRef.current) {
+      setVideoReady(false);
+      videoRef.current.srcObject = stream;
+      videoRef.current.play().catch(() => {});
+    }
+  }, []);
+
   const startCameraCapture = useCallback(async (type: UploadKind) => {
     if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
       toast.error('Camera access is not supported on this device.');
@@ -191,11 +211,14 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
     setCameraChecking(true);
     setCameraError(null);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' } },
-        audio: false,
-      });
-      streamRef.current = stream;
+      // Detect number of video inputs to decide whether to show flip button
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoInputs = devices.filter(d => d.kind === 'videoinput');
+      setHasMultipleCameras(videoInputs.length > 1);
+
+      const mode: 'environment' | 'user' = 'environment';
+      setFacingMode(mode);
+      await startStream(mode);
       setCameraTarget(type);
       setCameraActive(true);
     } catch {
@@ -203,7 +226,23 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
     } finally {
       setCameraChecking(false);
     }
-  }, []);
+  }, [startStream]);
+
+  const handleFlipCamera = useCallback(async () => {
+    if (flipping) return;
+    setFlipping(true);
+    setVideoReady(false);
+    setCameraError(null);
+    const nextMode: 'environment' | 'user' = facingMode === 'environment' ? 'user' : 'environment';
+    try {
+      await startStream(nextMode);
+      setFacingMode(nextMode);
+    } catch {
+      setCameraError('Failed to switch camera.');
+    } finally {
+      setFlipping(false);
+    }
+  }, [facingMode, flipping, startStream]);
 
   const handleCameraSnapshot = useCallback(() => {
     if (!cameraActive || !cameraTarget || !videoRef.current) {
@@ -883,9 +922,20 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
                 <div className="absolute inset-0 flex items-center justify-center bg-black/50">
                   <div className="text-white text-center">
                     <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
-                    <p className="text-sm">Initializing camera...</p>
+                    <p className="text-sm">{flipping ? 'Switching camera...' : 'Initializing camera...'}</p>
                   </div>
                 </div>
+              )}
+              {hasMultipleCameras && videoReady && (
+                <button
+                  type="button"
+                  onClick={handleFlipCamera}
+                  disabled={flipping}
+                  className="absolute top-3 right-3 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors disabled:opacity-50"
+                  title={facingMode === 'environment' ? 'Switch to front camera' : 'Switch to back camera'}
+                >
+                  <SwitchCamera className="w-5 h-5" />
+                </button>
               )}
             </figure>
             {cameraError && (
