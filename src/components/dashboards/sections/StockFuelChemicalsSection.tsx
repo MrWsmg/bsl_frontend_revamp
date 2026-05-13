@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from '../../ui/sonner';
-import { ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
+import { ArrowDownToLine, ArrowUpFromLine, Pencil, Trash2 } from 'lucide-react';
 
 // ─── Role helpers ──────────────────────────────────────────────────────────
 
@@ -46,16 +46,29 @@ interface EntryFormProps {
   initialFarmId: string;
   initialCategory: string;
   farms: any[];
+  editingEntry?: any;
   onClose: () => void;
   onSaved: () => void;
 }
 
 const EntryForm: React.FC<EntryFormProps> = ({
-  initialType, initialFarmId, initialCategory, farms, onClose, onSaved,
+  initialType, initialFarmId, initialCategory, farms, editingEntry, onClose, onSaved,
 }) => {
   const [saving, setSaving] = useState(false);
   const isFuel = initialCategory === 'FUEL AND LUBRICANTS';
-  const [form, setForm] = useState<Record<string, any>>({
+  const [form, setForm] = useState<Record<string, any>>(editingEntry ? {
+    farm_id: String(editingEntry.farm_id),
+    category: editingEntry.category || initialCategory || CATEGORIES[0].value,
+    price_list_id: String(editingEntry.price_list_id ?? ''),
+    entry_date: editingEntry.entry_date?.slice(0, 10) || new Date().toISOString().slice(0, 10),
+    transaction_type: editingEntry.transaction_type,
+    quantity: String(editingEntry.quantity ?? ''),
+    sub_store: editingEntry.sub_store || '',
+    from_to_location: editingEntry.from_to_location || '',
+    delivery_note_ref: editingEntry.delivery_note_ref || '',
+    serial_number: editingEntry.serial_number || '',
+    comments: editingEntry.comments || '',
+  } : {
     farm_id: initialFarmId !== 'all' ? initialFarmId : '',
     category: initialCategory || CATEGORIES[0].value,
     price_list_id: '',
@@ -94,7 +107,7 @@ const EntryForm: React.FC<EntryFormProps> = ({
     }
     setSaving(true);
     try {
-      await apiService.createFuelChemEntry({
+      const payload = {
         price_list_id: Number(form.price_list_id),
         farm_id: Number(form.farm_id),
         entry_date: new Date(form.entry_date).toISOString(),
@@ -105,8 +118,14 @@ const EntryForm: React.FC<EntryFormProps> = ({
         delivery_note_ref: form.delivery_note_ref || null,
         serial_number: form.serial_number || null,
         comments: form.comments || null,
-      });
-      toast.success('Entry saved');
+      };
+      if (editingEntry) {
+        await apiService.updateFuelChemEntry(editingEntry.id, payload);
+        toast.success('Entry updated');
+      } else {
+        await apiService.createFuelChemEntry(payload);
+        toast.success('Entry saved');
+      }
       onSaved();
       onClose();
     } catch (e: any) {
@@ -264,6 +283,8 @@ export const StockFuelChemicalsSection: React.FC = () => {
   const [filterEnd, setFilterEnd] = useState('');
   const [showEntry, setShowEntry] = useState(false);
   const [entryType, setEntryType] = useState<'in' | 'out'>('in');
+  const [editingEntry, setEditingEntry] = useState<any>(null);
+  const [deleting, setDeleting] = useState<number | null>(null);
 
   const getFarms = useCallback(() => apiService.getFarms(), []);
   const { data: farms, loading: farmsLoading } = useApi(getFarms);
@@ -294,7 +315,21 @@ export const StockFuelChemicalsSection: React.FC = () => {
   );
 
   const handleEntrySaved = () => { refetchEntries(); refetchBalances(); };
-  const openEntry = (type: 'in' | 'out') => { setEntryType(type); setShowEntry(true); };
+  const openEntry = (type: 'in' | 'out') => { setEntryType(type); setEditingEntry(null); setShowEntry(true); };
+  const openEdit = (entry: any) => { setEditingEntry(entry); setEntryType(entry.transaction_type); setShowEntry(true); };
+  const handleDelete = async (id: number) => {
+    if (!confirm('Delete this entry? The balance will be reversed.')) return;
+    setDeleting(id);
+    try {
+      await apiService.deleteFuelChemEntry(id);
+      toast.success('Entry deleted');
+      refetchEntries(); refetchBalances();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to delete');
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   if (farmsLoading) return <div className="flex justify-center py-12"><LoadingSpinner size="lg" /></div>;
 
@@ -409,6 +444,7 @@ export const StockFuelChemicalsSection: React.FC = () => {
                 <TableHead>Location</TableHead>
                 <TableHead>DN Ref</TableHead>
                 <TableHead>Recorded By</TableHead>
+                {canRecord && <TableHead className="w-20"></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -432,6 +468,19 @@ export const StockFuelChemicalsSection: React.FC = () => {
                   <TableCell className="text-sm text-muted-foreground">{e.from_to_location || '—'}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{e.delivery_note_ref || '—'}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{e.recorded_by || '—'}</TableCell>
+                  {canRecord && (
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(e)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500"
+                          disabled={deleting === e.id} onClick={() => handleDelete(e.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
@@ -443,14 +492,15 @@ export const StockFuelChemicalsSection: React.FC = () => {
       <Dialog open={showEntry} onOpenChange={setShowEntry}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Record Stock {entryType === 'in' ? 'IN' : 'OUT'}</DialogTitle>
+            <DialogTitle>{editingEntry ? 'Edit Entry' : `Record Stock ${entryType === 'in' ? 'IN' : 'OUT'}`}</DialogTitle>
           </DialogHeader>
           <EntryForm
             initialType={entryType}
             initialFarmId={farmId}
             initialCategory={categoryFilter !== 'all' ? categoryFilter : CATEGORIES[0].value}
             farms={farms || []}
-            onClose={() => setShowEntry(false)}
+            editingEntry={editingEntry}
+            onClose={() => { setShowEntry(false); setEditingEntry(null); }}
             onSaved={handleEntrySaved}
           />
         </DialogContent>

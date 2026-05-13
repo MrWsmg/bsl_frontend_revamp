@@ -29,6 +29,14 @@ export class FertilizerApiService extends BaseApiService {
     return this.post<FertilizerEntry>('/fertilizer/entries', data);
   }
 
+  async updateFertilizerEntry(entryId: number, data: Partial<FertilizerEntry>): Promise<FertilizerEntry> {
+    return this.put<FertilizerEntry>(`/fertilizer/entries/${entryId}`, data);
+  }
+
+  async deleteFertilizerEntry(entryId: number): Promise<{ deleted: number }> {
+    return this.delete<{ deleted: number }>(`/fertilizer/entries/${entryId}`);
+  }
+
   async getFertilizerBalances(params?: {
     farm_id?: number;
     sub_store?: 'coffee' | 'otc';

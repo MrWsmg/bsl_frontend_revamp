@@ -52,6 +52,8 @@ const PickingEntryForm: React.FC<FormProps> = ({ farms, existing, onClose, onSav
     pickers_count: existing?.pickers_count?.toString() ?? '',
     cherry_kg: existing?.cherry_kg?.toString() ?? '',
     price_per_kg: existing?.price_per_kg?.toString() ?? '',
+    payment_mode: existing?.payment_mode ?? 'per_kg',
+    price_per_picker: existing?.price_per_picker?.toString() ?? '',
     dn_number: existing?.dn_number ?? '',
     comments: existing?.comments ?? '',
   });
@@ -82,13 +84,19 @@ const PickingEntryForm: React.FC<FormProps> = ({ farms, existing, onClose, onSav
 
   const pickers = parseFloat(form.pickers_count) || 0;
   const kg = parseFloat(form.cherry_kg) || 0;
-  const price = parseFloat(form.price_per_kg) || 0;
+  const pricePerKg = parseFloat(form.price_per_kg) || 0;
+  const pricePerPicker = parseFloat(form.price_per_picker) || 0;
   const ratio = pickers > 0 ? (kg / pickers).toFixed(2) : '—';
-  const totalPayment = (kg * price).toFixed(2);
+  const totalPayment = form.payment_mode === 'per_day'
+    ? (pickers * pricePerPicker).toFixed(2)
+    : (kg * pricePerKg).toFixed(2);
 
   const handleSave = async () => {
-    if (!form.farm_id || !form.picking_date || !form.pickers_count || !form.cherry_kg || !form.price_per_kg) {
-      setError('Farm, date, pickers, KGS and price/kg are required.');
+    const missingRate = form.payment_mode === 'per_day' ? !form.price_per_picker : !form.price_per_kg;
+    if (!form.farm_id || !form.picking_date || !form.pickers_count || !form.cherry_kg || missingRate) {
+      setError(form.payment_mode === 'per_day'
+        ? 'Farm, date, pickers, KGS and price per picker are required.'
+        : 'Farm, date, pickers, KGS and price/kg are required.');
       return;
     }
     setSaving(true);
@@ -99,7 +107,9 @@ const PickingEntryForm: React.FC<FormProps> = ({ farms, existing, onClose, onSav
         picking_date: new Date(form.picking_date).toISOString(),
         pickers_count: parseInt(form.pickers_count),
         cherry_kg: parseFloat(form.cherry_kg),
-        price_per_kg: parseFloat(form.price_per_kg),
+        price_per_kg: parseFloat(form.price_per_kg) || 0,
+        payment_mode: form.payment_mode,
+        price_per_picker: form.price_per_picker ? parseFloat(form.price_per_picker) : 0,
         block_code: form.block_code || null,
         block_description: form.block_description || null,
         area_ha: form.area_ha ? parseFloat(form.area_ha) : null,
@@ -188,23 +198,44 @@ const PickingEntryForm: React.FC<FormProps> = ({ farms, existing, onClose, onSav
             </div>
           </div>
 
-          {/* Row 4: KGS + Price */}
+          {/* Row 4: KGS */}
+          <div className="space-y-1">
+            <Label>Cherry KGS *</Label>
+            <Input type="number" step="0.01" min="0" placeholder="0.00" value={form.cherry_kg} onChange={e => set('cherry_kg', e.target.value)} />
+          </div>
+
+          {/* Row 5: Payment mode + rate */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label>Cherry KGS *</Label>
-              <Input type="number" step="0.01" min="0" placeholder="0.00" value={form.cherry_kg} onChange={e => set('cherry_kg', e.target.value)} />
+              <Label>Payment Mode</Label>
+              <Select value={form.payment_mode} onValueChange={v => set('payment_mode', v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="per_kg">Per KG</SelectItem>
+                  <SelectItem value="per_day">Per Day (per picker)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <div className="space-y-1">
-              <Label>Price / KG (TZS) *</Label>
-              <Input type="number" step="0.01" min="0" placeholder="0.00" value={form.price_per_kg} onChange={e => set('price_per_kg', e.target.value)} />
-            </div>
+            {form.payment_mode === 'per_day' ? (
+              <div className="space-y-1">
+                <Label>Price per Picker (TZS) *</Label>
+                <Input type="number" step="0.01" min="0" placeholder="0.00" value={form.price_per_picker} onChange={e => set('price_per_picker', e.target.value)} />
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <Label>Price / KG (TZS) *</Label>
+                <Input type="number" step="0.01" min="0" placeholder="0.00" value={form.price_per_kg} onChange={e => set('price_per_kg', e.target.value)} />
+              </div>
+            )}
           </div>
 
           {/* Live preview */}
           {(form.cherry_kg || form.pickers_count) && (
             <div className="rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-900 flex justify-between">
               <span>Ratio: <strong>{ratio} kg/picker</strong></span>
-              <span>T. Payment: <strong>TZS {parseFloat(totalPayment).toLocaleString()}</strong></span>
+              <span>T. Payment: <strong>TZS {parseFloat(totalPayment).toLocaleString()}</strong>
+                {form.payment_mode === 'per_day' && <span className="ml-1 text-xs opacity-70">(per day)</span>}
+              </span>
             </div>
           )}
 
@@ -306,7 +337,7 @@ export const CherryPickingList: React.FC<Props> = ({ farms, farmId, dateFrom, da
                     <TableHead className="text-right">Pickers</TableHead>
                     <TableHead className="text-right">KGS</TableHead>
                     <TableHead className="text-right">Ratio</TableHead>
-                    <TableHead className="text-right">Paid/KG</TableHead>
+                    <TableHead className="text-right">Mode / Rate</TableHead>
                     <TableHead className="text-right">T. Payment</TableHead>
                     <TableHead>DN #</TableHead>
                     <TableHead>Comments</TableHead>
@@ -339,7 +370,9 @@ export const CherryPickingList: React.FC<Props> = ({ farms, farmId, dateFrom, da
                         {fmt(e.ratio_kg_per_picker)}
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">
-                        {fmt(e.price_per_kg)}
+                        {e.payment_mode === 'per_day'
+                          ? <><Badge variant="outline" className="text-xs mr-1">Day</Badge>{e.price_per_picker != null ? fmt(e.price_per_picker) : '—'}/picker</>
+                          : <>{fmt(e.price_per_kg)}/kg</>}
                       </TableCell>
                       <TableCell className="text-right font-medium text-green-700">
                         {fmtCurrency(e.total_payment)}

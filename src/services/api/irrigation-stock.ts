@@ -27,6 +27,14 @@ export class IrrigationStockApiService extends BaseApiService {
     return this.post<IrrigationEntry>('/irrigation-stock/entries', data);
   }
 
+  async updateIrrigationEntry(entryId: number, data: Partial<IrrigationEntry>): Promise<IrrigationEntry> {
+    return this.put<IrrigationEntry>(`/irrigation-stock/entries/${entryId}`, data);
+  }
+
+  async deleteIrrigationEntry(entryId: number): Promise<{ deleted: number }> {
+    return this.delete<{ deleted: number }>(`/irrigation-stock/entries/${entryId}`);
+  }
+
   async getIrrigationBalances(params?: { farm_id?: number }): Promise<IrrigationBalance[]> {
     return this.get<IrrigationBalance[]>('/irrigation-stock/balances', params);
   }

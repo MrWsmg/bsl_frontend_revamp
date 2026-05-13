@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from '../../ui/sonner';
-import { Plus, Scale, ShoppingCart, Layers } from 'lucide-react';
+import { Plus, Scale, ShoppingCart, Layers, Pencil, Trash2 } from 'lucide-react';
 import { OtherCropType } from '../../../types';
 
 const CROP_TYPES: { value: OtherCropType; label: string }[] = [
@@ -225,6 +225,8 @@ interface ShellingSubTabProps {
 const ShellingSubTab: React.FC<ShellingSubTabProps> = ({ farmId, farms }) => {
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<any>(null);
+  const [deleting, setDeleting] = useState<number | null>(null);
   const [form, setForm] = useState<Record<string, any>>({
     farm_id: farmId || '',
     block_name: '',
@@ -261,6 +263,37 @@ const ShellingSubTab: React.FC<ShellingSubTabProps> = ({ farmId, farms }) => {
     setForm(p => ({ ...p, block_name: blockName, block_code: block?.code || '' }));
   };
 
+  const openEdit = (r: any) => {
+    setEditingRecord(r);
+    setForm({
+      farm_id: String(r.farm_id ?? ''),
+      block_name: r.block_name ?? '',
+      block_code: r.block_code ?? '',
+      shell_date: r.shell_date ? r.shell_date.slice(0, 10) : new Date().toISOString().slice(0, 10),
+      kgs_in: String(r.kgs_in ?? ''),
+      num_shellers: String(r.num_shellers ?? ''),
+      bags_out: String(r.bags_out ?? ''),
+      paid_per_kg: String(r.paid_per_kg ?? ''),
+      total_payment: String(r.total_payment ?? ''),
+      comments: r.comments ?? '',
+    });
+    setShowModal(true);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Delete this shelling record?')) return;
+    setDeleting(id);
+    try {
+      await apiService.deleteOtherCropsShellingRecord(id);
+      toast.success('Record deleted');
+      refetch();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to delete');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
   const handleSave = async () => {
     if (!form.farm_id || !form.shell_date || !form.kgs_in) {
       toast.error('Farm, shell date, and KGs in are required');
@@ -268,7 +301,7 @@ const ShellingSubTab: React.FC<ShellingSubTabProps> = ({ farmId, farms }) => {
     }
     setSaving(true);
     try {
-      await apiService.createOtherCropsShellingRecord({
+      const payload = {
         ...form,
         farm_id: Number(form.farm_id),
         shell_date: new Date(form.shell_date).toISOString(),
@@ -277,9 +310,16 @@ const ShellingSubTab: React.FC<ShellingSubTabProps> = ({ farmId, farms }) => {
         bags_out: form.bags_out ? Number(form.bags_out) : null,
         paid_per_kg: form.paid_per_kg ? Number(form.paid_per_kg) : null,
         total_payment: form.total_payment ? Number(form.total_payment) : null,
-      });
-      toast.success('Shelling record saved');
+      };
+      if (editingRecord) {
+        await apiService.updateOtherCropsShellingRecord(editingRecord.id, payload);
+        toast.success('Shelling record updated');
+      } else {
+        await apiService.createOtherCropsShellingRecord(payload);
+        toast.success('Shelling record saved');
+      }
       setShowModal(false);
+      setEditingRecord(null);
       refetch();
     } catch (e: any) {
       toast.error(e.message || 'Failed to save');
@@ -307,11 +347,12 @@ const ShellingSubTab: React.FC<ShellingSubTabProps> = ({ farmId, farms }) => {
               <TableHead className="text-right">Bags Out</TableHead>
               <TableHead className="text-right">Shellers</TableHead>
               <TableHead className="text-right">Payment</TableHead>
+              <TableHead className="w-20"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {!records || records.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">No shelling records</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">No shelling records</TableCell></TableRow>
             ) : records.map((r: any) => (
               <TableRow key={r.id}>
                 <TableCell>{fmtDate(r.shell_date)}</TableCell>
@@ -320,14 +361,24 @@ const ShellingSubTab: React.FC<ShellingSubTabProps> = ({ farmId, farms }) => {
                 <TableCell className="text-right">{fmt(r.bags_out)}</TableCell>
                 <TableCell className="text-right">{fmt(r.num_shellers)}</TableCell>
                 <TableCell className="text-right">{r.total_payment ? `TZS ${fmt(r.total_payment)}` : '—'}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1">
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(r)}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500 hover:text-red-700" disabled={deleting === r.id} onClick={() => handleDelete(r.id)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
-      <Dialog open={showModal} onOpenChange={setShowModal}>
+      <Dialog open={showModal} onOpenChange={v => { setShowModal(v); if (!v) setEditingRecord(null); }}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Add Shelling Record</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingRecord ? 'Edit Shelling Record' : 'Add Shelling Record'}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div>
               <Label>Farm *</Label>
@@ -373,8 +424,8 @@ const ShellingSubTab: React.FC<ShellingSubTabProps> = ({ farmId, farms }) => {
             <div><Label>Comments</Label><Input value={form.comments} onChange={e => setField('comments', e.target.value)} /></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowModal(false)}>Cancel</Button>
-            <Button onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
+            <Button variant="outline" onClick={() => { setShowModal(false); setEditingRecord(null); }}>Cancel</Button>
+            <Button onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : editingRecord ? 'Update' : 'Save'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -393,6 +444,8 @@ interface SalesSubTabProps {
 const SalesSubTab: React.FC<SalesSubTabProps> = ({ farmId, cropType, farms }) => {
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<any>(null);
+  const [deleting, setDeleting] = useState<number | null>(null);
   const [form, setForm] = useState<Record<string, any>>({
     farm_id: farmId || '',
     crop_type: cropType,
@@ -415,6 +468,38 @@ const SalesSubTab: React.FC<SalesSubTabProps> = ({ farmId, cropType, farms }) =>
 
   const setField = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }));
 
+  const openEdit = (r: any) => {
+    setEditingRecord(r);
+    setForm({
+      farm_id: String(r.farm_id ?? ''),
+      crop_type: r.crop_type ?? cropType,
+      sale_date: r.sale_date ? r.sale_date.slice(0, 10) : new Date().toISOString().slice(0, 10),
+      invoice_number: r.invoice_number ?? '',
+      buyer_name: r.buyer_name ?? '',
+      kgs_sold: String(r.kgs_sold ?? ''),
+      paid_amount: String(r.paid_amount ?? ''),
+      vehicle_registration: r.vehicle_registration ?? '',
+      security_name: r.security_name ?? '',
+      security_signed: r.security_signed ?? false,
+      comments: r.comments ?? '',
+    });
+    setShowModal(true);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Delete this sale record?')) return;
+    setDeleting(id);
+    try {
+      await apiService.deleteOtherCropsSaleRecord(id);
+      toast.success('Record deleted');
+      refetch();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to delete');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
   const handleSave = async () => {
     if (!form.farm_id || !form.buyer_name || !form.kgs_sold) {
       toast.error('Farm, buyer name, and KGs sold are required');
@@ -422,15 +507,22 @@ const SalesSubTab: React.FC<SalesSubTabProps> = ({ farmId, cropType, farms }) =>
     }
     setSaving(true);
     try {
-      await apiService.createOtherCropsSaleRecord({
+      const payload = {
         ...form,
         farm_id: Number(form.farm_id),
         sale_date: new Date(form.sale_date).toISOString(),
         kgs_sold: Number(form.kgs_sold),
         paid_amount: form.paid_amount ? Number(form.paid_amount) : null,
-      });
-      toast.success('Sale record saved');
+      };
+      if (editingRecord) {
+        await apiService.updateOtherCropsSaleRecord(editingRecord.id, payload);
+        toast.success('Sale record updated');
+      } else {
+        await apiService.createOtherCropsSaleRecord(payload);
+        toast.success('Sale record saved');
+      }
       setShowModal(false);
+      setEditingRecord(null);
       refetch();
     } catch (e: any) {
       toast.error(e.message || 'Failed to save');
@@ -458,11 +550,12 @@ const SalesSubTab: React.FC<SalesSubTabProps> = ({ farmId, cropType, farms }) =>
               <TableHead className="text-right">KGs Sold</TableHead>
               <TableHead className="text-right">Amount (TZS)</TableHead>
               <TableHead>Vehicle</TableHead>
+              <TableHead className="w-20"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {!records || records.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">No sales records</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">No sales records</TableCell></TableRow>
             ) : records.map((r: any) => (
               <TableRow key={r.id}>
                 <TableCell>{fmtDate(r.sale_date)}</TableCell>
@@ -471,14 +564,24 @@ const SalesSubTab: React.FC<SalesSubTabProps> = ({ farmId, cropType, farms }) =>
                 <TableCell className="text-right">{fmt(r.kgs_sold)}</TableCell>
                 <TableCell className="text-right">{r.paid_amount ? fmt(r.paid_amount) : '—'}</TableCell>
                 <TableCell>{r.vehicle_registration || '—'}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1">
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(r)}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500 hover:text-red-700" disabled={deleting === r.id} onClick={() => handleDelete(r.id)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
-      <Dialog open={showModal} onOpenChange={setShowModal}>
+      <Dialog open={showModal} onOpenChange={v => { setShowModal(v); if (!v) setEditingRecord(null); }}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Record {cropType.charAt(0).toUpperCase() + cropType.slice(1)} Sale</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingRecord ? 'Edit Sale Record' : `Record ${cropType.charAt(0).toUpperCase() + cropType.slice(1)} Sale`}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div>
               <Label>Farm *</Label>
@@ -499,8 +602,8 @@ const SalesSubTab: React.FC<SalesSubTabProps> = ({ farmId, cropType, farms }) =>
             <div><Label>Comments</Label><Input value={form.comments} onChange={e => setField('comments', e.target.value)} /></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowModal(false)}>Cancel</Button>
-            <Button onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
+            <Button variant="outline" onClick={() => { setShowModal(false); setEditingRecord(null); }}>Cancel</Button>
+            <Button onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : editingRecord ? 'Update' : 'Save'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

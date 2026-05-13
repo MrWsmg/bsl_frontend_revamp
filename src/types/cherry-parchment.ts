@@ -180,6 +180,8 @@ export interface PickingEntry {
   cherry_kg: number;
   ratio_kg_per_picker: number;
   price_per_kg: number;
+  payment_mode: string;
+  price_per_picker: number | null;
   total_payment: number;
   dn_number: string | null;
   comments: string | null;
@@ -193,6 +195,8 @@ export interface PickingEntryCreate {
   pickers_count: number;
   cherry_kg: number;
   price_per_kg: number;
+  payment_mode?: string;
+  price_per_picker?: number;
   block_code?: string | null;
   block_description?: string | null;
   area_ha?: number | null;

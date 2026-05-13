@@ -27,6 +27,14 @@ export class FuelChemApiService extends BaseApiService {
     return this.post<FuelChemEntry>('/fuel-chemicals/entries', data);
   }
 
+  async updateFuelChemEntry(entryId: number, data: Partial<FuelChemEntry>): Promise<FuelChemEntry> {
+    return this.put<FuelChemEntry>(`/fuel-chemicals/entries/${entryId}`, data);
+  }
+
+  async deleteFuelChemEntry(entryId: number): Promise<{ deleted: number }> {
+    return this.delete<{ deleted: number }>(`/fuel-chemicals/entries/${entryId}`);
+  }
+
   async getFuelChemBalances(params?: {
     farm_id?: number;
     sub_store?: 'coffee' | 'otc';

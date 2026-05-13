@@ -1418,12 +1418,16 @@ export class ApiService extends BaseApiService {
     return this.otherCrops.getShellingRecords(params);
   }
   async createOtherCropsShellingRecord(data: any) { return this.otherCrops.createShellingRecord(data); }
+  async updateOtherCropsShellingRecord(recordId: number, data: any) { return this.otherCrops.updateShellingRecord(recordId, data); }
+  async deleteOtherCropsShellingRecord(recordId: number) { return this.otherCrops.deleteShellingRecord(recordId); }
 
   async getOtherCropsSaleRecords(params?: { farm_id?: number; crop_type?: string; start_date?: string; end_date?: string }) {
     return this.otherCrops.getSaleRecords(params);
   }
   async getOtherCropsSaleRecord(recordId: number) { return this.otherCrops.getSaleRecord(recordId); }
   async createOtherCropsSaleRecord(data: any) { return this.otherCrops.createSaleRecord(data); }
+  async updateOtherCropsSaleRecord(recordId: number, data: any) { return this.otherCrops.updateSaleRecord(recordId, data); }
+  async deleteOtherCropsSaleRecord(recordId: number) { return this.otherCrops.deleteSaleRecord(recordId); }
 
   async getCropBalances(params?: { farm_id?: number }) { return this.otherCrops.getCropBalances(params); }
 
@@ -1437,6 +1441,7 @@ export class ApiService extends BaseApiService {
   async getMbuniRecord(recordId: number) { return this.mbuni.getMbuniRecord(recordId); }
   async createMbuniRecord(data: any) { return this.mbuni.createMbuniRecord(data); }
   async updateMbuniRecord(recordId: number, data: any) { return this.mbuni.updateMbuniRecord(recordId, data); }
+  async deleteMbuniRecord(recordId: number) { return this.mbuni.deleteMbuniRecord(recordId); }
 
   // ===========================
   // Fertilizer
@@ -1449,6 +1454,8 @@ export class ApiService extends BaseApiService {
     return this.fertilizer.getFertilizerEntries(params);
   }
   async createFertilizerEntry(data: any) { return this.fertilizer.createFertilizerEntry(data); }
+  async updateFertilizerEntry(entryId: number, data: any) { return this.fertilizer.updateFertilizerEntry(entryId, data); }
+  async deleteFertilizerEntry(entryId: number) { return this.fertilizer.deleteFertilizerEntry(entryId); }
   async getFertilizerBalances(params?: { farm_id?: number; sub_store?: 'coffee' | 'otc' }) {
     return this.fertilizer.getFertilizerBalances(params);
   }
@@ -1511,6 +1518,8 @@ export class ApiService extends BaseApiService {
     return this.fuelChem.getFuelChemEntries(params);
   }
   async createFuelChemEntry(data: any) { return this.fuelChem.createFuelChemEntry(data); }
+  async updateFuelChemEntry(entryId: number, data: any) { return this.fuelChem.updateFuelChemEntry(entryId, data); }
+  async deleteFuelChemEntry(entryId: number) { return this.fuelChem.deleteFuelChemEntry(entryId); }
   async getFuelChemBalances(params?: { farm_id?: number; sub_store?: 'coffee' | 'otc'; category?: string }) {
     return this.fuelChem.getFuelChemBalances(params);
   }
@@ -1527,6 +1536,8 @@ export class ApiService extends BaseApiService {
     return this.irrigationStock.getIrrigationEntries(params);
   }
   async createIrrigationEntry(data: any) { return this.irrigationStock.createIrrigationEntry(data); }
+  async updateIrrigationEntry(entryId: number, data: any) { return this.irrigationStock.updateIrrigationEntry(entryId, data); }
+  async deleteIrrigationEntry(entryId: number) { return this.irrigationStock.deleteIrrigationEntry(entryId); }
   async getIrrigationBalances(params?: { farm_id?: number }) { return this.irrigationStock.getIrrigationBalances(params); }
 
   // ===========================

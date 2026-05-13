@@ -22,4 +22,8 @@ export class MbuniApiService extends BaseApiService {
   async updateMbuniRecord(recordId: number, data: Partial<MbuniRecord>): Promise<MbuniRecord> {
     return this.put<MbuniRecord>(`/mbuni/records/${recordId}`, data);
   }
+
+  async deleteMbuniRecord(recordId: number): Promise<{ deleted: number }> {
+    return this.delete<{ deleted: number }>(`/mbuni/records/${recordId}`);
+  }
 }

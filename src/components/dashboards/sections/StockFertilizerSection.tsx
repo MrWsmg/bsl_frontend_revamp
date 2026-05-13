@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from '../../ui/sonner';
-import { ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
+import { ArrowDownToLine, ArrowUpFromLine, Pencil, Trash2 } from 'lucide-react';
 
 const CAN_RECORD = new Set(['admin', 'stock', 'farm_clerk']);
 type SubStore = 'coffee' | 'otc';
@@ -36,16 +36,30 @@ interface EntryFormProps {
   initialCategory: string;
   farms: any[];
   products: any[];
+  editingEntry?: any;
   onClose: () => void;
   onSaved: () => void;
 }
 
 const EntryForm: React.FC<EntryFormProps> = ({
   initialType, initialSubStore, initialFarmId, initialCategory,
-  farms, products, onClose, onSaved,
+  farms, products, editingEntry, onClose, onSaved,
 }) => {
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState<Record<string, any>>({
+  const [form, setForm] = useState<Record<string, any>>(editingEntry ? {
+    farm_id: String(editingEntry.farm_id),
+    sub_store: editingEntry.sub_store || initialSubStore,
+    category: editingEntry.category || initialCategory,
+    price_list_id: String(editingEntry.price_list_id ?? ''),
+    entry_date: editingEntry.entry_date?.slice(0, 10) || new Date().toISOString().slice(0, 10),
+    transaction_type: editingEntry.transaction_type,
+    bags: String(editingEntry.bags ?? ''),
+    pkts: String(editingEntry.pkts ?? ''),
+    kgs: String(editingEntry.kgs ?? ''),
+    from_location: editingEntry.from_location || '',
+    delivery_note_ref: editingEntry.delivery_note_ref || '',
+    comments: editingEntry.comments || '',
+  } : {
     farm_id: initialFarmId !== 'all' ? initialFarmId : '',
     sub_store: initialSubStore,
     category: initialCategory,
@@ -86,7 +100,7 @@ const EntryForm: React.FC<EntryFormProps> = ({
     }
     setSaving(true);
     try {
-      await apiService.createFertilizerEntry({
+      const payload = {
         price_list_id: Number(form.price_list_id),
         farm_id: Number(form.farm_id),
         sub_store: form.sub_store,
@@ -98,8 +112,14 @@ const EntryForm: React.FC<EntryFormProps> = ({
         from_location: form.from_location || null,
         delivery_note_ref: form.delivery_note_ref || null,
         comments: form.comments || null,
-      });
-      toast.success('Entry saved');
+      };
+      if (editingEntry) {
+        await apiService.updateFertilizerEntry(editingEntry.id, payload);
+        toast.success('Entry updated');
+      } else {
+        await apiService.createFertilizerEntry(payload);
+        toast.success('Entry saved');
+      }
       onSaved();
       onClose();
     } catch (e: any) {
@@ -265,6 +285,8 @@ export const StockFertilizerSection: React.FC = () => {
   const [filterEnd, setFilterEnd] = useState('');
   const [showEntry, setShowEntry] = useState(false);
   const [entryType, setEntryType] = useState<'in' | 'out'>('in');
+  const [editingEntry, setEditingEntry] = useState<any>(null);
+  const [deleting, setDeleting] = useState<number | null>(null);
 
   const getFarms = useCallback(() => apiService.getFarms(), []);
   const { data: farms, loading: farmsLoading } = useApi(getFarms);
@@ -317,7 +339,21 @@ export const StockFertilizerSection: React.FC = () => {
   }, [balances, filterCategory]);
 
   const handleEntrySaved = () => { refetchEntries(); refetchBalances(); };
-  const openEntry = (type: 'in' | 'out') => { setEntryType(type); setShowEntry(true); };
+  const openEntry = (type: 'in' | 'out') => { setEntryType(type); setEditingEntry(null); setShowEntry(true); };
+  const openEdit = (entry: any) => { setEditingEntry(entry); setEntryType(entry.transaction_type); setShowEntry(true); };
+  const handleDelete = async (id: number) => {
+    if (!confirm('Delete this entry? The balance will be reversed.')) return;
+    setDeleting(id);
+    try {
+      await apiService.deleteFertilizerEntry(id);
+      toast.success('Entry deleted');
+      refetchEntries(); refetchBalances();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to delete');
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   const hasActiveFilters = filterCategory !== 'all' || filterType !== 'all' || !!filterStart || !!filterEnd;
 
@@ -464,12 +500,13 @@ export const StockFertilizerSection: React.FC = () => {
                 <TableHead>From Location</TableHead>
                 <TableHead>DN Ref</TableHead>
                 <TableHead>Recorded By</TableHead>
+                {canRecord && <TableHead className="w-20"></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredEntries.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center text-muted-foreground py-8">No entries found</TableCell>
+                  <TableCell colSpan={canRecord ? 11 : 10} className="text-center text-muted-foreground py-8">No entries found</TableCell>
                 </TableRow>
               ) : (filteredEntries as any[]).slice(0, 200).map((e: any, i: number) => (
                 <TableRow key={e.id ?? i}>
@@ -489,6 +526,19 @@ export const StockFertilizerSection: React.FC = () => {
                   <TableCell className="text-sm text-muted-foreground">{e.from_location || '—'}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{e.delivery_note_ref || '—'}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{e.recorded_by || '—'}</TableCell>
+                  {canRecord && (
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(e)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500"
+                          disabled={deleting === e.id} onClick={() => handleDelete(e.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
@@ -500,7 +550,7 @@ export const StockFertilizerSection: React.FC = () => {
       <Dialog open={showEntry} onOpenChange={setShowEntry}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Record Stock {entryType === 'in' ? 'IN' : 'OUT'}</DialogTitle>
+            <DialogTitle>{editingEntry ? 'Edit Entry' : `Record Stock ${entryType === 'in' ? 'IN' : 'OUT'}`}</DialogTitle>
           </DialogHeader>
           <EntryForm
             initialType={entryType}
@@ -509,7 +559,8 @@ export const StockFertilizerSection: React.FC = () => {
             initialCategory={filterCategory !== 'all' ? filterCategory : (categories[0] || '')}
             farms={farms || []}
             products={products || []}
-            onClose={() => setShowEntry(false)}
+            editingEntry={editingEntry}
+            onClose={() => { setShowEntry(false); setEditingEntry(null); }}
             onSaved={handleEntrySaved}
           />
         </DialogContent>

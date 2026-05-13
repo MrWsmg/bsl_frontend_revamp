@@ -141,6 +141,10 @@ export class CherryParchmentApiService extends BaseApiService {
     return this.get<ParchmentGradeEntry[]>('/cherry-parchment/parchment-grade-entries', params);
   }
 
+  async updateParchmentGradeEntry(id: number, data: Partial<ParchmentGradeEntryCreate>): Promise<ParchmentGradeEntry> {
+    return this.put<ParchmentGradeEntry>(`/cherry-parchment/parchment-grade-entries/${id}`, data);
+  }
+
   async deleteParchmentGradeEntry(id: number): Promise<void> {
     return this.delete<void>(`/cherry-parchment/parchment-grade-entries/${id}`);
   }

@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from '../../ui/sonner';
-import { Plus } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 
 function fmt(n: number | undefined | null) {
   if (n == null) return '—';
@@ -26,6 +26,7 @@ export const StockMbuniSection: React.FC = () => {
   const [selectedFarmId, setSelectedFarmId] = useState<string>('all');
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState<number | null>(null);
   const [form, setForm] = useState<Record<string, any>>({
     farm_id: '',
     block_name: '',
@@ -34,7 +35,9 @@ export const StockMbuniSection: React.FC = () => {
     num_pickers: '',
     mbuni_kg: '',
     mbuni_to_green_ratio: '',
+    payment_mode: 'per_kg',
     paid_per_kg: '',
+    price_per_picker: '',
     total_payment: '',
     comments: '',
   });
@@ -65,12 +68,29 @@ export const StockMbuniSection: React.FC = () => {
     setForm(p => ({ ...p, block_name: blockName, block_code: block?.code || '' }));
   };
 
+  const handleDelete = async (id: number) => {
+    if (!confirm('Delete this mbuni record?')) return;
+    setDeleting(id);
+    try {
+      await apiService.deleteMbuniRecord(id);
+      toast.success('Record deleted');
+      refetch();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to delete');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
   const totalKg = records?.reduce((s: number, r: any) => s + (r.mbuni_kg || 0), 0) || 0;
   const totalPayment = records?.reduce((s: number, r: any) => s + (r.total_payment || 0), 0) || 0;
 
   const handleSave = async () => {
-    if (!form.farm_id || !form.block_name || !form.harvest_date || !form.num_pickers || !form.mbuni_kg) {
-      toast.error('Farm, block name, date, pickers, and Mbuni KGs are required');
+    const missingRate = form.payment_mode === 'per_day' ? !form.price_per_picker : false;
+    if (!form.farm_id || !form.block_name || !form.harvest_date || !form.num_pickers || !form.mbuni_kg || missingRate) {
+      toast.error(form.payment_mode === 'per_day'
+        ? 'Farm, block, date, pickers, KGs and price per picker are required'
+        : 'Farm, block name, date, pickers, and Mbuni KGs are required');
       return;
     }
     setSaving(true);
@@ -82,12 +102,14 @@ export const StockMbuniSection: React.FC = () => {
         num_pickers: Number(form.num_pickers),
         mbuni_kg: Number(form.mbuni_kg),
         mbuni_to_green_ratio: form.mbuni_to_green_ratio ? Number(form.mbuni_to_green_ratio) : null,
+        payment_mode: form.payment_mode || 'per_kg',
         paid_per_kg: form.paid_per_kg ? Number(form.paid_per_kg) : null,
+        price_per_picker: form.price_per_picker ? Number(form.price_per_picker) : null,
         total_payment: form.total_payment ? Number(form.total_payment) : null,
       });
       toast.success('Mbuni record saved');
       setShowModal(false);
-      setForm(p => ({ ...p, block_name: '', block_code: '', num_pickers: '', mbuni_kg: '', paid_per_kg: '', total_payment: '', comments: '' }));
+      setForm(p => ({ ...p, block_name: '', block_code: '', num_pickers: '', mbuni_kg: '', payment_mode: 'per_kg', paid_per_kg: '', price_per_picker: '', total_payment: '', comments: '' }));
       refetch();
     } catch (e: any) {
       toast.error(e.message || 'Failed to save');
@@ -139,6 +161,7 @@ export const StockMbuniSection: React.FC = () => {
                     <TableHead className="text-right">Mbuni (KG)</TableHead>
                     <TableHead className="text-right">Ratio</TableHead>
                     <TableHead className="text-right">Payment (TZS)</TableHead>
+                    <TableHead className="w-12"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -152,6 +175,16 @@ export const StockMbuniSection: React.FC = () => {
                       <TableCell className="text-right font-medium">{fmt(r.mbuni_kg)}</TableCell>
                       <TableCell className="text-right">{r.mbuni_to_green_ratio ?? '—'}</TableCell>
                       <TableCell className="text-right">{r.total_payment ? fmt(r.total_payment) : '—'}</TableCell>
+                      <TableCell>
+                        <Button
+                          size="icon" variant="ghost"
+                          className="h-7 w-7 text-red-500 hover:text-red-700"
+                          disabled={deleting === r.id}
+                          onClick={() => handleDelete(r.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -202,11 +235,39 @@ export const StockMbuniSection: React.FC = () => {
               <div><Label>No. of Pickers *</Label><Input type="number" value={form.num_pickers} onChange={e => setField('num_pickers', e.target.value)} /></div>
               <div><Label>Mbuni KGs *</Label><Input type="number" value={form.mbuni_kg} onChange={e => setField('mbuni_kg', e.target.value)} /></div>
             </div>
+            <div><Label>Mbuni:Green Ratio</Label><Input type="number" step="0.01" value={form.mbuni_to_green_ratio} onChange={e => setField('mbuni_to_green_ratio', e.target.value)} placeholder="e.g. 0.14" /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><Label>Mbuni:Green Ratio</Label><Input type="number" step="0.01" value={form.mbuni_to_green_ratio} onChange={e => setField('mbuni_to_green_ratio', e.target.value)} placeholder="e.g. 0.14" /></div>
-              <div><Label>Paid per KG</Label><Input type="number" value={form.paid_per_kg} onChange={e => setField('paid_per_kg', e.target.value)} /></div>
+              <div>
+                <Label>Payment Mode</Label>
+                <Select value={form.payment_mode} onValueChange={v => setField('payment_mode', v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="per_kg">Per KG</SelectItem>
+                    <SelectItem value="per_day">Per Day (per picker)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {form.payment_mode === 'per_day' ? (
+                <div><Label>Price per Picker (TZS) *</Label><Input type="number" value={form.price_per_picker} onChange={e => setField('price_per_picker', e.target.value)} /></div>
+              ) : (
+                <div><Label>Paid per KG</Label><Input type="number" value={form.paid_per_kg} onChange={e => setField('paid_per_kg', e.target.value)} /></div>
+              )}
             </div>
-            <div><Label>Total Payment</Label><Input type="number" value={form.total_payment} onChange={e => setField('total_payment', e.target.value)} /></div>
+            {/* Auto-calc preview */}
+            {(() => {
+              const pickers = Number(form.num_pickers) || 0;
+              const kg = Number(form.mbuni_kg) || 0;
+              const calc = form.payment_mode === 'per_day'
+                ? pickers * (Number(form.price_per_picker) || 0)
+                : kg * (Number(form.paid_per_kg) || 0);
+              return calc > 0 ? (
+                <div className="rounded-md bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-800">
+                  Calculated payment: <strong>TZS {calc.toLocaleString()}</strong>
+                  {' '}— override below if needed
+                </div>
+              ) : null;
+            })()}
+            <div><Label>Total Payment (override)</Label><Input type="number" value={form.total_payment} onChange={e => setField('total_payment', e.target.value)} placeholder="Leave blank to auto-calculate" /></div>
             <div><Label>Comments</Label><Input value={form.comments} onChange={e => setField('comments', e.target.value)} /></div>
           </div>
           <DialogFooter>

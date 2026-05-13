@@ -36,6 +36,14 @@ export class OtherCropsApiService extends BaseApiService {
     return this.post<OtherCropsShelling>('/other-crops/shelling', data);
   }
 
+  async updateShellingRecord(recordId: number, data: Partial<OtherCropsShelling>): Promise<OtherCropsShelling> {
+    return this.put<OtherCropsShelling>(`/other-crops/shelling/${recordId}`, data);
+  }
+
+  async deleteShellingRecord(recordId: number): Promise<{ deleted: number }> {
+    return this.delete<{ deleted: number }>(`/other-crops/shelling/${recordId}`);
+  }
+
   async getSaleRecords(params?: {
     farm_id?: number;
     crop_type?: string;
@@ -51,6 +59,14 @@ export class OtherCropsApiService extends BaseApiService {
 
   async createSaleRecord(data: Omit<OtherCropsSale, 'id'>): Promise<OtherCropsSale> {
     return this.post<OtherCropsSale>('/other-crops/sales', data);
+  }
+
+  async updateSaleRecord(recordId: number, data: Partial<OtherCropsSale>): Promise<OtherCropsSale> {
+    return this.put<OtherCropsSale>(`/other-crops/sales/${recordId}`, data);
+  }
+
+  async deleteSaleRecord(recordId: number): Promise<{ deleted: number }> {
+    return this.delete<{ deleted: number }>(`/other-crops/sales/${recordId}`);
   }
 
   async getCropBalances(params?: { farm_id?: number }): Promise<CropBalance[]> {

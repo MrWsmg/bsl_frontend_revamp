@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useCallback } from 'react';
-import { Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { Plus, RefreshCw, Trash2, Pencil } from 'lucide-react';
 import { useApi } from '@/hooks';
 import apiService from '@/services/api';
 import { Card, CardContent } from '@/components/ui/card';
@@ -39,20 +39,21 @@ interface FormProps {
   farms: Farm[];
   onClose: () => void;
   onSaved: () => void;
+  editingEntry?: ParchmentGradeEntry;
 }
 
-const GradeEntryForm: React.FC<FormProps> = ({ grade, farms, onClose, onSaved }) => {
+const GradeEntryForm: React.FC<FormProps> = ({ grade, farms, onClose, onSaved, editingEntry }) => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [blockId, setBlockId] = useState('');
   const [form, setForm] = useState({
-    farm_id: '',
-    block_code: '',
-    entry_date: new Date().toISOString().slice(0, 10),
-    in_kg: '',
-    out_kg: '0',
-    dn_number: '',
-    notes: '',
+    farm_id: editingEntry ? String(editingEntry.farm_id) : '',
+    block_code: editingEntry?.block_code ?? '',
+    entry_date: editingEntry ? editingEntry.entry_date.slice(0, 10) : new Date().toISOString().slice(0, 10),
+    in_kg: editingEntry ? String(editingEntry.in_kg) : '',
+    out_kg: editingEntry ? String(editingEntry.out_kg) : '0',
+    dn_number: editingEntry?.dn_number ?? '',
+    notes: editingEntry?.notes ?? '',
   });
 
   const set = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
@@ -102,8 +103,13 @@ const GradeEntryForm: React.FC<FormProps> = ({ grade, farms, onClose, onSaved })
         dn_number: form.dn_number || null,
         notes: form.notes || null,
       };
-      await apiService.cherryParchment.createParchmentGradeEntry(payload);
-      toast.success(`${grade} entry saved`);
+      if (editingEntry) {
+        await apiService.cherryParchment.updateParchmentGradeEntry(editingEntry.id, payload);
+        toast.success(`${grade} entry updated`);
+      } else {
+        await apiService.cherryParchment.createParchmentGradeEntry(payload);
+        toast.success(`${grade} entry saved`);
+      }
       onSaved();
       onClose();
     } catch (e: any) {
@@ -117,7 +123,7 @@ const GradeEntryForm: React.FC<FormProps> = ({ grade, farms, onClose, onSaved })
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>Add Parchment Stock — <span className={GRADE_COLORS[grade]}>{grade}</span></DialogTitle>
+          <DialogTitle>{editingEntry ? 'Edit' : 'Add'} Parchment Stock — <span className={GRADE_COLORS[grade]}>{grade}</span></DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1">
@@ -199,7 +205,7 @@ const GradeEntryForm: React.FC<FormProps> = ({ grade, farms, onClose, onSaved })
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save Entry'}</Button>
+          <Button onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : editingEntry ? 'Update Entry' : 'Save Entry'}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -218,6 +224,7 @@ interface GradeTabProps {
 
 const GradeTab: React.FC<GradeTabProps> = ({ grade, farms, farmId, dateFrom, dateTo }) => {
   const [showForm, setShowForm] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<ParchmentGradeEntry | null>(null);
 
   const fetchEntries = useCallback(() => {
     return apiService.cherryParchment.listParchmentGradeEntries({
@@ -289,7 +296,7 @@ const GradeTab: React.FC<GradeTabProps> = ({ grade, farms, farmId, dateFrom, dat
                     <TableHead className="text-right">Balance (kg)</TableHead>
                     <TableHead>DN #</TableHead>
                     <TableHead>Notes</TableHead>
-                    <TableHead className="w-16"></TableHead>
+                    <TableHead className="w-20"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -317,10 +324,16 @@ const GradeTab: React.FC<GradeTabProps> = ({ grade, farms, farmId, dateFrom, dat
                         {e.notes ?? '—'}
                       </TableCell>
                       <TableCell>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500"
-                          onClick={() => handleDelete(e.id)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button size="icon" variant="ghost" className="h-7 w-7"
+                            onClick={() => { setEditingEntry(e); setShowForm(true); }}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500"
+                            onClick={() => handleDelete(e.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -343,7 +356,8 @@ const GradeTab: React.FC<GradeTabProps> = ({ grade, farms, farmId, dateFrom, dat
         <GradeEntryForm
           grade={grade}
           farms={farms}
-          onClose={() => setShowForm(false)}
+          editingEntry={editingEntry ?? undefined}
+          onClose={() => { setShowForm(false); setEditingEntry(null); }}
           onSaved={refetch}
         />
       )}
