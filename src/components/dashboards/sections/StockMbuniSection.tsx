@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from '../../ui/sonner';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Pencil } from 'lucide-react';
 
 function fmt(n: number | undefined | null) {
   if (n == null) return '—';
@@ -26,6 +26,7 @@ export const StockMbuniSection: React.FC = () => {
   const [selectedFarmId, setSelectedFarmId] = useState<string>('all');
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<any>(null);
   const [deleting, setDeleting] = useState<number | null>(null);
   const [form, setForm] = useState<Record<string, any>>({
     farm_id: '',
@@ -68,6 +69,25 @@ export const StockMbuniSection: React.FC = () => {
     setForm(p => ({ ...p, block_name: blockName, block_code: block?.code || '' }));
   };
 
+  const openEdit = (r: any) => {
+    setEditingRecord(r);
+    setForm({
+      farm_id: String(r.farm_id ?? ''),
+      block_name: r.block_name ?? '',
+      block_code: r.block_code ?? '',
+      harvest_date: r.harvest_date ? r.harvest_date.slice(0, 10) : new Date().toISOString().slice(0, 10),
+      num_pickers: String(r.num_pickers ?? ''),
+      mbuni_kg: String(r.mbuni_kg ?? ''),
+      mbuni_to_green_ratio: String(r.mbuni_to_green_ratio ?? ''),
+      payment_mode: r.payment_mode ?? 'per_kg',
+      paid_per_kg: String(r.paid_per_kg ?? ''),
+      price_per_picker: String(r.price_per_picker ?? ''),
+      total_payment: String(r.total_payment ?? ''),
+      comments: r.comments ?? '',
+    });
+    setShowModal(true);
+  };
+
   const handleDelete = async (id: number) => {
     if (!confirm('Delete this mbuni record?')) return;
     setDeleting(id);
@@ -95,7 +115,7 @@ export const StockMbuniSection: React.FC = () => {
     }
     setSaving(true);
     try {
-      await apiService.createMbuniRecord({
+      const payload = {
         ...form,
         farm_id: Number(form.farm_id),
         harvest_date: new Date(form.harvest_date).toISOString(),
@@ -106,9 +126,16 @@ export const StockMbuniSection: React.FC = () => {
         paid_per_kg: form.paid_per_kg ? Number(form.paid_per_kg) : null,
         price_per_picker: form.price_per_picker ? Number(form.price_per_picker) : null,
         total_payment: form.total_payment ? Number(form.total_payment) : null,
-      });
-      toast.success('Mbuni record saved');
+      };
+      if (editingRecord) {
+        await apiService.updateMbuniRecord(editingRecord.id, payload);
+        toast.success('Record updated');
+      } else {
+        await apiService.createMbuniRecord(payload);
+        toast.success('Mbuni record saved');
+      }
       setShowModal(false);
+      setEditingRecord(null);
       setForm(p => ({ ...p, block_name: '', block_code: '', num_pickers: '', mbuni_kg: '', payment_mode: 'per_kg', paid_per_kg: '', price_per_picker: '', total_payment: '', comments: '' }));
       refetch();
     } catch (e: any) {
@@ -161,12 +188,12 @@ export const StockMbuniSection: React.FC = () => {
                     <TableHead className="text-right">Mbuni (KG)</TableHead>
                     <TableHead className="text-right">Ratio</TableHead>
                     <TableHead className="text-right">Payment (TZS)</TableHead>
-                    <TableHead className="w-12"></TableHead>
+                    <TableHead className="w-20"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {!records || records.length === 0 ? (
-                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">No mbuni records found</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">No mbuni records found</TableCell></TableRow>
                   ) : records.map((r: any) => (
                     <TableRow key={r.id}>
                       <TableCell>{fmtDate(r.harvest_date)}</TableCell>
@@ -176,14 +203,19 @@ export const StockMbuniSection: React.FC = () => {
                       <TableCell className="text-right">{r.mbuni_to_green_ratio ?? '—'}</TableCell>
                       <TableCell className="text-right">{r.total_payment ? fmt(r.total_payment) : '—'}</TableCell>
                       <TableCell>
-                        <Button
-                          size="icon" variant="ghost"
-                          className="h-7 w-7 text-red-500 hover:text-red-700"
-                          disabled={deleting === r.id}
-                          onClick={() => handleDelete(r.id)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(r)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            size="icon" variant="ghost"
+                            className="h-7 w-7 text-red-500 hover:text-red-700"
+                            disabled={deleting === r.id}
+                            onClick={() => handleDelete(r.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -195,9 +227,9 @@ export const StockMbuniSection: React.FC = () => {
       </Card>
 
       {/* Modal */}
-      <Dialog open={showModal} onOpenChange={setShowModal}>
+      <Dialog open={showModal} onOpenChange={v => { setShowModal(v); if (!v) setEditingRecord(null); }}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Add Mbuni Record</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingRecord ? 'Edit Mbuni Record' : 'Add Mbuni Record'}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div>
               <Label>Farm *</Label>
@@ -271,8 +303,8 @@ export const StockMbuniSection: React.FC = () => {
             <div><Label>Comments</Label><Input value={form.comments} onChange={e => setField('comments', e.target.value)} /></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowModal(false)}>Cancel</Button>
-            <Button onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
+            <Button variant="outline" onClick={() => { setShowModal(false); setEditingRecord(null); }}>Cancel</Button>
+            <Button onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : editingRecord ? 'Update' : 'Save'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
