@@ -1,167 +1,285 @@
 "use client";
 
-// Manager Overview section component - shadcn patterns
 import React, { useCallback } from 'react';
 import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
-import { Users, Briefcase, ClipboardList, Package, DollarSign } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import {
+  Users, Briefcase, ClipboardList, Package, DollarSign, Building2,
+} from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+
+// ── Helper components ──────────────────────────────────────────────────────────
+
+interface StatCardProps {
+  label: string;
+  value: string | number;
+  sub?: string;
+  icon: React.ElementType;
+  iconBg: string;
+  iconColor: string;
+}
+
+const StatCard: React.FC<StatCardProps> = ({ label, value, sub, icon: Icon, iconBg, iconColor }) => (
+  <Card className="border border-border/60 shadow-sm hover:shadow-md transition-shadow duration-200">
+    <CardContent className="p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
+          <p className="text-2xl font-bold text-foreground mt-1 tabular-nums">{value}</p>
+          {sub && <p className="text-xs text-muted-foreground mt-1">{sub}</p>}
+        </div>
+        <div className={`${iconBg} p-2.5 rounded-lg shrink-0`}>
+          <Icon className={`w-5 h-5 ${iconColor}`} />
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const SectionHeader: React.FC<{ title: string; sub?: string }> = ({ title, sub }) => (
+  <div className="mb-3">
+    <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+    {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
+  </div>
+);
+
+// ── Main Component ─────────────────────────────────────────────────────────────
 
 export const ManagerOverviewSection: React.FC = () => {
-  const getFarms = useCallback(() => apiService.getManagerFarms(), []);
-  const getUsers = useCallback(() => apiService.getManagerUsers(), []);
-  const getWorkers = useCallback(() => apiService.getManagerWorkers(), []);
+  const getFarms          = useCallback(() => apiService.getManagerFarms(), []);
+  const getUsers          = useCallback(() => apiService.getManagerUsers(), []);
+  const getWorkers        = useCallback(() => apiService.getManagerWorkers(), []);
   const getPendingPayroll = useCallback(() => apiService.getManagerPendingPayroll(), []);
   const getTaskAssignments = useCallback(() => apiService.getManagerTaskAssignments(), []);
-  const getItemRequests = useCallback(() => apiService.getManagerPendingSimrs(), []);
+  const getItemRequests   = useCallback(() => apiService.getManagerPendingSimrs(), []);
 
-  const { data: farms, loading: farmsLoading } = useApi(getFarms);
-  const { data: users, loading: usersLoading } = useApi(getUsers);
-  const { data: workers, loading: workersLoading } = useApi(getWorkers);
-  const { data: pendingPayroll, loading: payrollLoading } = useApi(getPendingPayroll);
-  const { data: taskAssignments, loading: tasksLoading } = useApi(getTaskAssignments);
-  const { data: itemRequests, loading: requestsLoading } = useApi(getItemRequests);
+  const { data: farms,          loading: l1 } = useApi(getFarms);
+  const { data: users,          loading: l2 } = useApi(getUsers);
+  const { data: workers,        loading: l3 } = useApi(getWorkers);
+  const { data: pendingPayroll, loading: l4 } = useApi(getPendingPayroll);
+  const { data: taskAssignments, loading: l5 } = useApi(getTaskAssignments);
+  const { data: itemRequests,   loading: l6 } = useApi(getItemRequests);
 
-  const loading = farmsLoading || usersLoading || workersLoading ||
-                  payrollLoading || tasksLoading || requestsLoading;
-
-  if (loading) {
+  if (l1 || l2 || l3 || l4 || l5 || l6) {
     return (
-      <div className="flex justify-center items-center h-96">
+      <div className="flex justify-center items-center py-20">
         <LoadingSpinner size="lg" />
       </div>
     );
   }
 
-  const stats = [
-    {
-      title: 'Farms Managed',
-      value: farms?.length || 0,
-      icon: Briefcase,
-      color: 'text-blue-600',
-      bg: 'bg-blue-500'
-    },
-    {
-      title: 'Team Members',
-      value: users?.length || 0,
-      icon: Users,
-      color: 'text-green-600',
-      bg: 'bg-green-500'
-    },
-    {
-      title: 'Workers',
-      value: workers?.length || 0,
-      icon: Users,
-      color: 'text-purple-600',
-      bg: 'bg-purple-500'
-    },
-    {
-      title: 'Pending Payroll',
-      value: pendingPayroll?.length || 0,
-      icon: DollarSign,
-      color: 'text-yellow-600',
-      bg: 'bg-yellow-500'
-    },
-    {
-      title: 'Active Tasks',
-      value: taskAssignments?.filter((t: any) => t.status === 'in_progress').length || 0,
-      icon: ClipboardList,
-      color: 'text-indigo-600',
-      bg: 'bg-indigo-500'
-    },
-    {
-      title: 'Pending Requests',
-      value: itemRequests?.filter((r: any) => r.status === 'pending').length || 0,
-      icon: Package,
-      color: 'text-orange-600',
-      bg: 'bg-orange-500'
-    }
-  ];
+  // Derived values
+  const activeWorkers    = (workers ?? []).filter((w: any) => w.is_active !== false).length;
+  const completedTasks   = (taskAssignments ?? []).filter((t: any) => ['completed', 'Completed'].includes(t.status)).length;
+  const inProgressTasks  = (taskAssignments ?? []).filter((t: any) => ['in_progress', 'In Progress', 'assigned', 'Assigned'].includes(t.status)).length;
+  const pendingTasks     = (taskAssignments ?? []).filter((t: any) => t.status === 'pending').length;
+  const totalTasks       = completedTasks + inProgressTasks + pendingTasks;
+  const pendingRequests  = (itemRequests ?? []).filter((r: any) => r.status === 'pending').length;
+  const approvedRequests = (itemRequests ?? []).filter((r: any) => r.status === 'approved').length;
+  const issuedRequests   = (itemRequests ?? []).filter((r: any) => r.status === 'issued').length;
+  const receivedRequests = (itemRequests ?? []).filter((r: any) => r.status === 'received').length;
+  const totalRequests    = (itemRequests ?? []).length;
 
   return (
     <div className="space-y-6">
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {stats.map((stat, index) => (
-          <Card key={index} className="hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-                  <p className={`text-3xl font-bold mt-1 ${stat.color}`}>{stat.value}</p>
-                </div>
-                <div className={`${stat.bg} p-3 rounded-xl`}>
-                  <stat.icon className="w-6 h-6 text-white" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+
+      {/* ── KPI Row ─────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatCard
+          label="Farms Managed"
+          value={(farms ?? []).length}
+          sub={`${(farms ?? []).length === 1 ? '1 farm' : `${(farms ?? []).length} farms`} assigned`}
+          icon={Briefcase}
+          iconBg="bg-blue-50 dark:bg-blue-950"
+          iconColor="text-blue-600 dark:text-blue-400"
+        />
+        <StatCard
+          label="Active Workers"
+          value={activeWorkers}
+          sub={`${(workers ?? []).length} total registered`}
+          icon={Users}
+          iconBg="bg-emerald-50 dark:bg-emerald-950"
+          iconColor="text-emerald-600 dark:text-emerald-400"
+        />
+        <StatCard
+          label="Pending Payroll"
+          value={(pendingPayroll ?? []).length}
+          sub="Awaiting approval"
+          icon={DollarSign}
+          iconBg="bg-amber-50 dark:bg-amber-950"
+          iconColor="text-amber-600 dark:text-amber-400"
+        />
+        <StatCard
+          label="Pending Requests"
+          value={pendingRequests}
+          sub={`${totalRequests} total SIMRs`}
+          icon={Package}
+          iconBg="bg-orange-50 dark:bg-orange-950"
+          iconColor="text-orange-600 dark:text-orange-400"
+        />
       </div>
 
-      {/* Farm Overview */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Farm Overview</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {farms && farms.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {farms.map((farm: any, idx: number) => (
-                <Card key={farm.id ?? farm.farm_id ?? idx} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <h4 className="font-semibold text-foreground text-lg">{farm.name}</h4>
-                    <p className="text-sm text-muted-foreground mt-1">{farm.location}</p>
-                    <div className="mt-3 space-y-2">
-                      <div className="flex items-center text-sm">
-                        <span className="text-muted-foreground">Crops:</span>
-                        <Badge variant="secondary" className="ml-2">{farm.crops}</Badge>
-                      </div>
-                      <div className="flex items-center text-sm">
-                        <span className="text-muted-foreground">Total Area:</span>
-                        <span className="ml-2 font-medium text-blue-600">
-                          {Math.round(farm.total_area * 10) / 10} acres
-                        </span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+      {/* ── Task Status ─────────────────────────────────────────────────── */}
+      <div>
+        <SectionHeader
+          title="Task Status"
+          sub={totalTasks > 0 ? `${totalTasks} total tasks across all assignments` : 'No tasks recorded yet'}
+        />
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: 'Completed',   value: completedTasks,  dot: 'bg-emerald-500',       valueColor: 'text-emerald-600 dark:text-emerald-400' },
+            { label: 'In Progress', value: inProgressTasks, dot: 'bg-amber-400',          valueColor: 'text-amber-600 dark:text-amber-400'     },
+            { label: 'Pending',     value: pendingTasks,    dot: 'bg-muted-foreground/40', valueColor: 'text-muted-foreground'                  },
+          ].map(({ label, value, dot, valueColor }) => (
+            <div key={label} className="flex flex-col gap-2 p-4 rounded-lg border border-border/60 bg-card hover:bg-accent/40 transition-colors duration-150">
+              <div className="flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full shrink-0 ${dot}`} />
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
+              </div>
+              <p className={`text-3xl font-bold tabular-nums ${valueColor}`}>{value}</p>
             </div>
-          ) : (
-            <p className="text-muted-foreground text-sm">No farms assigned</p>
-          )}
-        </CardContent>
-      </Card>
+          ))}
+        </div>
+      </div>
 
-      {/* Quick Stats */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Stats</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="border-l-4 border-green-500 bg-green-50 p-4 rounded-r-lg">
-              <p className="text-sm text-muted-foreground font-medium">Completed Tasks</p>
-              <p className="text-2xl font-bold text-green-600">
-                {taskAssignments?.filter((t: any) => t.status === 'completed').length || 0}
-              </p>
-            </div>
-            <div className="border-l-4 border-yellow-500 bg-yellow-50 p-4 rounded-r-lg">
-              <p className="text-sm text-muted-foreground font-medium">Pending Tasks</p>
-              <p className="text-2xl font-bold text-yellow-600">
-                {taskAssignments?.filter((t: any) => t.status === 'pending').length || 0}
-              </p>
-            </div>
-            <div className="border-l-4 border-blue-500 bg-blue-50 p-4 rounded-r-lg">
-              <p className="text-sm text-muted-foreground font-medium">Total Workers</p>
-              <p className="text-2xl font-bold text-blue-600">{workers?.length || 0}</p>
-            </div>
+      {/* ── Item Request Breakdown ───────────────────────────────────────── */}
+      {totalRequests > 0 && (
+        <div>
+          <SectionHeader title="Item Request Breakdown" sub="SIMR status across all requests" />
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {[
+              { label: 'Pending',  value: pendingRequests,  dot: 'bg-amber-400'   },
+              { label: 'Approved', value: approvedRequests, dot: 'bg-blue-500'    },
+              { label: 'Issued',   value: issuedRequests,   dot: 'bg-emerald-500' },
+              { label: 'Received', value: receivedRequests, dot: 'bg-purple-500'  },
+            ].map(({ label, value, dot }) => (
+              <div key={label} className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-card hover:bg-accent/40 transition-colors duration-150">
+                <span className={`w-2 h-2 rounded-full shrink-0 ${dot}`} />
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">{label}</p>
+                  <p className="text-xl font-bold tabular-nums text-foreground">{value}</p>
+                </div>
+              </div>
+            ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      )}
+
+      {/* ── Recent Tasks ─────────────────────────────────────────────────── */}
+      <div>
+        <SectionHeader
+          title="Recent Tasks"
+          sub={`${(taskAssignments ?? []).length} total assignments`}
+        />
+        {!taskAssignments || taskAssignments.length === 0 ? (
+          <div className="flex items-center gap-3 p-5 rounded-lg border border-dashed border-border text-muted-foreground text-sm">
+            <ClipboardList className="w-4 h-4 shrink-0" />
+            <span>No tasks assigned yet.</span>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-border/60 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40">
+                <tr>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Task</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Worker</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Date</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/40">
+                {(taskAssignments as any[]).slice(0, 6).map((task: any) => {
+                  const isComplete = ['completed', 'Completed'].includes(task.status);
+                  const isProgress = ['in_progress', 'In Progress', 'assigned', 'Assigned'].includes(task.status);
+                  return (
+                    <tr key={task.id} className="hover:bg-muted/20 transition-colors">
+                      <td className="px-4 py-2.5 font-medium text-foreground">{task.task_code}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground">{task.worker?.full_name || task.worker?.name || task.worker_name || '—'}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground tabular-nums">{new Date(task.date_worked).toLocaleDateString()}</td>
+                      <td className="px-4 py-2.5">
+                        <span className="flex items-center gap-1.5">
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${isComplete ? 'bg-emerald-500' : isProgress ? 'bg-amber-400 animate-pulse' : 'bg-muted-foreground/40'}`} />
+                          <span className="text-xs text-muted-foreground capitalize">{task.status?.replace(/_/g, ' ')}</span>
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* ── Recent Item Requests ─────────────────────────────────────────── */}
+      {totalRequests > 0 && (
+        <div>
+          <SectionHeader title="Recent Item Requests" sub={`${totalRequests} total SIMRs`} />
+          <div className="rounded-lg border border-border/60 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40">
+                <tr>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Item</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Requester</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Date</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/40">
+                {(itemRequests as any[]).slice(0, 6).map((request: any) => {
+                  const firstItem = request.items?.[0];
+                  const label = firstItem
+                    ? `${firstItem.item_name}${request.items.length > 1 ? ` +${request.items.length - 1}` : ''}`
+                    : request.simr_number || '—';
+                  const isApproved = ['approved', 'issued', 'received'].includes(request.status);
+                  const isRejected = request.status === 'rejected';
+                  return (
+                    <tr key={request.id} className="hover:bg-muted/20 transition-colors">
+                      <td className="px-4 py-2.5 font-medium text-foreground">{label}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground">{request.requester_name || request.purpose || '—'}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground tabular-nums">{new Date(request.created_at).toLocaleDateString()}</td>
+                      <td className="px-4 py-2.5">
+                        <span className="flex items-center gap-1.5">
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${isRejected ? 'bg-red-500' : isApproved ? 'bg-emerald-500' : 'bg-amber-400'}`} />
+                          <span className="text-xs text-muted-foreground capitalize">{request.status?.replace(/_/g, ' ')}</span>
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ── Farms ────────────────────────────────────────────────────────── */}
+      {farms && farms.length > 0 && (
+        <div>
+          <SectionHeader
+            title="Managed Farms"
+            sub={`${farms.length} farm${farms.length !== 1 ? 's' : ''} assigned to you`}
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
+            {(farms as any[]).map((farm: any) => (
+              <div key={farm.id ?? farm.farm_id} className="flex items-start gap-3 p-4 rounded-lg border border-border/50 bg-card hover:bg-accent/40 transition-colors duration-150">
+                <div className="bg-blue-50 dark:bg-blue-950 p-2 rounded-md shrink-0">
+                  <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground">{farm.name}</p>
+                  <p className="text-xs text-muted-foreground">{farm.location || 'No location set'}</p>
+                  {farm.total_area && (
+                    <p className="text-xs text-muted-foreground mt-0.5">{Math.round(farm.total_area * 10) / 10} acres</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

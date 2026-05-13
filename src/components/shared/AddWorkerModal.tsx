@@ -798,8 +798,8 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
                   <FormItem>
                     <FormLabel>Linked User Account (Optional)</FormLabel>
                     <Select
-                      value={field.value ? String(field.value) : ''}
-                      onValueChange={(val) => field.onChange(val ? Number(val) : undefined)}
+                      value={field.value ? String(field.value) : '__none__'}
+                      onValueChange={(val) => field.onChange(val === '__none__' ? undefined : Number(val))}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -807,7 +807,7 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="__none__">None</SelectItem>
                         {(users as any[] || [])
                           .filter((u: any) => u.role === 'worker')
                           .map((u: any) => (

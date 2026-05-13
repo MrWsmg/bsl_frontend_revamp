@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { Leaf, Plus, CheckCircle, Calendar } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '../../ui/sonner';
-import { useAuth } from '../../../contexts/AuthContext';
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -31,19 +30,27 @@ function statusBadge(status: string) {
 }
 
 export const ManagerHarvestSection: React.FC = () => {
-  const { user } = useAuth();
-  const farmId: number = (user as any)?.farm_id;
-
   const [seasonYear, setSeasonYear] = useState(CURRENT_YEAR);
+  const [selectedFarmId, setSelectedFarmId] = useState<number | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(emptyForm());
   const [saving, setSaving] = useState(false);
   const [approvingId, setApprovingId] = useState<number | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<any | null>(null);
 
+  const fetchFarms = useCallback(() => apiService.getManagerFarms(), []);
+  const { data: farms } = useApi(fetchFarms);
+
+  // Auto-select first farm once loaded
+  useEffect(() => {
+    if (!selectedFarmId && farms && (farms as any[]).length > 0) {
+      setSelectedFarmId((farms as any[])[0].farm_id ?? (farms as any[])[0].id);
+    }
+  }, [farms, selectedFarmId]);
+
   const fetchPlans = useCallback(
-    () => apiService.getHarvestPlans(farmId, seasonYear),
-    [farmId, seasonYear]
+    () => selectedFarmId ? apiService.getHarvestPlans(selectedFarmId, seasonYear) : Promise.resolve([]),
+    [selectedFarmId, seasonYear]
   );
   const { data: plansRaw, loading, refetch } = useApi(fetchPlans);
   const plans: any[] = Array.isArray(plansRaw) ? plansRaw : plansRaw ? [plansRaw] : [];
@@ -56,7 +63,7 @@ export const ManagerHarvestSection: React.FC = () => {
     setSaving(true);
     try {
       await apiService.createHarvestPlan({
-        farm_id: farmId,
+        farm_id: selectedFarmId!,
         season_year: Number(form.season_year),
         crop_type: form.crop_type,
         fly_picking_start: form.fly_picking_start,
@@ -95,7 +102,17 @@ export const ManagerHarvestSection: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <select
+            value={selectedFarmId ?? ''}
+            onChange={e => setSelectedFarmId(Number(e.target.value))}
+            className="border border-gray-300 rounded-md px-3 py-1.5 text-sm"
+          >
+            <option value="" disabled>Select farm</option>
+            {(farms as any[] ?? []).map((f: any) => (
+              <option key={f.farm_id ?? f.id} value={f.farm_id ?? f.id}>{f.name}</option>
+            ))}
+          </select>
           <select
             value={seasonYear}
             onChange={e => setSeasonYear(Number(e.target.value))}
@@ -108,7 +125,8 @@ export const ManagerHarvestSection: React.FC = () => {
         </div>
         <button
           onClick={() => { setForm(emptyForm()); setShowModal(true); }}
-          className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
+          disabled={!selectedFarmId}
+          className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Plus className="w-4 h-4" /> New Harvest Plan
         </button>
