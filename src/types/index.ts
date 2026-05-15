@@ -405,6 +405,8 @@ export interface AttendanceRecord {
   checkout_photo_url?: string | null;
   checkout_face_verification_confidence?: number | null;
   checkout_face_verification_status?: 'manual' | 'verified' | 'failed';
+  // Supervisor review for manual/failed check-ins
+  supervisor_approved?: boolean | null;
 }
 
 export interface AttendanceReport {
@@ -759,6 +761,8 @@ export interface ProcurementFilters {
 // Face Verification types
 export interface FaceVerificationResult {
   success: boolean;
+  face_verified?: boolean;
+  mode?: 'manual' | string;
   message: string;
   attendance_id: number;
   confidence?: number;

@@ -64,6 +64,7 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
   const [idPreviewUrl, setIdPreviewUrl] = useState<string | null>(null);
   const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null);
   const [existingIdUrl, setExistingIdUrl] = useState<string | null>(null);
+  const [faceIndexed, setFaceIndexed] = useState<boolean | null>(null);
   const [photosLoading, setPhotosLoading] = useState(false);
   const [cameraChecking, setCameraChecking] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
@@ -164,6 +165,7 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
     clearSelectedMedia();
     setExistingPhotoUrl(null);
     setExistingIdUrl(null);
+    setFaceIndexed(null);
     setPhotosLoading(false);
     stopCamera();
   }, [clearSelectedMedia, stopCamera]);
@@ -352,6 +354,7 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
         results.forEach(({ kind, response }) => {
           if (kind === 'photo') {
             if (response?.url) setExistingPhotoUrl(response.url);
+            if (response?.face_indexed !== undefined) setFaceIndexed(!!response.face_indexed);
             handleMediaSelection('photo', null);
           } else {
             if (response?.url) setExistingIdUrl(response.url);
@@ -404,10 +407,12 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
   useEffect(() => {
     if (isOpen && workerToEdit) {
       fetchWorkerPhotos(workerToEdit.id);
+      setFaceIndexed(!!workerToEdit.face_id);
     }
     if (isOpen && !workerToEdit) {
       setExistingPhotoUrl(null);
       setExistingIdUrl(null);
+      setFaceIndexed(null);
     }
   }, [isOpen, workerToEdit, fetchWorkerPhotos]);
 
@@ -489,7 +494,22 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
 
     return (
       <fieldset className="border border-gray-200 rounded-lg bg-white p-4 space-y-3" key={type}>
-        <legend className="sr-only">{title}</legend>
+        <div className="flex items-center justify-between">
+          <legend className="text-sm font-medium text-gray-700">{title}</legend>
+          {isPhoto && (
+            faceIndexed === true ? (
+              <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-800">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+                Face registered
+              </span>
+            ) : faceIndexed === false ? (
+              <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                <span className="w-1.5 h-1.5 rounded-full bg-gray-400 inline-block" />
+                Face not registered
+              </span>
+            ) : null
+          )}
+        </div>
         <figure className="h-48 border border-dashed border-gray-300 rounded-md flex items-center justify-center overflow-hidden bg-gray-50">
           {selectedPreview ? (
             <img src={selectedPreview} alt={`${title} preview`} className="w-full h-full object-cover" />

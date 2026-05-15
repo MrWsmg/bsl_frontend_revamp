@@ -198,6 +198,9 @@ export function WorkerAttendanceList({
       if (err?.response?.status === 400 && !activeWorker.face_id) {
         toast.info('Upload a worker photo first to enable face verification.');
       }
+      // Refresh even on error — backend may have committed before the client got the error
+      await loadTodayAttendance();
+      onActionComplete();
     } finally {
       setIsProcessing(false);
     }

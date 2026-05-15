@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from 'react';
-import { Upload, RefreshCw, Filter, BarChart3, Users, ClipboardList, PenLine, LogOut, Clock } from 'lucide-react';
+import { Upload, RefreshCw, Filter, BarChart3, Users, ClipboardList, PenLine, LogOut, Clock, AlertTriangle, Check, X } from 'lucide-react';
 import { WorkerAttendanceList } from '../../attendance/WorkerAttendanceList';
 import { WorkerPhotoUploadModal } from '../../attendance/WorkerPhotoUploadModal';
 import { AttendanceRecordsTable } from '../../attendance/AttendanceRecordsTable';
@@ -39,9 +39,9 @@ import { toast } from 'sonner';
 import type { Worker } from '../../../types';
 import type { AttendanceReportResponse } from '../../../types/farm-clerk';
 
-const today = new Date().toISOString().split('T')[0];
-
 export function SupervisorAttendanceSection() {
+  const _d = new Date();
+  const today = `${_d.getFullYear()}-${String(_d.getMonth() + 1).padStart(2, '0')}-${String(_d.getDate()).padStart(2, '0')}`;
   // Farm selection — drives all sub-sections
   const [selectedFarmId, setSelectedFarmId] = useState<string>('');
 
@@ -83,6 +83,9 @@ export function SupervisorAttendanceSection() {
     message?: string;
   }>({ status: null });
 
+  // Pending review state
+  const [reviewingId, setReviewingId] = useState<number | null>(null);
+
   // Data fetching
   const getWorkers = useCallback(() => apiService.getSupervisorWorkers(), []);
   const getFarms = useCallback(() => apiService.getFarms('supervisor'), []);
@@ -96,15 +99,24 @@ export function SupervisorAttendanceSection() {
   }, [selectedFarmId, filters]);
 
   const getTodayRecords = useCallback(() => {
-    const params: Record<string, any> = { start_date: today, end_date: today };
+    const d = new Date();
+    const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const params: Record<string, any> = { start_date: todayStr, end_date: todayStr };
     if (selectedFarmId) params.farm_id = Number(selectedFarmId);
     return apiService.attendance.getSupervisorAttendance(params);
   }, [selectedFarmId]);
+
+  const getPendingReview = useCallback(
+    () => apiService.attendance.getPendingReview(selectedFarmId ? Number(selectedFarmId) : undefined),
+    [selectedFarmId]
+  );
 
   const { data: workers, loading: loadingWorkers, refetch: refetchWorkers, setData: setWorkers } = useApi(getWorkers);
   const { data: farms, loading: loadingFarms } = useApi(getFarms);
   const { data: attendanceRecords, loading: loadingAttendance, refetch: refetchAttendance } = useApi(getAttendance);
   const { data: todayRecordsRaw, loading: loadingToday, refetch: refetchToday } = useApi(getTodayRecords);
+  const { data: pendingReviewRaw, loading: loadingPending, refetch: refetchPending } = useApi(getPendingReview);
+  const pendingReviews: any[] = Array.isArray(pendingReviewRaw) ? pendingReviewRaw : [];
 
   const todayRecords: any[] = Array.isArray(todayRecordsRaw) ? todayRecordsRaw : [];
   const stillCheckedIn = todayRecords.filter((r: any) => r.check_in_time && !r.check_out_time);
@@ -140,12 +152,12 @@ export function SupervisorAttendanceSection() {
         message: result.message,
       });
       const workerName = checkoutWorker.full_name || checkoutWorker.name;
-      if (result.success) {
+      if (verified) {
         toast.success(
           `${workerName} checked out${result.hours_worked != null ? ` — ${result.hours_worked.toFixed(1)}h worked` : ''}.`
         );
       } else {
-        toast.warning(result.message || `${workerName} checked out manually — face not matched.`);
+        toast.warning(result.message || `${workerName} checked out manually — supervisor review required.`);
       }
       refetchToday();
       refetchAttendance();
@@ -154,6 +166,9 @@ export function SupervisorAttendanceSection() {
       const msg = err?.response?.data?.detail || err?.message || 'Check-out failed';
       toast.error(msg);
       setCheckoutVerification({ status: 'failed', message: msg });
+      // Refresh even on error — the backend may have committed before the client timed out
+      refetchToday();
+      refetchAttendance();
     } finally {
       setCheckoutProcessing(false);
     }
@@ -176,6 +191,20 @@ export function SupervisorAttendanceSection() {
       toast.error(err?.response?.data?.detail || 'Failed to check out worker.');
     } finally {
       setCheckingOutId(null);
+    }
+  };
+
+  const handleReview = async (attendanceId: number, approved: boolean) => {
+    setReviewingId(attendanceId);
+    try {
+      await apiService.attendance.reviewAttendance(attendanceId, approved);
+      toast.success(approved ? 'Attendance approved — eligible for payroll.' : 'Attendance rejected.');
+      refetchPending();
+      refetchAttendance();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || 'Failed to review attendance record.');
+    } finally {
+      setReviewingId(null);
     }
   };
 
@@ -344,6 +373,15 @@ export function SupervisorAttendanceSection() {
             <PenLine className="w-4 h-4 shrink-0" />
             <span>Manual</span>
           </TabsTrigger>
+          <TabsTrigger value="review" className="flex flex-col sm:flex-row items-center gap-1 text-[10px] sm:text-sm flex-1 min-w-[56px] py-2 relative">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-yellow-500" />
+            <span>Review</span>
+            {pendingReviews.length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                {pendingReviews.length > 9 ? '9+' : pendingReviews.length}
+              </span>
+            )}
+          </TabsTrigger>
         </TabsList>
 
         {/* ── TODAY tab: per-worker check-in/out ── */}
@@ -362,7 +400,7 @@ export function SupervisorAttendanceSection() {
                 <WorkerAttendanceList
                   farmId={Number(selectedFarmId)}
                   workers={farmWorkers}
-                  onActionComplete={refetchAttendance}
+                  onActionComplete={() => { refetchAttendance(); refetchToday(); }}
                   onUploadPhotoClick={handleUploadPhotoClick}
                 />
               )}
@@ -686,6 +724,74 @@ export function SupervisorAttendanceSection() {
                     {savingManual ? 'Saving…' : 'Record Attendance'}
                   </Button>
                 </form>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── REVIEW tab: supervisor approves manual check-ins ── */}
+        <TabsContent value="review">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-yellow-500" />
+                Pending Review
+              </CardTitle>
+              <CardDescription>
+                Face verification failed on these check-ins. Approve or reject each record before payroll processes them.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingPending ? (
+                <div className="flex items-center justify-center py-8">
+                  <RefreshCw className="w-5 h-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : pendingReviews.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  No records pending review.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {pendingReviews.map((record: any) => {
+                    const workerName =
+                      (workers || []).find((w: Worker) => w.id === record.worker_id)?.name ||
+                      `Worker #${record.worker_id}`;
+                    return (
+                      <div
+                        key={record.id}
+                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 border rounded-lg bg-yellow-50 dark:bg-yellow-950/20"
+                      >
+                        <div className="space-y-0.5 text-sm">
+                          <p className="font-medium">{workerName}</p>
+                          <p className="text-muted-foreground">
+                            {record.date} &bull; {record.check_in_time ? new Date(record.check_in_time).toLocaleTimeString() : '—'}
+                          </p>
+                          {record.notes && (
+                            <p className="text-xs text-muted-foreground">{record.notes}</p>
+                          )}
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                          <button
+                            onClick={() => handleReview(record.id, true)}
+                            disabled={reviewingId === record.id}
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors"
+                          >
+                            <Check className="w-3 h-3" />
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => handleReview(record.id, false)}
+                            disabled={reviewingId === record.id}
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 transition-colors"
+                          >
+                            <X className="w-3 h-3" />
+                            Reject
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </CardContent>
           </Card>

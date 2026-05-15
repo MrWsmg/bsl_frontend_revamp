@@ -2,6 +2,12 @@ import { BaseApiService } from './base';
 import { AttendanceRecord, FaceVerificationResult } from '../../types';
 import type { AttendanceReportResponse, AttendanceResponse } from '../../types/farm-clerk';
 
+/** Returns today's date as YYYY-MM-DD in the browser's LOCAL timezone, not UTC. */
+function localDateString(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 export type AttendanceStatus = 'present' | 'absent' | 'late' | 'half_day' | 'leave' | 'sick';
 
 export interface CheckInParams {
@@ -60,7 +66,7 @@ export class AttendanceApiService extends BaseApiService {
     status = 'present',
     notes,
   }: ManualCheckInParams): Promise<AttendanceRecord> {
-    const today = new Date().toISOString().split('T')[0];
+    const today = localDateString();
     return this.post<AttendanceRecord>(`/workers/${worker_id}/check-in`, {
       farm_id,
       date: date || today,
@@ -109,7 +115,7 @@ export class AttendanceApiService extends BaseApiService {
    * Get today's attendance for a farm — reuses getSupervisorAttendance with today's date
    */
   async getTodayAttendance(farmId: number): Promise<AttendanceRecord[]> {
-    const today = new Date().toISOString().split('T')[0];
+    const today = localDateString();
     return this.getSupervisorAttendance({ farm_id: farmId, start_date: today, end_date: today });
   }
 
@@ -156,5 +162,23 @@ export class AttendanceApiService extends BaseApiService {
    */
   async deleteAttendance(attendanceId: number): Promise<void> {
     return this.delete<void>(`/supervisor/attendance/${attendanceId}`);
+  }
+
+  /**
+   * Records pending supervisor review (face failed, not yet approved/rejected)
+   * GET /supervisor/attendance/pending-review
+   */
+  async getPendingReview(farmId?: number): Promise<AttendanceRecord[]> {
+    return this.get<AttendanceRecord[]>('/supervisor/attendance/pending-review', farmId ? { farm_id: farmId } : undefined);
+  }
+
+  /**
+   * Approve or reject a manually recorded attendance
+   * POST /supervisor/attendance/{id}/review?approved=true|false
+   */
+  async reviewAttendance(attendanceId: number, approved: boolean, notes?: string): Promise<{ success: boolean; message: string; supervisor_approved: boolean }> {
+    const params = new URLSearchParams({ approved: String(approved) });
+    if (notes) params.set('notes', notes);
+    return this.post(`/supervisor/attendance/${attendanceId}/review?${params}`, {});
   }
 }

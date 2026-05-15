@@ -161,11 +161,12 @@ export const AttendanceCheckIn: React.FC<AttendanceCheckInProps> = ({ farms }) =
       });
       setShowSuccessDialog(true);
 
-      if (result.success) {
+      const faceVerified = result.face_verification_status === 'verified';
+      if (faceVerified) {
         resetForm();
         toast.success(`${result.worker_name || selectedWorker.name} verified and checked in`);
       } else {
-        toast.warning(result.message || 'Verification failed, manual check-in recorded');
+        toast.warning(result.message || 'Verification failed — check-in recorded as manual. Supervisor review required.');
       }
     } catch (error) {
       toast.error('Failed to process face verification');
@@ -436,7 +437,7 @@ export const AttendanceCheckIn: React.FC<AttendanceCheckInProps> = ({ farms }) =
                 {lastCheckIn.confidence !== undefined && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Confidence:</span>
-                    <span className="font-medium">{(lastCheckIn.confidence * 100).toFixed(1)}%</span>
+                    <span className="font-medium">{lastCheckIn.confidence.toFixed(1)}%</span>
                   </div>
                 )}
               </div>
