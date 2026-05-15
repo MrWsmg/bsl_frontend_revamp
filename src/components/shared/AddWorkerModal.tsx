@@ -567,7 +567,7 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && handleModalClose()}>
-        <DialogContent className="max-w-2xl max-h-[95vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[95vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {workerToEdit ? 'Edit Worker' : 'Add New Worker'}

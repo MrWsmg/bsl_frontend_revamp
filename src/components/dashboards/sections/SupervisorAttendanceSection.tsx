@@ -322,21 +322,27 @@ export function SupervisorAttendanceSection() {
 
       {/* Main tabs */}
       <Tabs defaultValue="workers">
-        <TabsList className="grid grid-cols-5 w-full">
-          <TabsTrigger value="workers" className="flex items-center gap-1.5 text-xs sm:text-sm">
-            <Users className="w-4 h-4" /> Today
+        <TabsList className="flex w-full overflow-x-auto gap-0.5 h-auto p-1">
+          <TabsTrigger value="workers" className="flex flex-col sm:flex-row items-center gap-1 text-[10px] sm:text-sm flex-1 min-w-[56px] py-2">
+            <Users className="w-4 h-4 shrink-0" />
+            <span>Today</span>
           </TabsTrigger>
-          <TabsTrigger value="checkedinout" className="flex items-center gap-1.5 text-xs sm:text-sm">
-            <LogOut className="w-4 h-4" /> Check In/Out
+          <TabsTrigger value="checkedinout" className="flex flex-col sm:flex-row items-center gap-1 text-[10px] sm:text-sm flex-1 min-w-[56px] py-2">
+            <LogOut className="w-4 h-4 shrink-0" />
+            <span className="hidden sm:inline">Check In/Out</span>
+            <span className="sm:hidden">In/Out</span>
           </TabsTrigger>
-          <TabsTrigger value="records" className="flex items-center gap-1.5 text-xs sm:text-sm">
-            <ClipboardList className="w-4 h-4" /> Records
+          <TabsTrigger value="records" className="flex flex-col sm:flex-row items-center gap-1 text-[10px] sm:text-sm flex-1 min-w-[56px] py-2">
+            <ClipboardList className="w-4 h-4 shrink-0" />
+            <span>Records</span>
           </TabsTrigger>
-          <TabsTrigger value="report" className="flex items-center gap-1.5 text-xs sm:text-sm">
-            <BarChart3 className="w-4 h-4" /> Report
+          <TabsTrigger value="report" className="flex flex-col sm:flex-row items-center gap-1 text-[10px] sm:text-sm flex-1 min-w-[56px] py-2">
+            <BarChart3 className="w-4 h-4 shrink-0" />
+            <span>Report</span>
           </TabsTrigger>
-          <TabsTrigger value="manual" className="flex items-center gap-1.5 text-xs sm:text-sm">
-            <PenLine className="w-4 h-4" /> Manual
+          <TabsTrigger value="manual" className="flex flex-col sm:flex-row items-center gap-1 text-[10px] sm:text-sm flex-1 min-w-[56px] py-2">
+            <PenLine className="w-4 h-4 shrink-0" />
+            <span>Manual</span>
           </TabsTrigger>
         </TabsList>
 

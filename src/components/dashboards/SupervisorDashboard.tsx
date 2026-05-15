@@ -374,7 +374,7 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
               <span>No tasks assigned yet.</span>
             </div>
           ) : (
-            <div className="rounded-lg border border-border/60 overflow-hidden">
+            <div className="overflow-x-auto rounded-lg border border-border/60">
               <table className="w-full text-sm">
                 <thead className="bg-muted/40">
                   <tr>
@@ -425,7 +425,7 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
               <span>No item requests yet.</span>
             </div>
           ) : (
-            <div className="rounded-lg border border-border/60 overflow-hidden">
+            <div className="overflow-x-auto rounded-lg border border-border/60">
               <table className="w-full text-sm">
                 <thead className="bg-muted/40">
                   <tr>
