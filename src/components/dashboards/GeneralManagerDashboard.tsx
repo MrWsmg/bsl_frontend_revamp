@@ -44,6 +44,7 @@ import {
   ActivitiesSection,
   StockCsvImportSection,
   FieldApplicationSection,
+  MandayBudgetSection,
 } from './sections';
 
 // ── Sidebar definition ────────────────────────────────────────────────────────
@@ -112,6 +113,7 @@ const GM_SIDEBAR = [
   { id: 'activities',        label: 'Activities',        icon: Building2 },
   { id: 'field-applications',label: 'Field Applications',icon: Leaf      },
   { id: 'csv-import',        label: 'CSV Import',        icon: Upload    },
+  { id: 'manday',            label: 'Manday Budget',     icon: TrendingUp },
 ];
 
 type GmTab =
@@ -122,7 +124,7 @@ type GmTab =
   | 'picking'  | 'kpi' | 'hr'
   | 'workers'  | 'calendar' | 'users' | 'activities'
   | 'budget-manager' | 'budget-summary' | 'budget-tracking'
-  | 'field-applications' | 'csv-import';
+  | 'field-applications' | 'csv-import' | 'manday';
 
 interface GeneralManagerDashboardProps {
   user: User;
@@ -251,6 +253,9 @@ export const GeneralManagerDashboard: React.FC<GeneralManagerDashboardProps> = (
         </div>
         <div className={show('csv-import')}>
           {mounted('csv-import') && <StockCsvImportSection />}
+        </div>
+        <div className={show('manday')}>
+          {mounted('manday') && <MandayBudgetSection />}
         </div>
       </Layout>
     </ErrorBoundary>

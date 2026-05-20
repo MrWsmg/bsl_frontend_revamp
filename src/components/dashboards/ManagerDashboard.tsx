@@ -47,6 +47,7 @@ import {
   SharedBudgetSummarySection,
   SharedBudgetTrackingSection,
   FieldApplicationSection,
+  MandayBudgetSection,
 } from './sections';
 import { ManagerInterFarmSection } from './sections/ManagerInterFarmSection';
 
@@ -87,6 +88,7 @@ const TAB_COMPONENTS: Record<string, React.FC> = {
   harvest:         ManagerHarvestSection,
   warnings:        ManagerWarningsSection,
   store:           ManagerStoreSection,
+  manday:          MandayBudgetSection,
 };
 
 const PROCUREMENT_GROUP = {
@@ -148,6 +150,7 @@ const MANAGER_SIDEBAR = (() => {
   result.push({ id: 'blocks',             label: 'Blocks',             icon: LayoutGrid });
   result.push({ id: 'calendar',           label: 'Calendar',           icon: Calendar   });
   result.push({ id: 'field-applications', label: 'Field Applications', icon: Leaf       });
+  result.push({ id: 'manday',             label: 'Manday Budget',      icon: TrendingUp });
   return result;
 })();
 
@@ -195,6 +198,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ user, onLogo
         <div className={activeTab === 'budget-summary'  ? '' : 'hidden'}>{mountedTabs.has('budget-summary')  && <SharedBudgetSummarySection   userRole={ROLE} />}</div>
         <div className={activeTab === 'budget-tracking'     ? '' : 'hidden'}>{mountedTabs.has('budget-tracking')     && <SharedBudgetTrackingSection  userRole={ROLE} />}</div>
         <div className={activeTab === 'field-applications'  ? '' : 'hidden'}>{mountedTabs.has('field-applications')  && <FieldApplicationSection userRole={ROLE} />}</div>
+        <div className={activeTab === 'manday'             ? '' : 'hidden'}>{mountedTabs.has('manday')             && <MandayBudgetSection />}</div>
       </Layout>
     </ErrorBoundary>
   );

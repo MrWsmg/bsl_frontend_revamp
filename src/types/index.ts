@@ -46,6 +46,9 @@ export interface Worker {
   full_name?: string;
   phone?: string;
   worker_type: 'permanent' | 'contract';
+  gender?: 'male' | 'female' | 'other' | null;
+  origin?: string | null;
+  home_farm_id?: number | null;
   skills?: string;
   is_available?: boolean;
   is_active?: boolean;

@@ -109,6 +109,9 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
         ? new Date(workerToEdit.birth_date).toISOString().split('T')[0]
         : '',
       worker_type: workerToEdit?.worker_type || 'contract',
+      gender: workerToEdit?.gender || undefined,
+      origin: workerToEdit?.origin || '',
+      home_farm_id: workerToEdit?.home_farm_id || undefined,
       skills: workerToEdit?.skills || '',
       is_active: workerToEdit?.is_active !== undefined ? workerToEdit.is_active : true,
       farm_assignments: getDefaultFarmAssignments(),
@@ -388,6 +391,9 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
           ? new Date(workerToEdit.birth_date).toISOString().split('T')[0]
           : '',
         worker_type: workerToEdit?.worker_type || 'contract',
+        gender: workerToEdit?.gender || undefined,
+        origin: workerToEdit?.origin || '',
+        home_farm_id: workerToEdit?.home_farm_id || undefined,
         skills: workerToEdit?.skills || '',
         is_active: workerToEdit?.is_active !== undefined ? workerToEdit.is_active : true,
         farm_assignments: getDefaultFarmAssignments(),
@@ -427,6 +433,9 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
         phone: data.phone || null,
         birth_date: data.birth_date || null,
         worker_type: data.worker_type,
+        gender: data.gender || null,
+        origin: data.origin || null,
+        home_farm_id: data.home_farm_id || null,
         skills: data.skills || null,
         is_active: data.is_active,
         farm_assignments: JSON.stringify(data.farm_assignments),
@@ -681,6 +690,43 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
                   )}
                 />
 
+                <FormField
+                  control={form.control}
+                  name="gender"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Gender</FormLabel>
+                      <Select value={field.value || ''} onValueChange={(val) => field.onChange(val || undefined)}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select gender" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="male">Male</SelectItem>
+                          <SelectItem value="female">Female</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="origin"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Origin / Hometown</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="e.g. Narumu, Meru, Arusha" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 <FormItem>
                   <FormLabel>Status</FormLabel>
                   <label className="flex items-center mt-2 cursor-pointer">
@@ -693,11 +739,54 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
                 </FormItem>
               </fieldset>
 
+              {/* Home Farm — permanent workers only */}
+              {form.watch('worker_type') === 'permanent' && (
+                <FormField
+                  control={form.control}
+                  name="home_farm_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Home Farm <span className="text-red-500">*</span>
+                      </FormLabel>
+                      <Select
+                        value={field.value ? String(field.value) : ''}
+                        onValueChange={(val) => field.onChange(val ? Number(val) : undefined)}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select home farm" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {(farms as any[] || []).map((farm: any) => {
+                            const farmId = farm.id || farm.farm_id;
+                            return (
+                              <SelectItem key={farmId} value={String(farmId)}>
+                                {farm.name}
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        The farm this permanent worker belongs to.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
               {/* Farm Assignments */}
               <fieldset>
-                <legend className="text-sm font-medium mb-2">Farm Assignments</legend>
+                <legend className="text-sm font-medium mb-2">
+                  {form.watch('worker_type') === 'permanent' ? 'Additional / Temporary Farm Assignments' : 'Farm Assignments'}
+                </legend>
                 <p className="text-xs text-muted-foreground mb-3">
-                  Select the farms this worker will be assigned to.
+                  {form.watch('worker_type') === 'permanent'
+                    ? 'Other farms this permanent worker can be temporarily deployed to.'
+                    : 'Select the farms this contract worker will be assigned to.'}
                 </p>
                 {farms && farms.length > 0 ? (
                   <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto border border-gray-200 rounded-md p-3 list-none m-0">

@@ -22,7 +22,8 @@ import { Loader2, AlertCircle, Leaf } from 'lucide-react';
 
 export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) {
   const router = useRouter();
-  const { login, loading, error, clearError } = useAuth();
+  const { login, error, clearError } = useAuth();
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -33,12 +34,16 @@ export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) 
   });
 
   const onSubmit = async (data: LoginFormData) => {
+    if (isSubmitting) return;
     clearError();
+    setIsSubmitting(true);
     try {
       await login(data);
       router.push('/dashboard');
     } catch (err) {
       // Error handled by hook
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -106,8 +111,8 @@ export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) 
                     )}
                   />
 
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? (
+                  <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    {isSubmitting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Signing in...

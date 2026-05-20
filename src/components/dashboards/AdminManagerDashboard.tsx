@@ -38,6 +38,7 @@ import {
   AdminAuditLogsSection,
   StockCsvImportSection,
   FieldApplicationSection,
+  MandayBudgetSection,
 } from './sections';
 
 // ── Formatting helpers ────────────────────────────────────────────────────
@@ -506,7 +507,7 @@ type MdTab =
   | 'weekly-sheet' | 'payment-summary' | 'payslip'
   | 'calendar' | 'users' | 'activities' | 'audit-logs'
   | 'budget-manager' | 'budget-summary' | 'budget-tracking'
-  | 'field-applications' | 'csv-import';
+  | 'field-applications' | 'csv-import' | 'manday';
 
 interface AdminManagerDashboardProps {
   user: User;
@@ -566,6 +567,7 @@ const MD_SIDEBAR = [
   { id: 'audit-logs',          label: 'Audit Logs',         icon: ShieldCheck },
   { id: 'field-applications',  label: 'Field Applications', icon: Leaf        },
   { id: 'csv-import',          label: 'CSV Import',         icon: Upload      },
+  { id: 'manday',              label: 'Manday Budget',      icon: TrendingUp  },
 ];
 
 const AdminManagerDashboard = ({ user, onLogout }: AdminManagerDashboardProps) => {
@@ -664,6 +666,9 @@ const AdminManagerDashboard = ({ user, onLogout }: AdminManagerDashboardProps) =
         </div>
         <div className={activeTab !== 'csv-import' ? 'hidden' : ''}>
           {mountedTabs.current.has('csv-import') && <StockCsvImportSection />}
+        </div>
+        <div className={activeTab !== 'manday' ? 'hidden' : ''}>
+          {mountedTabs.current.has('manday') && <MandayBudgetSection />}
         </div>
       </Layout>
     </ErrorBoundary>

@@ -27,6 +27,7 @@ export {
   addWorkerSchema,
   userRoles,
   workerTypes,
+  genders,
   paymentMethods,
   type AddUserFormData,
   type AddWorkerFormData,

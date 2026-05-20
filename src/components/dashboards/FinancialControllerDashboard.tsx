@@ -27,6 +27,7 @@ import {
   ManagerWorkersSection,
   ManagerReportsSection,
   ManagerWarningsSection,
+  MandayBudgetSection,
 } from './sections';
 import apiService from '../../services/api';
 import { Card, CardContent } from '@/components/ui/card';
@@ -50,7 +51,8 @@ type Tab =
   | 'budget-tracking'
   | 'workers'
   | 'reports'
-  | 'warnings';
+  | 'warnings'
+  | 'manday';
 
 interface Props {
   user: User;
@@ -86,6 +88,7 @@ const SIDEBAR_ITEMS = [
   { id: 'workers',  label: 'Workers',   icon: Users        },
   { id: 'reports',  label: 'Reports',   icon: BarChart2    },
   { id: 'warnings', label: 'Warnings',  icon: AlertTriangle },
+  { id: 'manday',   label: 'Manday Budget', icon: TrendingUp },
   { id: 'calendar', label: 'Calendar',  icon: CalendarDays },
   {
     id: 'budgets-group', label: 'Budgets', icon: BarChart3,
@@ -171,6 +174,9 @@ export const FinancialControllerDashboard: React.FC<Props> = ({ user, onLogout }
           </div>
           <div hidden={activeTab !== 'budget-tracking'}>
             {mountedTabs.current.has('budget-tracking') && <SharedBudgetTrackingSection userRole="financial_controller" />}
+          </div>
+          <div hidden={activeTab !== 'manday'}>
+            {mountedTabs.current.has('manday') && <MandayBudgetSection />}
           </div>
         </div>
       </Layout>

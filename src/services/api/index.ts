@@ -28,6 +28,7 @@ import { CsvImportApiService, CsvTemplateName } from './csv-import';
 import { StoreCardexApiService } from './store-cardex';
 import { CherryParchmentApiService } from './cherry-parchment';
 import { FieldApplicationApiService } from './field-applications';
+import { MandayApiService } from './manday';
 
 export class ApiService extends BaseApiService {
   public auth: AuthApiService;
@@ -58,6 +59,7 @@ export class ApiService extends BaseApiService {
   public storeCardex: StoreCardexApiService;
   public cherryParchment: CherryParchmentApiService;
   public fieldApplications: FieldApplicationApiService;
+  public manday: MandayApiService;
 
   constructor() {
     super();
@@ -89,6 +91,7 @@ export class ApiService extends BaseApiService {
     this.storeCardex = new StoreCardexApiService();
     this.cherryParchment = new CherryParchmentApiService();
     this.fieldApplications = new FieldApplicationApiService();
+    this.manday = new MandayApiService();
   }
 
   // Legacy methods for backward compatibility

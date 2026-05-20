@@ -87,3 +87,4 @@ export { FertilizerProgramsSection } from './FertilizerProgramsSection';
 export { PayrollUploadSection } from './PayrollUploadSection';
 export { StockCherryParchmentSection } from './StockCherryParchmentSection';
 export { FieldApplicationSection } from './FieldApplicationSection';
+export { MandayBudgetSection } from './MandayBudgetSection';
