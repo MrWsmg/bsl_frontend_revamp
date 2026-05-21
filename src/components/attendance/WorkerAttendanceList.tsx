@@ -1,13 +1,21 @@
 "use client";
 
-import { useState, useCallback, useEffect } from 'react';
-import { Camera, Upload, Loader2, CheckCircle2, LogIn, LogOut, UserCheck } from 'lucide-react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { Camera, Upload, Loader2, CheckCircle2, LogIn, LogOut, UserCheck, MapPin, MapPinOff, Navigation } from 'lucide-react';
 import { Worker, AttendanceRecord } from '../../types';
 import apiService from '../../services/api';
 import { toast } from 'sonner';
 import { FaceVerificationCapture } from './FaceVerificationCapture';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -33,6 +41,14 @@ interface WorkerWithStatus extends Worker {
   hoursWorked?: number;
 }
 
+interface GpsState {
+  latitude: number | null;
+  longitude: number | null;
+  accuracy: number | null;
+  status: 'idle' | 'acquiring' | 'ok' | 'error';
+  errorMsg?: string;
+}
+
 export function WorkerAttendanceList({
   farmId,
   workers,
@@ -50,6 +66,14 @@ export function WorkerAttendanceList({
     message?: string;
   }>({ status: null });
 
+  // GPS state
+  const [gps, setGps] = useState<GpsState>({ latitude: null, longitude: null, accuracy: null, status: 'idle' });
+  const gpsWatchRef = useRef<number | null>(null);
+
+  // Block selector
+  const [blocks, setBlocks] = useState<any[]>([]);
+  const [selectedBlockId, setSelectedBlockId] = useState<string>('');
+
   const loadTodayAttendance = useCallback(async () => {
     setLoadingToday(true);
     try {
@@ -65,6 +89,45 @@ export function WorkerAttendanceList({
   useEffect(() => {
     loadTodayAttendance();
   }, [loadTodayAttendance]);
+
+  // Fetch blocks for this farm
+  useEffect(() => {
+    apiService.getBlocksForFarm(farmId)
+      .then((b: any[]) => setBlocks(b || []))
+      .catch(() => setBlocks([]));
+  }, [farmId]);
+
+  // Start GPS watch when dialog opens, stop when it closes
+  const startGps = useCallback(() => {
+    if (!navigator.geolocation) {
+      setGps({ latitude: null, longitude: null, accuracy: null, status: 'error', errorMsg: 'GPS not supported on this device' });
+      return;
+    }
+    setGps({ latitude: null, longitude: null, accuracy: null, status: 'acquiring' });
+    const id = navigator.geolocation.watchPosition(
+      (pos) => {
+        setGps({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+          status: 'ok',
+        });
+      },
+      (err) => {
+        setGps({ latitude: null, longitude: null, accuracy: null, status: 'error', errorMsg: err.message });
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+    gpsWatchRef.current = id;
+  }, []);
+
+  const stopGps = useCallback(() => {
+    if (gpsWatchRef.current !== null) {
+      navigator.geolocation?.clearWatch(gpsWatchRef.current);
+      gpsWatchRef.current = null;
+    }
+    setGps({ latitude: null, longitude: null, accuracy: null, status: 'idle' });
+  }, []);
 
   const workersWithStatus: WorkerWithStatus[] = workers.map((worker) => {
     const record = todayRecords.find((r) => r.worker_id === worker.id);
@@ -88,11 +151,15 @@ export function WorkerAttendanceList({
     setActiveWorker(worker);
     setCaptureMode(mode);
     setVerificationResult({ status: null });
+    setSelectedBlockId('');
+    startGps();
   };
 
   const closeCapture = () => {
     setActiveWorker(null);
     setVerificationResult({ status: null });
+    setSelectedBlockId('');
+    stopGps();
   };
 
   const handleManualAction = async () => {
@@ -134,13 +201,18 @@ export function WorkerAttendanceList({
     setVerificationResult({ status: null });
     try {
       const workerName = activeWorker.full_name || activeWorker.name;
+      const gpsFields = gps.status === 'ok' && gps.latitude != null
+        ? { latitude: gps.latitude, longitude: gps.longitude ?? undefined, gps_accuracy: gps.accuracy ?? undefined }
+        : {};
 
       if (captureMode === 'checkin') {
         const result = await apiService.attendance.checkInWithFaceVerification({
           worker_id: activeWorker.id,
           farm_id: farmId,
+          block_id: selectedBlockId ? Number(selectedBlockId) : undefined,
           file,
           status: 'present',
+          ...gpsFields,
         });
         if (result.success) {
           const verified = result.face_verification_status === 'verified';
@@ -155,7 +227,6 @@ export function WorkerAttendanceList({
             toast.warning(`${workerName} checked in as manual (face not matched).`);
           }
         } else {
-          // success: false — HTTP 200, attendance still recorded as manual fallback
           setVerificationResult({ status: 'failed', message: result.message });
           toast.warning(result.message || `${workerName} checked in manually — face not matched.`);
         }
@@ -164,6 +235,7 @@ export function WorkerAttendanceList({
           worker_id: activeWorker.id,
           farm_id: farmId,
           file,
+          ...gpsFields,
         });
         if (result.success) {
           const verified = result.face_verification_status === 'verified';
@@ -176,7 +248,6 @@ export function WorkerAttendanceList({
             `${workerName} checked out${result.hours_worked != null ? ` — ${result.hours_worked.toFixed(1)}h worked` : ''}.`
           );
         } else {
-          // success: false — HTTP 200, checkout still recorded as manual fallback
           setVerificationResult({ status: 'failed', message: result.message });
           toast.warning(result.message || `${workerName} checked out manually — face not matched.`);
         }
@@ -335,6 +406,59 @@ export function WorkerAttendanceList({
 
           {activeWorker && (
             <div className="space-y-3">
+              {/* GPS status strip */}
+              <div className={`flex items-center gap-2 rounded-md px-3 py-2 text-xs font-medium ${
+                gps.status === 'ok'
+                  ? gps.accuracy != null && gps.accuracy <= 20
+                    ? 'bg-green-50 text-green-800'
+                    : gps.accuracy != null && gps.accuracy <= 50
+                      ? 'bg-yellow-50 text-yellow-800'
+                      : 'bg-orange-50 text-orange-800'
+                  : gps.status === 'acquiring'
+                    ? 'bg-blue-50 text-blue-700'
+                    : gps.status === 'error'
+                      ? 'bg-red-50 text-red-700'
+                      : 'bg-gray-50 text-gray-500'
+              }`}>
+                {gps.status === 'acquiring' && <Navigation className="w-3.5 h-3.5 animate-pulse shrink-0" />}
+                {gps.status === 'ok' && <MapPin className="w-3.5 h-3.5 shrink-0" />}
+                {(gps.status === 'error' || gps.status === 'idle') && <MapPinOff className="w-3.5 h-3.5 shrink-0" />}
+                <span>
+                  {gps.status === 'acquiring' && 'Acquiring GPS location…'}
+                  {gps.status === 'ok' && gps.accuracy != null && (
+                    gps.accuracy <= 20 ? `GPS: ±${gps.accuracy.toFixed(0)}m (excellent)`
+                    : gps.accuracy <= 50 ? `GPS: ±${gps.accuracy.toFixed(0)}m (good)`
+                    : `GPS: ±${gps.accuracy.toFixed(0)}m (weak signal)`
+                  )}
+                  {gps.status === 'error' && `GPS unavailable — ${gps.errorMsg || 'check permissions'}`}
+                  {gps.status === 'idle' && 'GPS not started'}
+                </span>
+              </div>
+
+              {/* Block selector (check-in only) */}
+              {captureMode === 'checkin' && blocks.length > 0 && (
+                <div>
+                  <Label className="text-xs font-medium text-gray-700 mb-1 block">
+                    Block <span className="text-gray-400 font-normal">(optional)</span>
+                  </Label>
+                  <Select
+                    value={selectedBlockId || undefined}
+                    onValueChange={setSelectedBlockId}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Select block…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {blocks.map((b: any) => (
+                        <SelectItem key={b.id} value={String(b.id)}>
+                          {b.name}{b.code ? ` (${b.code})` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <FaceVerificationCapture
                 worker={activeWorker}
                 onCapture={handlePhotoCapture}

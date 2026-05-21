@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect } from 'react';
-import { Upload, RefreshCw, Filter, BarChart3, Users, ClipboardList, PenLine, LogOut, Clock, AlertTriangle, Check, X } from 'lucide-react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { Upload, RefreshCw, Filter, BarChart3, Users, ClipboardList, PenLine, LogOut, Clock, AlertTriangle, Check, X, MapPin, MapPinOff, Navigation } from 'lucide-react';
 import { WorkerAttendanceList } from '../../attendance/WorkerAttendanceList';
 import { WorkerPhotoUploadModal } from '../../attendance/WorkerPhotoUploadModal';
 import { AttendanceRecordsTable } from '../../attendance/AttendanceRecordsTable';
@@ -86,6 +86,32 @@ export function SupervisorAttendanceSection() {
   // Pending review state
   const [reviewingId, setReviewingId] = useState<number | null>(null);
 
+  // GPS for checkout dialog
+  const [checkoutGps, setCheckoutGps] = useState<{ latitude: number | null; longitude: number | null; accuracy: number | null; status: 'idle' | 'acquiring' | 'ok' | 'error'; errorMsg?: string }>({ latitude: null, longitude: null, accuracy: null, status: 'idle' });
+  const checkoutGpsWatchRef = useRef<number | null>(null);
+
+  const startCheckoutGps = useCallback(() => {
+    if (!navigator.geolocation) {
+      setCheckoutGps({ latitude: null, longitude: null, accuracy: null, status: 'error', errorMsg: 'GPS not supported' });
+      return;
+    }
+    setCheckoutGps({ latitude: null, longitude: null, accuracy: null, status: 'acquiring' });
+    const id = navigator.geolocation.watchPosition(
+      (pos) => setCheckoutGps({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, accuracy: pos.coords.accuracy, status: 'ok' }),
+      (err) => setCheckoutGps({ latitude: null, longitude: null, accuracy: null, status: 'error', errorMsg: err.message }),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+    checkoutGpsWatchRef.current = id;
+  }, []);
+
+  const stopCheckoutGps = useCallback(() => {
+    if (checkoutGpsWatchRef.current !== null) {
+      navigator.geolocation?.clearWatch(checkoutGpsWatchRef.current);
+      checkoutGpsWatchRef.current = null;
+    }
+    setCheckoutGps({ latitude: null, longitude: null, accuracy: null, status: 'idle' });
+  }, []);
+
   // Data fetching
   const getWorkers = useCallback(() => apiService.getSupervisorWorkers(), []);
   const getFarms = useCallback(() => apiService.getFarms('supervisor'), []);
@@ -127,12 +153,14 @@ export function SupervisorAttendanceSection() {
     setCheckoutRecord(record);
     setCheckoutWorker(worker);
     setCheckoutVerification({ status: null });
+    startCheckoutGps();
   };
 
   const closeCheckoutDialog = () => {
     setCheckoutRecord(null);
     setCheckoutWorker(null);
     setCheckoutVerification({ status: null });
+    stopCheckoutGps();
   };
 
   const handleFaceCheckout = async (file: File) => {
@@ -140,10 +168,14 @@ export function SupervisorAttendanceSection() {
     setCheckoutProcessing(true);
     setCheckoutVerification({ status: null });
     try {
+      const gpsFields = checkoutGps.status === 'ok' && checkoutGps.latitude != null
+        ? { latitude: checkoutGps.latitude, longitude: checkoutGps.longitude ?? undefined, gps_accuracy: checkoutGps.accuracy ?? undefined }
+        : {};
       const result = await apiService.attendance.checkOutWithFaceVerification({
         worker_id: checkoutWorker.id,
         farm_id: Number(selectedFarmId),
         file,
+        ...gpsFields,
       });
       const verified = result.face_verification_status === 'verified';
       setCheckoutVerification({
@@ -817,6 +849,31 @@ export function SupervisorAttendanceSection() {
 
           {checkoutRecord && (
             <div className="space-y-3">
+              {/* GPS status strip */}
+              <div className={`flex items-center gap-2 rounded-md px-3 py-2 text-xs font-medium ${
+                checkoutGps.status === 'ok'
+                  ? checkoutGps.accuracy != null && checkoutGps.accuracy <= 20 ? 'bg-green-50 text-green-800'
+                    : checkoutGps.accuracy != null && checkoutGps.accuracy <= 50 ? 'bg-yellow-50 text-yellow-800'
+                    : 'bg-orange-50 text-orange-800'
+                  : checkoutGps.status === 'acquiring' ? 'bg-blue-50 text-blue-700'
+                  : checkoutGps.status === 'error' ? 'bg-red-50 text-red-700'
+                  : 'bg-gray-50 text-gray-500'
+              }`}>
+                {checkoutGps.status === 'acquiring' && <Navigation className="w-3.5 h-3.5 animate-pulse shrink-0" />}
+                {checkoutGps.status === 'ok' && <MapPin className="w-3.5 h-3.5 shrink-0" />}
+                {(checkoutGps.status === 'error' || checkoutGps.status === 'idle') && <MapPinOff className="w-3.5 h-3.5 shrink-0" />}
+                <span>
+                  {checkoutGps.status === 'acquiring' && 'Acquiring GPS location…'}
+                  {checkoutGps.status === 'ok' && checkoutGps.accuracy != null && (
+                    checkoutGps.accuracy <= 20 ? `GPS: ±${checkoutGps.accuracy.toFixed(0)}m (excellent)`
+                    : checkoutGps.accuracy <= 50 ? `GPS: ±${checkoutGps.accuracy.toFixed(0)}m (good)`
+                    : `GPS: ±${checkoutGps.accuracy.toFixed(0)}m (weak signal)`
+                  )}
+                  {checkoutGps.status === 'error' && `GPS unavailable — ${checkoutGps.errorMsg || 'check permissions'}`}
+                  {checkoutGps.status === 'idle' && 'GPS not started'}
+                </span>
+              </div>
+
               {checkoutWorker ? (
                 <FaceVerificationCapture
                   worker={checkoutWorker}

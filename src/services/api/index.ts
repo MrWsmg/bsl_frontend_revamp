@@ -403,6 +403,11 @@ export class ApiService extends BaseApiService {
     return this.farms.uploadBlocksCsv(file);
   }
 
+  async getFarmLocation(farmId: number) { return this.farms.getFarmLocation(farmId); }
+  async setFarmLocation(farmId: number, data: { center_lat: number; center_lon: number; geofence_radius_m?: number }) { return this.farms.setFarmLocation(farmId, data); }
+  async getBlockLocation(blockId: number) { return this.farms.getBlockLocation(blockId); }
+  async setBlockLocation(blockId: number, data: { center_lat: number; center_lon: number; geofence_radius_m?: number }) { return this.farms.setBlockLocation(blockId, data); }
+
   async getManagerFarms() {
     return this.farms.getManagerFarms();
   }

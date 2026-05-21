@@ -82,5 +82,23 @@ export class FarmsApiService extends BaseApiService {
   async uploadBlocksCsv(file: File): Promise<any> {
     return this.uploadFile<any>('/blocks/upload-csv', file, 'file');
   }
+
+  // ── GPS location management ──────────────────────────────────────────────
+
+  async getFarmLocation(farmId: number): Promise<any> {
+    return this.get<any>(`/farms/${farmId}/location`);
+  }
+
+  async setFarmLocation(farmId: number, data: { center_lat: number; center_lon: number; geofence_radius_m?: number }): Promise<any> {
+    return this.patch<any>(`/farms/${farmId}/location`, data);
+  }
+
+  async getBlockLocation(blockId: number): Promise<any> {
+    return this.get<any>(`/blocks/${blockId}/location`);
+  }
+
+  async setBlockLocation(blockId: number, data: { center_lat: number; center_lon: number; geofence_radius_m?: number }): Promise<any> {
+    return this.patch<any>(`/blocks/${blockId}/location`, data);
+  }
 }
 
