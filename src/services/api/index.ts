@@ -406,7 +406,15 @@ export class ApiService extends BaseApiService {
   async getFarmLocation(farmId: number) { return this.farms.getFarmLocation(farmId); }
   async setFarmLocation(farmId: number, data: { center_lat: number; center_lon: number; geofence_radius_m?: number }) { return this.farms.setFarmLocation(farmId, data); }
   async getBlockLocation(blockId: number) { return this.farms.getBlockLocation(blockId); }
-  async setBlockLocation(blockId: number, data: { center_lat: number; center_lon: number; geofence_radius_m?: number }) { return this.farms.setBlockLocation(blockId, data); }
+  async setBlockLocation(
+    blockId: number,
+    data: {
+      center_lat: number;
+      center_lon: number;
+      geofence_radius_m?: number;
+      boundary_polygon?: number[][] | null;
+    },
+  ) { return this.farms.setBlockLocation(blockId, data); }
 
   async getManagerFarms() {
     return this.farms.getManagerFarms();

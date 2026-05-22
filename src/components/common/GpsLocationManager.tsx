@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from 'react';
-import { MapPin, Navigation, ExternalLink, Save, RefreshCw, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { MapPin, Navigation, ExternalLink, Save, RefreshCw, CheckCircle2, AlertTriangle, Pentagon, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,6 +13,8 @@ export interface LocationData {
   center_lon: number | null;
   geofence_radius_m: number;
   has_location?: boolean;
+  has_polygon?: boolean;
+  boundary_polygon?: number[][] | null;
 }
 
 interface GpsLocationManagerProps {
@@ -20,7 +22,14 @@ interface GpsLocationManagerProps {
   sublabel?: string;
   current: LocationData | null;
   defaultRadius?: number;
-  onSave: (data: { center_lat: number; center_lon: number; geofence_radius_m: number }) => Promise<void>;
+  /** When true, expose polygon editor (block-level only). */
+  supportsPolygon?: boolean;
+  onSave: (data: {
+    center_lat: number;
+    center_lon: number;
+    geofence_radius_m: number;
+    boundary_polygon?: number[][] | null;
+  }) => Promise<void>;
   loading?: boolean;
 }
 
@@ -29,6 +38,7 @@ export function GpsLocationManager({
   sublabel,
   current,
   defaultRadius = 500,
+  supportsPolygon = false,
   onSave,
   loading = false,
 }: GpsLocationManagerProps) {
@@ -37,6 +47,28 @@ export function GpsLocationManager({
   const [radius, setRadius] = useState(String(current?.geofence_radius_m ?? defaultRadius));
   const [acquiring, setAcquiring] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [polygonText, setPolygonText] = useState(
+    current?.boundary_polygon ? JSON.stringify(current.boundary_polygon) : '',
+  );
+  const [polygonEditorOpen, setPolygonEditorOpen] = useState(false);
+
+  const parsePolygon = (raw: string): number[][] | null | 'invalid' => {
+    const trimmed = raw.trim();
+    if (!trimmed) return null;
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (!Array.isArray(parsed) || parsed.length < 3) return 'invalid';
+      for (const v of parsed) {
+        if (!Array.isArray(v) || v.length !== 2) return 'invalid';
+        const [la, lo] = v;
+        if (typeof la !== 'number' || typeof lo !== 'number') return 'invalid';
+        if (la < -90 || la > 90 || lo < -180 || lo > 180) return 'invalid';
+      }
+      return parsed as number[][];
+    } catch {
+      return 'invalid';
+    }
+  };
 
   const useCurrentPosition = useCallback(() => {
     if (!navigator.geolocation) {
@@ -71,15 +103,35 @@ export function GpsLocationManager({
       toast.error('Coordinates out of range');
       return;
     }
+    let polygonPayload: number[][] | null | undefined;
+    if (supportsPolygon) {
+      const parsed = parsePolygon(polygonText);
+      if (parsed === 'invalid') {
+        toast.error('Polygon must be JSON [[lat,lon],…] with ≥ 3 valid points');
+        return;
+      }
+      polygonPayload = parsed; // null clears, array sets
+    }
     setSaving(true);
     try {
-      await onSave({ center_lat: latN, center_lon: lonN, geofence_radius_m: isNaN(radN) ? defaultRadius : radN });
+      await onSave({
+        center_lat: latN,
+        center_lon: lonN,
+        geofence_radius_m: isNaN(radN) ? defaultRadius : radN,
+        ...(supportsPolygon ? { boundary_polygon: polygonPayload } : {}),
+      });
       toast.success(`${label} location saved`);
     } catch (err: any) {
       toast.error(err?.response?.data?.detail || err?.message || 'Save failed');
     } finally {
       setSaving(false);
     }
+  };
+
+  const clearPolygon = () => {
+    setPolygonText('');
+    setPolygonEditorOpen(true);
+    toast.info('Polygon cleared — click Save to apply');
   };
 
   const hasLocation = current?.center_lat != null;
@@ -116,7 +168,15 @@ export function GpsLocationManager({
             <span className="font-mono">{current!.center_lat?.toFixed(6)}, {current!.center_lon?.toFixed(6)}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span>Radius: <span className="font-medium">{current!.geofence_radius_m}m</span></span>
+            <span>
+              Radius: <span className="font-medium">{current!.geofence_radius_m}m</span>
+              {supportsPolygon && current?.has_polygon && (
+                <span className="ml-2 inline-flex items-center gap-1 text-emerald-700 font-medium">
+                  <Pentagon className="w-3 h-3" />
+                  Polygon active ({current.boundary_polygon?.length ?? '?'} pts) — overrides radius
+                </span>
+              )}
+            </span>
             {mapsUrl && (
               <a
                 href={mapsUrl}
@@ -168,6 +228,53 @@ export function GpsLocationManager({
           />
         </div>
       </div>
+
+      {/* Polygon editor (block-level only) */}
+      {supportsPolygon && (
+        <div className="border border-dashed border-gray-300 rounded-lg p-3 bg-emerald-50/30">
+          <button
+            type="button"
+            onClick={() => setPolygonEditorOpen((v) => !v)}
+            className="flex items-center justify-between w-full text-xs font-medium text-emerald-800"
+          >
+            <span className="flex items-center gap-1.5">
+              <Pentagon className="w-3.5 h-3.5" />
+              Boundary polygon (optional, overrides radius)
+              {polygonText.trim() && <span className="text-emerald-600">· {(() => {
+                try { return `${(JSON.parse(polygonText) as unknown[]).length} pts`; } catch { return 'invalid'; }
+              })()}</span>}
+            </span>
+            <span className="text-gray-500">{polygonEditorOpen ? 'Hide' : 'Edit'}</span>
+          </button>
+          {polygonEditorOpen && (
+            <div className="mt-2 space-y-2">
+              <Label className="text-xs">Polygon JSON — array of [lat, lon] pairs, ≥ 3 points</Label>
+              <textarea
+                value={polygonText}
+                onChange={(e) => setPolygonText(e.target.value)}
+                placeholder='[[-3.3869,36.6830],[-3.3870,36.6835],[-3.3875,36.6832]]'
+                rows={4}
+                className="w-full text-xs font-mono p-2 border border-gray-300 rounded bg-white"
+              />
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  type="button"
+                  onClick={clearPolygon}
+                  disabled={saving}
+                  className="gap-1 text-xs h-7"
+                >
+                  <Trash2 className="w-3 h-3" /> Clear polygon
+                </Button>
+                <p className="text-xs text-gray-500 self-center">
+                  Save will apply both the centre/radius and polygon together.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="flex gap-2 flex-wrap">
         <Button

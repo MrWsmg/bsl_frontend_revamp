@@ -35,6 +35,7 @@ const DashboardComponents: Record<string, React.ComponentType<any>> = {
   [USER_ROLES.PROCUREMENT_OFFICER]: dynamic(() => import("@/components/dashboards/ProcurementOfficerDashboard").then(m => ({ default: m.ProcurementOfficerDashboard })), { loading: LoadingSpinner }),
   [USER_ROLES.MANAGING_DIRECTOR]: dynamic(() => import("@/components/dashboards/AdminManagerDashboard"), { loading: LoadingSpinner }),
   [USER_ROLES.SUB_SUPERVISOR]: dynamic(() => import("@/components/dashboards/SupervisorDashboard").then(m => ({ default: m.SupervisorDashboard })), { loading: LoadingSpinner }),
+  [USER_ROLES.SCALE_SUPERVISOR]: dynamic(() => import("@/components/dashboards/PickingDashboard"), { loading: LoadingSpinner }),
 };
 
 export default function DashboardPage() {
@@ -44,6 +45,8 @@ export default function DashboardPage() {
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!loading && !user) {
+      // Clear the token cookie so the middleware doesn't redirect back here
+      document.cookie = "token=; path=/; max-age=0";
       router.push("/");
     }
   }, [user, loading, router]);

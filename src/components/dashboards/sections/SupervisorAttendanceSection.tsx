@@ -165,12 +165,17 @@ export function SupervisorAttendanceSection() {
 
   const handleFaceCheckout = async (file: File) => {
     if (!checkoutRecord || !checkoutWorker) return;
+    if (checkoutGps.status !== 'ok' || checkoutGps.latitude == null) {
+      toast.error('GPS not ready — wait for a location fix before capturing.');
+      return;
+    }
+    if (checkoutGps.accuracy != null && checkoutGps.accuracy > 100) {
+      toast.warning(`GPS accuracy is ±${checkoutGps.accuracy.toFixed(0)}m — checkout will be flagged for review.`);
+    }
     setCheckoutProcessing(true);
     setCheckoutVerification({ status: null });
     try {
-      const gpsFields = checkoutGps.status === 'ok' && checkoutGps.latitude != null
-        ? { latitude: checkoutGps.latitude, longitude: checkoutGps.longitude ?? undefined, gps_accuracy: checkoutGps.accuracy ?? undefined }
-        : {};
+      const gpsFields = { latitude: checkoutGps.latitude, longitude: checkoutGps.longitude ?? undefined, gps_accuracy: checkoutGps.accuracy ?? undefined };
       const result = await apiService.attendance.checkOutWithFaceVerification({
         worker_id: checkoutWorker.id,
         farm_id: Number(selectedFarmId),

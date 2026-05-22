@@ -97,7 +97,7 @@ const AddWorkerModal: React.FC<AddWorkerModalProps> = ({ isOpen, onClose, onWork
   };
 
   const getUsers = useCallback(() => apiService.getUsers(), []);
-  const { data: users } = useApi(getUsers);
+  const { data: users } = useApi(getUsers, { immediate: isOpen });
 
   const form = useForm<AddWorkerFormData>({
     resolver: zodResolver(addWorkerSchema),

@@ -276,6 +276,7 @@ export const ManagerBlocksSection: React.FC = () => {
                     sublabel="Set the GPS centre point and geofence radius for this farm"
                     current={farmLocation}
                     defaultRadius={500}
+                    supportsPolygon
                     loading={farmLocationLoading}
                     onSave={async (data) => {
                       await apiService.setFarmLocation(farmId, data);
@@ -356,9 +357,10 @@ export const ManagerBlocksSection: React.FC = () => {
                               ) : (
                                 <GpsLocationManager
                                   label={`Block ${block.name}`}
-                                  sublabel="Centre point and geofence radius for worker location verification"
+                                  sublabel="Centre point, radius, and optional polygon for worker location verification"
                                   current={loc}
                                   defaultRadius={150}
+                                  supportsPolygon
                                   onSave={async (data) => {
                                     await apiService.setBlockLocation(block.id, data);
                                     await loadBlockLocation(block.id);

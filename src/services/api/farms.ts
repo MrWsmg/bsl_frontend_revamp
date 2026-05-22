@@ -89,7 +89,7 @@ export class FarmsApiService extends BaseApiService {
     return this.get<any>(`/farms/${farmId}/location`);
   }
 
-  async setFarmLocation(farmId: number, data: { center_lat: number; center_lon: number; geofence_radius_m?: number }): Promise<any> {
+  async setFarmLocation(farmId: number, data: { center_lat: number; center_lon: number; geofence_radius_m?: number; boundary_polygon?: number[][] | null }): Promise<any> {
     return this.patch<any>(`/farms/${farmId}/location`, data);
   }
 
@@ -97,7 +97,15 @@ export class FarmsApiService extends BaseApiService {
     return this.get<any>(`/blocks/${blockId}/location`);
   }
 
-  async setBlockLocation(blockId: number, data: { center_lat: number; center_lon: number; geofence_radius_m?: number }): Promise<any> {
+  async setBlockLocation(
+    blockId: number,
+    data: {
+      center_lat: number;
+      center_lon: number;
+      geofence_radius_m?: number;
+      boundary_polygon?: number[][] | null;  // [[lat,lon],...] — overrides radius check
+    },
+  ): Promise<any> {
     return this.patch<any>(`/blocks/${blockId}/location`, data);
   }
 }

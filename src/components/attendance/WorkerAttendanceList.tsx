@@ -197,13 +197,18 @@ export function WorkerAttendanceList({
 
   const handlePhotoCapture = async (file: File) => {
     if (!activeWorker) return;
+    if (gps.status !== 'ok' || gps.latitude == null) {
+      toast.error('GPS not ready — wait for a location fix before capturing.');
+      return;
+    }
+    if (gps.accuracy != null && gps.accuracy > 100) {
+      toast.warning(`GPS accuracy is ±${gps.accuracy.toFixed(0)}m — this attendance will be flagged for supervisor review.`);
+    }
     setIsProcessing(true);
     setVerificationResult({ status: null });
     try {
       const workerName = activeWorker.full_name || activeWorker.name;
-      const gpsFields = gps.status === 'ok' && gps.latitude != null
-        ? { latitude: gps.latitude, longitude: gps.longitude ?? undefined, gps_accuracy: gps.accuracy ?? undefined }
-        : {};
+      const gpsFields = { latitude: gps.latitude, longitude: gps.longitude ?? undefined, gps_accuracy: gps.accuracy ?? undefined };
 
       if (captureMode === 'checkin') {
         const result = await apiService.attendance.checkInWithFaceVerification({

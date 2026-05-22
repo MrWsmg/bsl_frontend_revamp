@@ -17,6 +17,7 @@ export const USER_ROLES = {
   MANAGING_DIRECTOR: 'managing_director',
   FACTORY_SUPERVISOR: 'factory_supervisor',
   SUB_SUPERVISOR: 'sub_supervisor',
+  SCALE_SUPERVISOR: 'scale_supervisor',
   GODOWN_MANAGER: 'godown_manager',
   PROCUREMENT_OFFICER: 'procurement_officer',
 } as const;
