@@ -25,7 +25,15 @@ interface UploadResult {
   [key: string]: any;
 }
 
-export const ManagerBlocksSection: React.FC = () => {
+interface ManagerBlocksSectionProps {
+  overrideFarmId?: number;
+  overrideFarmName?: string;
+}
+
+export const ManagerBlocksSection: React.FC<ManagerBlocksSectionProps> = ({
+  overrideFarmId,
+  overrideFarmName,
+}) => {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -34,9 +42,9 @@ export const ManagerBlocksSection: React.FC = () => {
   const [result, setResult] = useState<UploadResult | null>(null);
   const [uploadError, setUploadError] = useState('');
 
-  // GPS state
-  const farmId = user?.farm_id;
-  const farmName = (user as any)?.farm?.name ?? (farmId ? `Farm #${farmId}` : '—');
+  // GPS state — admin can pass overrideFarmId to manage any farm
+  const farmId = overrideFarmId ?? user?.farm_id;
+  const farmName = overrideFarmName ?? (user as any)?.farm?.name ?? (farmId ? `Farm #${farmId}` : '—');
 
   const [farmLocation, setFarmLocation] = useState<any>(null);
   const [farmLocationLoading, setFarmLocationLoading] = useState(false);

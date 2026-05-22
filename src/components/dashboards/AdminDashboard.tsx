@@ -7,7 +7,7 @@ import { User } from '../../types';
 import {
   BarChart3, TrendingUp, PieChart, CalendarDays, Users, Warehouse,
   ClipboardList, Eye, LayoutDashboard, UserCog, ShieldCheck,
-  ListChecks, RefreshCw, AlertCircle, Plus,
+  ListChecks, RefreshCw, AlertCircle, Plus, MapPin,
 } from 'lucide-react';
 import {
   OverviewSection,
@@ -20,6 +20,7 @@ import {
   SharedCardexSection,
   AdminAuditLogsSection,
 } from './sections';
+import { ManagerBlocksSection } from './sections/ManagerBlocksSection';
 import AnalyticalDashboard from './AnalyticalDashboard';
 import apiService from '../../services/api';
 import { useApi } from '../../hooks';
@@ -40,7 +41,8 @@ type Tab =
   | 'store'
   | 'reports'
   | 'activities'
-  | 'audit-logs';
+  | 'audit-logs'
+  | 'blocks';
 
 interface Props {
   user: User;
@@ -76,6 +78,7 @@ const ADMIN_NAV_ITEMS = [
   { id: 'reports',    label: 'Reports',    icon: ClipboardList },
   { id: 'activities', label: 'Activities', icon: Eye           },
   { id: 'audit-logs', label: 'Audit Logs', icon: ShieldCheck   },
+  { id: 'blocks',     label: 'Farms & GPS', icon: MapPin       },
 ];
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
@@ -135,6 +138,9 @@ export const AdminDashboard: React.FC<Props> = ({ user, onLogout }) => {
         </div>
         <div hidden={activeTab !== 'audit-logs'}>
           {mountedTabs.current.has('audit-logs') && <AdminAuditLogsSection />}
+        </div>
+        <div hidden={activeTab !== 'blocks'}>
+          {mountedTabs.current.has('blocks') && <AdminBlocksSection />}
         </div>
       </Layout>
     </ErrorBoundary>
@@ -409,6 +415,55 @@ const TaskCodesSection: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+};
+
+// ── Admin Blocks & GPS ────────────────────────────────────────────────────────
+
+const AdminBlocksSection: React.FC = () => {
+  const fetchFarms = useCallback(() => apiService.getFarms(), []);
+  const { data: raw, loading: farmsLoading } = useApi<any>(fetchFarms);
+  const farms: any[] = Array.isArray(raw) ? raw : [];
+
+  const [selectedFarmId, setSelectedFarmId] = useState<number | null>(null);
+  const selectedFarm = farms.find(f => f.farm_id === selectedFarmId);
+
+  return (
+    <div className="space-y-4 p-6">
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold text-gray-800 flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-blue-600" /> Farms &amp; GPS Management
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {farmsLoading ? (
+            <div className="flex justify-center py-6"><LoadingSpinner size="lg" /></div>
+          ) : (
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Select Farm</label>
+              <select
+                value={selectedFarmId ?? ''}
+                onChange={e => setSelectedFarmId(e.target.value ? Number(e.target.value) : null)}
+                className="w-full max-w-xs border border-gray-200 rounded-md px-3 py-2 text-sm bg-white"
+              >
+                <option value="">— choose a farm —</option>
+                {farms.map(f => (
+                  <option key={f.farm_id} value={f.farm_id}>{f.name ?? `Farm #${f.farm_id}`}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {selectedFarmId && (
+        <ManagerBlocksSection
+          overrideFarmId={selectedFarmId}
+          overrideFarmName={selectedFarm?.name ?? `Farm #${selectedFarmId}`}
+        />
+      )}
     </div>
   );
 };
