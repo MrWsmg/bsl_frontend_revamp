@@ -15,6 +15,19 @@ function extractDetail(detail: unknown): string {
 
 export interface RequestOptions extends RequestInit {
   retryCount?: number;
+  timeoutMs?: number;
+}
+
+const MAX_RETRIES = 3;
+const REQUEST_TIMEOUT_MS = 30_000; // 30 s — tolerant of slow connections
+
+function retryDelay(attempt: number): Promise<void> {
+  // exponential backoff: 1 s, 2 s, 4 s
+  return new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
+}
+
+function isRetryable(status: number): boolean {
+  return status === 429 || status === 502 || status === 503 || status === 504;
 }
 
 export class BaseApiService {
@@ -75,13 +88,14 @@ export class BaseApiService {
   }
 
   /**
-   * Make HTTP request with error handling and retry logic
+   * Make HTTP request with timeout, retry, and exponential backoff.
+   * Tolerant of bad / intermittent connections.
    */
   protected async request<T>(
     endpoint: string,
     options: RequestOptions = {}
   ): Promise<T> {
-    const { retryCount = 0, headers: customHeaders, body, ...requestOptions } = options;
+    const { retryCount = 0, timeoutMs = REQUEST_TIMEOUT_MS, headers: customHeaders, body, ...requestOptions } = options;
     const url = `${this.baseUrl}${endpoint}`;
 
     const headers = new Headers(this.getAuthHeaders());
@@ -112,33 +126,31 @@ export class BaseApiService {
         headers.set('Content-Type', 'application/json');
       }
     }
-    
+
+    // Abort the request if it takes longer than timeoutMs
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
     const config: RequestInit = {
       ...requestOptions,
       headers,
       body: requestBody,
+      signal: controller.signal,
     };
 
     try {
       const response = await fetch(url, config);
+      clearTimeout(timer);
 
       // Handle authentication errors
       if (response.status === 401) {
-        // Try to get the actual error message from the response
         let errorMessage = 'Invalid credentials';
         try {
           const errorData = await response.json();
-          if (errorData.detail) {
-            errorMessage = extractDetail(errorData.detail);
-          } else if (errorData.message) {
-            errorMessage = errorData.message;
-          }
-        } catch {
-          // Response body might not be JSON
-        }
+          if (errorData.detail) errorMessage = extractDetail(errorData.detail);
+          else if (errorData.message) errorMessage = errorData.message;
+        } catch { /* non-JSON body */ }
 
-        // Only clear session and dispatch auth-error for non-login endpoints
-        // Login endpoint failures should just show the error, not trigger session clear
         const isLoginEndpoint = endpoint === '/login';
         if (!isLoginEndpoint && typeof window !== 'undefined') {
           this.clearSession();
@@ -146,36 +158,26 @@ export class BaseApiService {
             detail: { message: 'Session expired. Please log in again.' }
           }));
         }
-
         throw new Error(errorMessage);
       }
 
       if (!response.ok) {
-        // Try to get error details from response body
         let errorMessage = `API Error: ${response.status}`;
         let errorData: any = null;
         try {
           errorData = await response.json();
-          if (errorData.detail) {
-            errorMessage = extractDetail(errorData.detail);
-          } else if (errorData.message) {
-            errorMessage = errorData.message;
-          } else if (typeof errorData === 'string') {
-            errorMessage = errorData;
-          }
-        } catch (e) {
-          // Response body might not be JSON
-          console.warn('Failed to parse error response as JSON');
-        }
+          if (errorData.detail) errorMessage = extractDetail(errorData.detail);
+          else if (errorData.message) errorMessage = errorData.message;
+          else if (typeof errorData === 'string') errorMessage = errorData;
+        } catch { console.warn('Failed to parse error response as JSON'); }
 
-        // Retry once for server errors
-        if (retryCount === 0 && response.status >= 500) {
-          console.warn(`Retrying request to ${endpoint} due to server error`);
-          await new Promise(resolve => setTimeout(resolve, 1000));
+        // Retry on server/gateway errors
+        if (retryCount < MAX_RETRIES && (response.status >= 500 || isRetryable(response.status))) {
+          console.warn(`Retry ${retryCount + 1}/${MAX_RETRIES} for ${endpoint} (HTTP ${response.status})`);
+          await retryDelay(retryCount);
           return this.request(endpoint, { ...options, retryCount: retryCount + 1 });
         }
-        
-        // Create error with response data attached
+
         const error: any = new Error(errorMessage);
         error.response = { status: response.status, data: errorData };
         throw error;
@@ -183,11 +185,21 @@ export class BaseApiService {
 
       return response.json();
     } catch (error) {
-      // Retry once for network errors
-      if (retryCount === 0 && error instanceof TypeError) {
-        console.warn(`Retrying request to ${endpoint} due to network error`);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      clearTimeout(timer);
+
+      // Retry on network errors (TypeError) and timeouts (AbortError)
+      const isNetworkError = error instanceof TypeError;
+      const isTimeout = error instanceof DOMException && error.name === 'AbortError';
+
+      if (retryCount < MAX_RETRIES && (isNetworkError || isTimeout)) {
+        const reason = isTimeout ? `timeout after ${timeoutMs}ms` : 'network error';
+        console.warn(`Retry ${retryCount + 1}/${MAX_RETRIES} for ${endpoint} (${reason})`);
+        await retryDelay(retryCount);
         return this.request(endpoint, { ...options, retryCount: retryCount + 1 });
+      }
+
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        throw new Error('Request timed out. Check your connection and try again.');
       }
       throw error;
     }
