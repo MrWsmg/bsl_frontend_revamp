@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, Fragment } from 'react';
-import { CheckCircle, XCircle, Hand, Image as ImageIcon, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { CheckCircle, XCircle, Hand, Image as ImageIcon, ChevronDown, ChevronUp, X, Camera } from 'lucide-react';
 import { AttendanceRecord } from '../../types';
 import { Button } from '@/components/ui/button';
+import { AttendancePhotoViewer } from './AttendancePhotoViewer';
 import {
   Table,
   TableBody,
@@ -31,6 +32,7 @@ export function AttendanceRecordsTable({
 }: AttendanceRecordsTableProps) {
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+  const [photoViewerRecord, setPhotoViewerRecord] = useState<AttendanceRecord | null>(null);
 
   // Toggle row expansion
   const toggleRowExpansion = (id: number) => {
@@ -263,20 +265,20 @@ export function AttendanceRecordsTable({
                             </article>
                           )}
 
-                          {/* Verification photo */}
-                          {record.verification_photo_url && (
+                          {/* Verification photos — check-in and/or check-out */}
+                          {(record.verification_photo_url || record.checkout_photo_url) && (
                             <article>
                               <dt className="text-xs font-medium text-gray-500 mb-2">
-                                Verification Photo
+                                Verification Photos
                               </dt>
                               <dd>
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => setSelectedPhoto(record.verification_photo_url!)}
+                                  onClick={() => setPhotoViewerRecord(record)}
                                 >
-                                  <ImageIcon className="w-4 h-4 mr-2" />
-                                  View Photo
+                                  <Camera className="w-4 h-4 mr-2" />
+                                  View / Replace Photos
                                 </Button>
                               </dd>
                             </article>
@@ -300,7 +302,7 @@ export function AttendanceRecordsTable({
         </Table>
       </section>
 
-      {/* Photo Modal */}
+      {/* Simple lightbox (kept for legacy direct-URL clicks) */}
       <Dialog open={!!selectedPhoto} onOpenChange={(open) => !open && setSelectedPhoto(null)}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
@@ -318,6 +320,19 @@ export function AttendanceRecordsTable({
           </figure>
         </DialogContent>
       </Dialog>
+
+      {/* Full photo viewer — check-in + check-out with replace capability */}
+      <AttendancePhotoViewer
+        record={photoViewerRecord}
+        workerName={
+          photoViewerRecord?.worker_name ||
+          photoViewerRecord?.worker?.full_name ||
+          photoViewerRecord?.worker?.name ||
+          undefined
+        }
+        isOpen={!!photoViewerRecord}
+        onClose={() => setPhotoViewerRecord(null)}
+      />
     </>
   );
 }

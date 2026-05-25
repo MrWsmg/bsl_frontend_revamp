@@ -10,6 +10,23 @@ import {
   ProcurementFilters
 } from '../../types';
 
+/** A single farm that holds sufficient stock for a requested SMR item. */
+export interface CrossFarmFarmHit {
+  farm_id: number;
+  farm_name: string;
+  quantity_on_hand: number;
+  unit_cost: number;
+  unit: string;
+}
+
+/** One SMR item and the other farms that can fulfil it. */
+export interface CrossFarmItemHit {
+  item_name: string;
+  quantity_requested: number;
+  unit: string;
+  available_at: CrossFarmFarmHit[];
+}
+
 export class ProcurementApiService extends BaseApiService {
   // ==================== MANAGER SIMR / GIN APPROVAL ====================
 
@@ -381,6 +398,14 @@ export class ProcurementApiService extends BaseApiService {
     return this.post<any>(`/procurement/external/lpo/${lpoId}/po-reject`, { notes });
   }
 
+  async gateConfirmGrn(grnId: number, notes?: string): Promise<any> {
+    return this.post<any>(`/procurement/external/grn/${grnId}/gate-confirm`, { notes });
+  }
+
+  async gateConfirmGin(ginId: number, notes?: string): Promise<any> {
+    return this.post<any>(`/procurement/internal/gin/${ginId}/gate-confirm`, { notes });
+  }
+
   // ==================== GRN ====================
 
   async createGrn(data: any): Promise<any> {
@@ -431,6 +456,11 @@ export class ProcurementApiService extends BaseApiService {
 
   async createSmr(data: any): Promise<any> {
     return this.post<any>('/procurement/external/smr', data);
+  }
+
+  /** Live cross-farm stock advisory for an existing SMR */
+  async getSmrCrossFarmStock(smrId: number): Promise<CrossFarmItemHit[]> {
+    return this.get<CrossFarmItemHit[]>(`/procurement/external/smr/${smrId}/cross-farm-stock`);
   }
 
   async getExternalChain(smrNumber: string): Promise<any> {

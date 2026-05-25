@@ -52,7 +52,7 @@ export const ManagerOverviewSection: React.FC = () => {
   const getWorkers        = useCallback(() => apiService.getManagerWorkers(), []);
   const getPendingPayroll = useCallback(() => apiService.getManagerPendingPayroll(), []);
   const getTaskAssignments = useCallback(() => apiService.getManagerTaskAssignments(), []);
-  const getItemRequests   = useCallback(() => apiService.getManagerPendingSimrs(), []);
+  const getItemRequests   = useCallback(() => apiService.getPendingGins(), []);
 
   const { data: farms,          loading: l1 } = useApi(getFarms);
   const { data: users,          loading: l2 } = useApi(getUsers);
@@ -75,10 +75,9 @@ export const ManagerOverviewSection: React.FC = () => {
   const inProgressTasks  = (taskAssignments ?? []).filter((t: any) => ['in_progress', 'In Progress', 'assigned', 'Assigned'].includes(t.status)).length;
   const pendingTasks     = (taskAssignments ?? []).filter((t: any) => t.status === 'pending').length;
   const totalTasks       = completedTasks + inProgressTasks + pendingTasks;
-  const pendingRequests  = (itemRequests ?? []).filter((r: any) => r.status === 'pending').length;
+  const pendingRequests  = (itemRequests ?? []).filter((r: any) => r.status === 'pending_fm_approval').length;
   const approvedRequests = (itemRequests ?? []).filter((r: any) => r.status === 'approved').length;
-  const issuedRequests   = (itemRequests ?? []).filter((r: any) => r.status === 'issued').length;
-  const receivedRequests = (itemRequests ?? []).filter((r: any) => r.status === 'received').length;
+  const issuedRequests   = (itemRequests ?? []).filter((r: any) => r.status === 'dispatched').length;
   const totalRequests    = (itemRequests ?? []).length;
 
   return (
@@ -111,9 +110,9 @@ export const ManagerOverviewSection: React.FC = () => {
           iconColor="text-amber-600 dark:text-amber-400"
         />
         <StatCard
-          label="Pending Requests"
+          label="Pending GINs"
           value={pendingRequests}
-          sub={`${totalRequests} total SIMRs`}
+          sub={`${totalRequests} total issue notes`}
           icon={Package}
           iconBg="bg-orange-50 dark:bg-orange-950"
           iconColor="text-orange-600 dark:text-orange-400"
@@ -146,13 +145,12 @@ export const ManagerOverviewSection: React.FC = () => {
       {/* ── Item Request Breakdown ───────────────────────────────────────── */}
       {totalRequests > 0 && (
         <div>
-          <SectionHeader title="Item Request Breakdown" sub="SIMR status across all requests" />
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <SectionHeader title="GIN Breakdown" sub="Goods Issue Note status across all requests" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {[
-              { label: 'Pending',  value: pendingRequests,  dot: 'bg-amber-400'   },
-              { label: 'Approved', value: approvedRequests, dot: 'bg-blue-500'    },
-              { label: 'Issued',   value: issuedRequests,   dot: 'bg-emerald-500' },
-              { label: 'Received', value: receivedRequests, dot: 'bg-purple-500'  },
+              { label: 'Pending Approval', value: pendingRequests,  dot: 'bg-amber-400'   },
+              { label: 'Approved',         value: approvedRequests, dot: 'bg-blue-500'    },
+              { label: 'Issued',           value: issuedRequests,   dot: 'bg-emerald-500' },
             ].map(({ label, value, dot }) => (
               <div key={label} className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-card hover:bg-accent/40 transition-colors duration-150">
                 <span className={`w-2 h-2 rounded-full shrink-0 ${dot}`} />
@@ -215,7 +213,7 @@ export const ManagerOverviewSection: React.FC = () => {
       {/* ── Recent Item Requests ─────────────────────────────────────────── */}
       {totalRequests > 0 && (
         <div>
-          <SectionHeader title="Recent Item Requests" sub={`${totalRequests} total SIMRs`} />
+          <SectionHeader title="Recent GINs" sub={`${totalRequests} total issue notes`} />
           <div className="rounded-lg border border-border/60 overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-muted/40">
@@ -231,7 +229,7 @@ export const ManagerOverviewSection: React.FC = () => {
                   const firstItem = request.items?.[0];
                   const label = firstItem
                     ? `${firstItem.item_name}${request.items.length > 1 ? ` +${request.items.length - 1}` : ''}`
-                    : request.simr_number || '—';
+                    : request.gin_number || '—';
                   const isApproved = ['approved', 'issued', 'received'].includes(request.status);
                   const isRejected = request.status === 'rejected';
                   return (

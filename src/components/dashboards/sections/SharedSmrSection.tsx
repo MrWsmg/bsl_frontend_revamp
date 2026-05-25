@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { getApiError } from '../../../utils';
+import { type CrossFarmItemHit } from '../../../services/api/procurement';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,14 +25,13 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { FileText, RefreshCw, Plus, AlertCircle, Link2, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { FileText, RefreshCw, Plus, AlertCircle, Link2, ChevronRight, ArrowLeftRight, X, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { ChainStepper } from '@/components/procurement/ChainStepper';
 
 interface Props { userRole: string; }
 
-const CAN_CREATE       = ['manager', 'admin'];
-const CAN_APPROVE_SMR  = ['manager', 'admin'];
+const CAN_CREATE = ['manager', 'admin'];
 
 const SMR_STATUS_COLORS: Record<string, string> = {
   draft:     'bg-gray-100 text-gray-600 border-gray-200',
@@ -73,12 +73,12 @@ interface SmrFormData {
   priority: string;
   budget_code: string;
   currency: string;
-  items: { item_name: string; quantity: string; unit: string; estimated_unit_price: string }[];
+  items: { item_name: string; quantity: string; unit: string }[];
 }
 
 const emptyForm = (): SmrFormData => ({
   farm_id: '', justification: '', priority: 'normal', budget_code: '', currency: 'TZS',
-  items: [{ item_name: '', quantity: '', unit: 'kg', estimated_unit_price: '' }],
+  items: [{ item_name: '', quantity: '', unit: 'kg' }],
 });
 
 export const SharedSmrSection: React.FC<Props> = ({ userRole }) => {
@@ -90,10 +90,16 @@ export const SharedSmrSection: React.FC<Props> = ({ userRole }) => {
   const [form, setForm]                 = useState<SmrFormData>(emptyForm());
   const [submitting, setSubmitting]     = useState(false);
   const [formError, setFormError]       = useState('');
-  const [approving, setApproving]       = useState<number | null>(null);
 
-  const canCreate     = CAN_CREATE.includes(userRole);
-  const canApproveSMR = CAN_APPROVE_SMR.includes(userRole);
+  // ── Cross-farm advisory ──────────────────────────────────────────────────
+  const [advisory, setAdvisory] = useState<{
+    smr_number: string;
+    items: CrossFarmItemHit[];
+  } | null>(null);
+  const [liveAdvisory, setLiveAdvisory]     = useState<CrossFarmItemHit[] | null>(null);
+  const [loadingAdvisory, setLoadingAdvisory] = useState(false);
+
+  const canCreate = CAN_CREATE.includes(userRole);
 
   const [farms, setFarms] = useState<any[]>([]);
   useEffect(() => {
@@ -130,20 +136,6 @@ export const SharedSmrSection: React.FC<Props> = ({ userRole }) => {
   const updateItem = (i: number, patch: Partial<SmrFormData['items'][0]>) =>
     setForm(f => ({ ...f, items: f.items.map((r, idx) => idx === i ? { ...r, ...patch } : r) }));
 
-  const handleApproveSMR = async (smrId: number) => {
-    setApproving(smrId);
-    try {
-      await apiService.approveSMR(smrId);
-      toast.success('SMR approved');
-      refetch();
-      setSelected((prev: any) => prev?.id === smrId ? { ...prev, status: 'approved' } : prev);
-    } catch (err: any) {
-      toast.error(getApiError(err, 'Failed to approve SMR'));
-    } finally {
-      setApproving(null);
-    }
-  };
-
   const handleSubmit = async () => {
     setFormError('');
     if (!form.farm_id) { setFormError('Farm is required.'); return; }
@@ -152,23 +144,28 @@ export const SharedSmrSection: React.FC<Props> = ({ userRole }) => {
     if (validItems.length === 0) { setFormError('Add at least one item.'); return; }
     setSubmitting(true);
     try {
-      await apiService.createSmr({
+      const response = await apiService.createSmr({
         farm_id:       parseInt(form.farm_id),
         justification: form.justification.trim(),
         priority:      form.priority,
         budget_code:   form.budget_code.trim() || null,
         currency:      form.currency || 'TZS',
         items: validItems.map(r => ({
-          item_name:            r.item_name.trim(),
-          quantity:             parseFloat(r.quantity),
-          unit:                 r.unit,
-          estimated_unit_price: parseFloat(r.estimated_unit_price) || 0,
+          item_name: r.item_name.trim(),
+          quantity:  parseFloat(r.quantity),
+          unit:      r.unit,
         })),
       });
       toast.success('SMR created successfully');
       setShowCreate(false);
       setForm(emptyForm());
       refetch();
+
+      // Show cross-farm advisory if backend found matching stock elsewhere
+      const hits: CrossFarmItemHit[] = response?.cross_farm_availability ?? [];
+      if (hits.length > 0) {
+        setAdvisory({ smr_number: response.smr_number ?? 'New SMR', items: hits });
+      }
     } catch (err: any) {
       setFormError(getApiError(err, 'Failed to create SMR'));
     } finally {
@@ -176,8 +173,71 @@ export const SharedSmrSection: React.FC<Props> = ({ userRole }) => {
     }
   };
 
+  const loadLiveAdvisory = async (smrId: number) => {
+    setLiveAdvisory(null);
+    setLoadingAdvisory(true);
+    try {
+      const hits = await apiService.getSmrCrossFarmStock(smrId);
+      setLiveAdvisory(hits);
+    } catch {
+      setLiveAdvisory([]);
+    } finally {
+      setLoadingAdvisory(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
+      {/* ── Cross-Farm Advisory Banner (shown after SMR creation) ── */}
+      {advisory && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 relative">
+          <button
+            onClick={() => setAdvisory(null)}
+            className="absolute top-3 right-3 text-amber-500 hover:text-amber-700"
+            aria-label="Dismiss advisory"
+          >
+            <X className="w-4 h-4" />
+          </button>
+          <div className="flex items-start gap-3">
+            <ArrowLeftRight className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-amber-800 mb-0.5">
+                Cross-Farm Stock Available — {advisory.smr_number}
+              </p>
+              <p className="text-xs text-amber-700 mb-3">
+                {advisory.items.length} item(s) may be sourced via internal transfer instead of
+                external procurement. Consider requesting a transfer to save cost and time.
+              </p>
+              <div className="space-y-2">
+                {advisory.items.map((hit, i) => (
+                  <div key={i} className="bg-white border border-amber-200 rounded px-3 py-2">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium text-gray-800">{hit.item_name}</span>
+                      <span className="text-xs text-gray-500">need: {hit.quantity_requested} {hit.unit}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {hit.available_at.map((farm, j) => (
+                        <span
+                          key={j}
+                          className="inline-flex items-center gap-1 text-xs bg-amber-50 border border-amber-200 text-amber-800 px-2 py-0.5 rounded-full"
+                        >
+                          <MapPin className="w-2.5 h-2.5" />
+                          {farm.farm_name} · {farm.quantity_on_hand} {farm.unit}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-amber-600 mt-2 italic">
+                This is advisory only. Your SMR has been submitted and procurement can proceed normally.
+                The Financial Controller and Procurement Officer have been notified.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Card>
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -266,7 +326,7 @@ export const SharedSmrSection: React.FC<Props> = ({ userRole }) => {
       </Card>
 
       {/* Detail Sheet */}
-      <Sheet open={!!selected} onOpenChange={open => { if (!open) { setSelected(null); setChain(null); } }}>
+      <Sheet open={!!selected} onOpenChange={open => { if (!open) { setSelected(null); setChain(null); setLiveAdvisory(null); } }}>
         <SheetContent className="sm:max-w-[520px] overflow-y-auto">
           {selected && (
             <>
@@ -315,20 +375,6 @@ export const SharedSmrSection: React.FC<Props> = ({ userRole }) => {
                   )}
                 </div>
 
-                {canApproveSMR && selected.status === 'draft' && (
-                  <>
-                    <Separator />
-                    <Button
-                      className="w-full bg-green-600 hover:bg-green-700 text-white"
-                      disabled={approving === selected.id}
-                      onClick={() => handleApproveSMR(selected.id)}
-                    >
-                      <CheckCircle2 className="w-4 h-4 mr-2" />
-                      {approving === selected.id ? 'Approving…' : 'Approve SMR'}
-                    </Button>
-                  </>
-                )}
-
                 <Separator />
 
                 {/* Items */}
@@ -358,6 +404,73 @@ export const SharedSmrSection: React.FC<Props> = ({ userRole }) => {
                     chain={chain}
                     loading={loadingChain}
                   />
+                </div>
+
+                {/* Cross-Farm Stock Check */}
+                <Separator />
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+                      <ArrowLeftRight className="w-3.5 h-3.5" /> Cross-Farm Stock
+                    </p>
+                    {liveAdvisory === null && !loadingAdvisory && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs gap-1 border-amber-300 text-amber-700 hover:bg-amber-50"
+                        onClick={() => loadLiveAdvisory(selected.id)}
+                      >
+                        <ArrowLeftRight className="w-3 h-3" /> Check
+                      </Button>
+                    )}
+                    {(liveAdvisory !== null || loadingAdvisory) && (
+                      <button
+                        className="text-xs text-gray-400 hover:text-gray-600"
+                        onClick={() => setLiveAdvisory(null)}
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+
+                  {loadingAdvisory && (
+                    <div className="flex items-center gap-2 text-xs text-gray-400 py-2">
+                      <LoadingSpinner size="sm" /> Checking other farms…
+                    </div>
+                  )}
+
+                  {liveAdvisory !== null && !loadingAdvisory && liveAdvisory.length === 0 && (
+                    <p className="text-xs text-gray-400 py-1">
+                      No other farm has sufficient stock for any requested item.
+                    </p>
+                  )}
+
+                  {liveAdvisory !== null && !loadingAdvisory && liveAdvisory.length > 0 && (
+                    <div className="space-y-2">
+                      {liveAdvisory.map((hit, i) => (
+                        <div key={i} className="bg-amber-50 border border-amber-200 rounded px-3 py-2">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-medium text-gray-800">{hit.item_name}</span>
+                            <span className="text-xs text-gray-500">need {hit.quantity_requested} {hit.unit}</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {hit.available_at.map((farm, j) => (
+                              <span
+                                key={j}
+                                className="inline-flex items-center gap-1 text-xs bg-white border border-amber-200 text-amber-800 px-1.5 py-0.5 rounded-full"
+                              >
+                                <MapPin className="w-2 h-2" />
+                                {farm.farm_name} · {farm.quantity_on_hand} {farm.unit}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                      <p className="text-xs text-amber-600 italic">
+                        Advisory only — request an internal transfer if preferred.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </>
@@ -434,31 +547,27 @@ export const SharedSmrSection: React.FC<Props> = ({ userRole }) => {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-sm font-medium text-gray-700">Items *</label>
-                  <button type="button" onClick={() => setForm(f => ({ ...f, items: [...f.items, { item_name: '', quantity: '', unit: 'kg', estimated_unit_price: '' }] }))} className="text-xs text-amber-700 hover:text-amber-900 flex items-center gap-1">
+                  <button type="button" onClick={() => setForm(f => ({ ...f, items: [...f.items, { item_name: '', quantity: '', unit: 'kg' }] }))} className="text-xs text-amber-700 hover:text-amber-900 flex items-center gap-1">
                     <Plus className="w-3 h-3" /> Add item
                   </button>
                 </div>
                 <div className="space-y-2">
                   <div className="grid grid-cols-12 gap-2 text-xs text-gray-400 px-0.5">
-                    <div className="col-span-4">Item name</div>
-                    <div className="col-span-2">Qty</div>
+                    <div className="col-span-6">Item name</div>
+                    <div className="col-span-3">Qty</div>
                     <div className="col-span-2">Unit</div>
-                    <div className="col-span-3">Unit price ({form.currency})</div>
                     <div className="col-span-1" />
                   </div>
                   {form.items.map((row, i) => (
                     <div key={i} className="grid grid-cols-12 gap-2 items-center">
-                      <div className="col-span-4">
+                      <div className="col-span-6">
                         <Input value={row.item_name} onChange={e => updateItem(i, { item_name: e.target.value })} placeholder="Item name" className="text-sm" />
                       </div>
-                      <div className="col-span-2">
+                      <div className="col-span-3">
                         <Input type="number" min="0.01" step="0.01" value={row.quantity} onChange={e => updateItem(i, { quantity: e.target.value })} placeholder="Qty" className="text-sm" />
                       </div>
                       <div className="col-span-2">
                         <Input value={row.unit} onChange={e => updateItem(i, { unit: e.target.value })} placeholder="kg" className="text-sm" />
-                      </div>
-                      <div className="col-span-3">
-                        <Input type="number" min="0" step="0.01" value={row.estimated_unit_price} onChange={e => updateItem(i, { estimated_unit_price: e.target.value })} placeholder="0.00" className="text-sm" />
                       </div>
                       <div className="col-span-1 flex justify-center">
                         {form.items.length > 1 && (

@@ -30,37 +30,35 @@ import { ChainStepper } from '@/components/procurement/ChainStepper';
 
 interface Props { userRole: string; }
 
-// Manager + Admin can create LPOs (not PO)
+// Manager + Admin can create LPOs
 const CAN_CREATE  = ['manager', 'admin'];
-// PO + Admin can do PO-level review
+// PO + Admin co-sign (final step — auto-sends to supplier)
 const CAN_PO_ACT  = ['procurement_officer', 'admin'];
-// FC + Admin do final approval
-const CAN_FC_ACT  = ['financial_controller', 'admin'];
-// PO + Admin can send to supplier
-const CAN_SEND    = ['procurement_officer', 'admin'];
+// FC sees all LPOs for oversight but no longer gates the flow
+const CAN_FC_VIEW = ['financial_controller', 'admin'];
 
 // ── Status display mapping ────────────────────────────────────────────────────
 
 const STATUS_LABEL: Record<string, string> = {
-  draft:            'Pending PO Review',
-  po_reviewed:      'Pending FC Approval',
-  approved:         'Approved',
-  sent_to_supplier: 'Sent to Supplier',
-  sent:             'Sent to Supplier',
-  cancelled:        'Cancelled',
-  rejected:         'Rejected',
+  draft:               'Awaiting PO Signature',
+  po_reviewed:         'PO Signed',
+  approved:            'Approved',
+  sent_to_supplier:    'Sent to Supplier',
+  sent:                'Sent to Supplier',
+  cancelled:           'Cancelled',
+  rejected:            'Returned',
   partially_fulfilled: 'Partially Fulfilled',
-  completed:        'Completed',
+  completed:           'Completed',
 };
 
 const STATUS_COLOR: Record<string, string> = {
   draft:               'bg-yellow-100 text-yellow-800 border-yellow-200',
-  po_reviewed:         'bg-orange-100 text-orange-700 border-orange-200',
+  po_reviewed:         'bg-green-100 text-green-700 border-green-200',
   approved:            'bg-green-100 text-green-800 border-green-200',
   sent_to_supplier:    'bg-blue-100 text-blue-700 border-blue-200',
   sent:                'bg-blue-100 text-blue-700 border-blue-200',
   cancelled:           'bg-red-100 text-red-700 border-red-200',
-  rejected:            'bg-red-100 text-red-700 border-red-200',
+  rejected:            'bg-orange-100 text-orange-700 border-orange-200',
   partially_fulfilled: 'bg-amber-100 text-amber-800 border-amber-200',
   completed:           'bg-emerald-100 text-emerald-800 border-emerald-200',
 };
@@ -78,11 +76,10 @@ function StatusBadge({ status }: { status: string }) {
 
 // ── Timeline stepper ──────────────────────────────────────────────────────────
 
-const STEPS = ['draft', 'po_reviewed', 'sent_to_supplier'] as const;
+const STEPS = ['draft', 'sent_to_supplier'] as const;
 const STEP_LABELS: Record<string, string> = {
-  draft:            'Pending PO Review',
-  po_reviewed:      'PO Reviewed',
-  sent_to_supplier: 'FC Approved & Sent',
+  draft:            'Pending PO Signature',
+  sent_to_supplier: 'PO Signed & Sent',
 };
 
 function LpoTimeline({ status }: { status: string }) {
@@ -128,8 +125,6 @@ const emptyItem = (): LpoItem => ({ item_name: '', quantity: '', unit: 'kg', uni
 export const SharedLpoSection: React.FC<Props> = ({ userRole }) => {
   const canCreate = CAN_CREATE.includes(userRole);
   const canPoAct  = CAN_PO_ACT.includes(userRole);
-  const canFcAct  = CAN_FC_ACT.includes(userRole);
-  const canSend   = CAN_SEND.includes(userRole);
 
   const [statusFilter, setStatusFilter] = useState('all');
   const [selected, setSelected]         = useState<any>(null);
@@ -146,10 +141,8 @@ export const SharedLpoSection: React.FC<Props> = ({ userRole }) => {
   const [resolvedSmrNumber, setResolvedSmrNumber] = useState<string | null>(null);
 
   // Actions
-  const [actioning, setActioning]             = useState<'approve' | 'reject' | 'po-approve' | 'po-reject' | 'send' | null>(null);
-  const [showFcRejectDialog, setShowFcRejectDialog]   = useState(false);
+  const [actioning, setActioning]             = useState<'po-approve' | 'po-reject' | null>(null);
   const [showPoRejectDialog, setShowPoRejectDialog]   = useState(false);
-  const [fcRejectNotes, setFcRejectNotes]     = useState('');
   const [poRejectNotes, setPoRejectNotes]     = useState('');
   const [poApproveNotes, setPoApproveNotes]   = useState('');
   const [showPoApproveDialog, setShowPoApproveDialog] = useState(false);
@@ -169,6 +162,8 @@ export const SharedLpoSection: React.FC<Props> = ({ userRole }) => {
   const [deliveryDate, setDeliveryDate]     = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [paymentTerms, setPaymentTerms]     = useState('');
+  const [pfiSupplierName, setPfiSupplierName]   = useState('');
+  const [pfiReferenceNumber, setPfiReferenceNumber] = useState('');
   const [items, setItems]                   = useState<LpoItem[]>([emptyItem()]);
 
   useEffect(() => {
@@ -250,6 +245,7 @@ export const SharedLpoSection: React.FC<Props> = ({ userRole }) => {
   const resetForm = () => {
     setSmrId(''); setSupplierId(''); setFarmId(''); setFarmName('');
     setCurrency('TZS'); setDeliveryAddress(''); setDeliveryDate(''); setPaymentTerms('');
+    setPfiSupplierName(''); setPfiReferenceNumber('');
     setItems([emptyItem()]); setFormError('');
   };
 
@@ -260,9 +256,9 @@ export const SharedLpoSection: React.FC<Props> = ({ userRole }) => {
     setActioning('po-approve'); setActionError('');
     try {
       await apiService.poApproveLpo(selected.id, poApproveNotes.trim() || undefined);
-      toast.success('LPO reviewed — forwarded to FC');
+      toast.success('LPO signed & sent to supplier');
       setShowPoApproveDialog(false); setPoApproveNotes('');
-      setSelected((prev: any) => prev ? { ...prev, status: 'po_reviewed' } : prev);
+      setSelected((prev: any) => prev ? { ...prev, status: 'sent_to_supplier' } : prev);
       refetch();
     } catch (err: any) {
       setActionError(getApiError(err, 'Failed to approve LPO'));
@@ -279,43 +275,6 @@ export const SharedLpoSection: React.FC<Props> = ({ userRole }) => {
       setSelected(null); refetch();
     } catch (err: any) {
       setActionError(getApiError(err, 'Failed to reject LPO'));
-    } finally { setActioning(null); }
-  };
-
-  const handleFcApprove = async () => {
-    if (!selected) return;
-    setActioning('approve'); setActionError('');
-    try {
-      await apiService.approveLpo(selected.id);
-      toast.success('LPO approved — sent to supplier automatically');
-      setSelected(null); refetch();
-    } catch (err: any) {
-      setActionError(getApiError(err, 'Failed to approve LPO'));
-    } finally { setActioning(null); }
-  };
-
-  const handleFcReject = async () => {
-    if (!selected || !fcRejectNotes.trim()) return;
-    setActioning('reject'); setActionError('');
-    try {
-      await apiService.rejectLpo(selected.id, fcRejectNotes.trim());
-      toast.success('LPO rejected');
-      setShowFcRejectDialog(false); setFcRejectNotes(''); setSelected(null); refetch();
-    } catch (err: any) {
-      setActionError(getApiError(err, 'Failed to reject LPO'));
-    } finally { setActioning(null); }
-  };
-
-  const handleSend = async () => {
-    if (!selected) return;
-    setActioning('send'); setActionError('');
-    try {
-      await apiService.sendLpoToSupplier(selected.id);
-      toast.success('LPO sent to supplier');
-      setSelected((prev: any) => prev ? { ...prev, status: 'sent_to_supplier' } : prev);
-      refetch();
-    } catch (err: any) {
-      setActionError(getApiError(err, 'Failed to send LPO'));
     } finally { setActioning(null); }
   };
 
@@ -336,6 +295,8 @@ export const SharedLpoSection: React.FC<Props> = ({ userRole }) => {
         delivery_date:    deliveryDate || undefined,
         payment_terms:    paymentTerms.trim() || undefined,
         currency,
+        pfi_supplier_name:    pfiSupplierName.trim() || undefined,
+        pfi_reference_number: pfiReferenceNumber.trim() || undefined,
         items: valid.map(r => ({
           item_name:        r.item_name.trim(),
           quantity_ordered: parseFloat(r.quantity),
@@ -371,8 +332,8 @@ export const SharedLpoSection: React.FC<Props> = ({ userRole }) => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All statuses</SelectItem>
-                  <SelectItem value="draft">Pending PO Review</SelectItem>
-                  <SelectItem value="po_reviewed">Pending FC Approval</SelectItem>
+                  <SelectItem value="draft">Pending PO Signature</SelectItem>
+                  <SelectItem value="sent_to_supplier">Sent to Supplier</SelectItem>
                   <SelectItem value="approved">Approved</SelectItem>
                   <SelectItem value="sent_to_supplier">Sent to Supplier</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
@@ -392,12 +353,7 @@ export const SharedLpoSection: React.FC<Props> = ({ userRole }) => {
           {/* Role-specific queue labels */}
           {canPoAct && (
             <p className="text-xs text-orange-600 mt-1">
-              Your queue: LPOs at <strong>Pending PO Review</strong> status await your approval before going to the FC.
-            </p>
-          )}
-          {canFcAct && (
-            <p className="text-xs text-blue-600 mt-1">
-              Your queue: LPOs at <strong>Pending FC Approval</strong> status await your final approval.
+              Your queue: LPOs at <strong>Pending PO Signature</strong> status await your co-signature to send to supplier.
             </p>
           )}
         </CardHeader>
@@ -504,7 +460,7 @@ export const SharedLpoSection: React.FC<Props> = ({ userRole }) => {
                       disabled={actioning !== null}
                       onClick={() => { setActionError(''); setShowPoApproveDialog(true); }}
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Approve & Forward to FC
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Sign & Send to Supplier
                     </Button>
                     <Button
                       variant="outline"
@@ -518,30 +474,6 @@ export const SharedLpoSection: React.FC<Props> = ({ userRole }) => {
                 </div>
               )}
 
-              {/* Financial Controller — approve po_reviewed LPOs */}
-              {canFcAct && currentStatus === 'po_reviewed' && (
-                <div className="mb-4 space-y-2">
-                  <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Your Action Required</p>
-                  <div className="flex gap-2">
-                    <Button
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white gap-1.5"
-                      disabled={actioning !== null}
-                      onClick={handleFcApprove}
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      {actioning === 'approve' ? 'Approving…' : 'Approve & Send to Supplier'}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="flex-1 text-red-600 border-red-200 hover:bg-red-50 gap-1.5"
-                      disabled={actioning !== null}
-                      onClick={() => { setActionError(''); setShowFcRejectDialog(true); }}
-                    >
-                      <XCircle className="w-3.5 h-3.5" /> Reject
-                    </Button>
-                  </div>
-                </div>
-              )}
 
               <div className="space-y-4 text-sm">
                 {loadingDetail && (
@@ -721,28 +653,7 @@ export const SharedLpoSection: React.FC<Props> = ({ userRole }) => {
                   </>
                 )}
 
-                {/* Send to Supplier (PO Officer, approved status only) */}
-                {canSend && currentStatus === 'approved' && (
-                  <>
-                    <Separator />
-                    <div className="space-y-2">
-                      {(detailData ?? selected).supplier?.email ? (
-                        <p className="text-xs text-gray-500">
-                          Will email to: <span className="font-mono text-gray-700">{(detailData ?? selected).supplier.email}</span>
-                        </p>
-                      ) : (
-                        <p className="text-xs text-amber-600">
-                          Supplier has no email on file — PDF will be generated but not emailed.
-                        </p>
-                      )}
-                      <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white gap-1.5" disabled={actioning !== null} onClick={handleSend}>
-                        <Send className="w-3.5 h-3.5" />
-                        {actioning === 'send' ? 'Sending…' : 'Send LPO to Supplier'}
-                      </Button>
-                    </div>
-                  </>
-                )}
-                {canSend && (currentStatus === 'sent_to_supplier' || currentStatus === 'sent') && (
+                {(currentStatus === 'sent_to_supplier' || currentStatus === 'sent') && (
                   <>
                     <Separator />
                     <div className="flex items-center justify-between">
@@ -772,17 +683,17 @@ export const SharedLpoSection: React.FC<Props> = ({ userRole }) => {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-orange-700">
-              <CheckCircle2 className="w-4 h-4" /> Approve & Forward to FC
+              <CheckCircle2 className="w-4 h-4" /> Sign & Send to Supplier
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-1">
             <p className="text-sm text-gray-600">
-              Approving this LPO will mark it as <strong>PO Reviewed</strong> and send it to the Financial Controller for final approval.
+              Co-signing this LPO will generate the PDF and email it directly to the supplier. This is the <strong>final approval step</strong>.
             </p>
             <Input
               value={poApproveNotes}
               onChange={e => setPoApproveNotes(e.target.value)}
-              placeholder="Optional notes for FC…"
+              placeholder="Optional notes…"
             />
           </div>
           <DialogFooter>
@@ -792,7 +703,7 @@ export const SharedLpoSection: React.FC<Props> = ({ userRole }) => {
               disabled={actioning !== null}
               onClick={handlePoApprove}
             >
-              {actioning === 'po-approve' ? 'Forwarding…' : 'Confirm & Forward'}
+              {actioning === 'po-approve' ? 'Signing…' : 'Sign & Send'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -823,36 +734,6 @@ export const SharedLpoSection: React.FC<Props> = ({ userRole }) => {
               onClick={handlePoReject}
             >
               {actioning === 'po-reject' ? 'Sending back…' : 'Send Back'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* FC Reject dialog */}
-      <Dialog open={showFcRejectDialog} onOpenChange={open => { if (!open) { setShowFcRejectDialog(false); setFcRejectNotes(''); } }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-700">
-              <XCircle className="w-4 h-4" /> Reject LPO
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 py-1">
-            <p className="text-sm text-gray-600">Please provide a reason for rejection. This will be recorded against the LPO.</p>
-            <Input
-              value={fcRejectNotes}
-              onChange={e => setFcRejectNotes(e.target.value)}
-              placeholder="Reason for rejection…"
-              autoFocus
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowFcRejectDialog(false); setFcRejectNotes(''); }}>Cancel</Button>
-            <Button
-              className="bg-red-600 hover:bg-red-700 text-white"
-              disabled={!fcRejectNotes.trim() || actioning !== null}
-              onClick={handleFcReject}
-            >
-              {actioning === 'reject' ? 'Rejecting…' : 'Confirm Reject'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -940,6 +821,20 @@ export const SharedLpoSection: React.FC<Props> = ({ userRole }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Address</label>
                   <Input value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} placeholder="Farm A, Block 3" />
                 </div>
+
+                <div className="col-span-2 border-t border-gray-100 pt-3">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">PFI / Proforma Reference</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">PFI Supplier Name</label>
+                  <Input value={pfiSupplierName} onChange={e => setPfiSupplierName(e.target.value)} placeholder="Supplier on PFI document" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">PFI Reference Number</label>
+                  <Input value={pfiReferenceNumber} onChange={e => setPfiReferenceNumber(e.target.value)} placeholder="e.g. PFI-2026-001" />
+                </div>
               </div>
 
               <div>
@@ -979,7 +874,7 @@ export const SharedLpoSection: React.FC<Props> = ({ userRole }) => {
               </div>
 
               <p className="text-xs text-gray-400 bg-gray-50 rounded p-2">
-                After creation, this LPO will be sent to the Procurement Officer for review before going to the Financial Controller.
+                After creation, the Procurement Officer will co-sign this LPO to send it directly to the supplier. No further FC gate.
               </p>
             </div>
             <DialogFooter>

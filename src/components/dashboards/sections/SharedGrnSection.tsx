@@ -597,14 +597,6 @@ export const SharedGrnSection: React.FC<Props> = ({ userRole, farmId, farmName }
                       </span>
                     </div>
                   )}
-                  {(selected.simr_number || selected.simr_id) && (
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                      <span className="w-24 shrink-0">Ref SIMR</span>
-                      <span className="font-mono text-xs bg-blue-50 border border-blue-200 text-blue-700 px-2 py-0.5 rounded">
-                        {selected.simr_number ?? `SIMR #${selected.simr_id}`}
-                      </span>
-                    </div>
-                  )}
                 </div>
                 <Separator />
                 <div className="grid grid-cols-2 gap-3">

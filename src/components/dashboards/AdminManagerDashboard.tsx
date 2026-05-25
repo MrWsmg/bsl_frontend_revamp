@@ -19,7 +19,6 @@ import {
   SharedSmrSection,
   SharedLpoSection,
   SharedGrnSection,
-  SharedSimrSection,
   SharedGinSection,
   SharedTransportVoucherSection,
   SharedDeliveryNoteSection,
@@ -503,7 +502,7 @@ const MdOverviewTab = () => {
 // ============ MAIN INDEX COMPONENT ============
 type MdTab =
   | 'overview' | 'strategic-financial' | 'performance' | 'reports-meetings'
-  | 'smr' | 'lpo' | 'grn' | 'simr' | 'gin' | 'tv' | 'dn' | 'gate-pass' | 'transfers' | 'cardex'
+  | 'smr' | 'lpo' | 'grn' | 'gin' | 'tv' | 'dn' | 'gate-pass' | 'transfers' | 'cardex'
   | 'weekly-sheet' | 'payment-summary' | 'payslip'
   | 'calendar' | 'users' | 'activities' | 'audit-logs'
   | 'budget-manager' | 'budget-summary' | 'budget-tracking'
@@ -534,7 +533,6 @@ const MD_SIDEBAR = [
       { id: 'smr',       label: 'SMR',             icon: ClipboardList },
       { id: 'lpo',       label: 'LPO',             icon: ShoppingCart },
       { id: 'grn',       label: 'GRN',             icon: Package },
-      { id: 'simr',      label: 'SIMR',            icon: ClipboardList },
       { id: 'gin',       label: 'GIN',             icon: Package },
       { id: 'tv',        label: 'Transport',       icon: Truck },
       { id: 'dn',        label: 'Delivery Note',   icon: Truck },
@@ -609,9 +607,6 @@ const AdminManagerDashboard = ({ user, onLogout }: AdminManagerDashboardProps) =
         </div>
         <div className={activeTab !== 'grn' ? 'hidden' : ''}>
           {mountedTabs.current.has('grn') && <SharedGrnSection userRole="managing_director" />}
-        </div>
-        <div className={activeTab !== 'simr' ? 'hidden' : ''}>
-          {mountedTabs.current.has('simr') && <SharedSimrSection userRole="managing_director" />}
         </div>
         <div className={activeTab !== 'gin' ? 'hidden' : ''}>
           {mountedTabs.current.has('gin') && <SharedGinSection userRole="managing_director" />}

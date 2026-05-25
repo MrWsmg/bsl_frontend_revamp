@@ -722,7 +722,7 @@ export const FertilizerProgramsSection: React.FC = () => {
               {canWrite && (
                 <div className="flex justify-end">
                   <Button size="sm" variant="outline"
-                    onClick={() => toast.info('Navigate to SIMR to raise a stock request for these quantities')}>
+                    onClick={() => toast.info('Navigate to GIN to raise a stock issue request for these quantities')}>
                     <Package className="w-4 h-4 mr-1" /> Raise SMR
                   </Button>
                 </div>

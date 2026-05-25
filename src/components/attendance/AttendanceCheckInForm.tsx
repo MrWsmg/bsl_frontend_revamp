@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { UserCheck, Users, Camera, AlertCircle, MapPin } from 'lucide-react';
+import { UserCheck, Users, Camera, AlertCircle } from 'lucide-react'; // MapPin removed — GPS disabled
 import { Worker, Farm } from '../../types';
 import apiService from '../../services/api';
 import { toast } from 'sonner';
@@ -41,36 +41,20 @@ export function AttendanceCheckInForm({
     message?: string;
   }>({ status: null });
 
-  const [checkInGps, setCheckInGps] = useState<{
-    latitude: number | null;
-    longitude: number | null;
-    accuracy: number | null;
-    status: 'idle' | 'acquiring' | 'ok' | 'error';
-    errorMsg?: string;
-  }>({ latitude: null, longitude: null, accuracy: null, status: 'idle' });
-  const gpsWatchRef = useRef<number | null>(null);
+  // GPS state — TEMPORARILY DISABLED
+  // const [checkInGps, setCheckInGps] = useState<{
+  //   latitude: number | null;
+  //   longitude: number | null;
+  //   accuracy: number | null;
+  //   status: 'idle' | 'acquiring' | 'ok' | 'error';
+  //   errorMsg?: string;
+  // }>({ latitude: null, longitude: null, accuracy: null, status: 'idle' });
+  // const gpsWatchRef = useRef<number | null>(null);
 
-  const startGps = useCallback(() => {
-    if (!navigator.geolocation) {
-      setCheckInGps({ latitude: null, longitude: null, accuracy: null, status: 'error', errorMsg: 'GPS not supported' });
-      return;
-    }
-    setCheckInGps({ latitude: null, longitude: null, accuracy: null, status: 'acquiring' });
-    const id = navigator.geolocation.watchPosition(
-      (pos) => setCheckInGps({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, accuracy: pos.coords.accuracy, status: 'ok' }),
-      (err) => setCheckInGps({ latitude: null, longitude: null, accuracy: null, status: 'error', errorMsg: err.message }),
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
-    );
-    gpsWatchRef.current = id;
-  }, []);
-
-  const stopGps = useCallback(() => {
-    if (gpsWatchRef.current != null) {
-      navigator.geolocation?.clearWatch(gpsWatchRef.current);
-      gpsWatchRef.current = null;
-    }
-    setCheckInGps({ latitude: null, longitude: null, accuracy: null, status: 'idle' });
-  }, []);
+  // const startGps = useCallback(() => { ... }, []);
+  // const stopGps = useCallback(() => { ... }, []);
+  const startGps = useCallback(() => {}, []);
+  const stopGps = useCallback(() => {}, []);
 
   useEffect(() => () => { stopGps(); }, [stopGps]);
 
@@ -127,9 +111,10 @@ export function AttendanceCheckInForm({
         farm_id: parseInt(watchedFarmId),
         file,
         status: 'present',
-        latitude: checkInGps.latitude ?? undefined,
-        longitude: checkInGps.longitude ?? undefined,
-        gps_accuracy: checkInGps.accuracy ?? undefined,
+        // GPS — TEMPORARILY DISABLED
+        // latitude: checkInGps.latitude ?? undefined,
+        // longitude: checkInGps.longitude ?? undefined,
+        // gps_accuracy: checkInGps.accuracy ?? undefined,
       });
 
       if (result.success) {
@@ -354,24 +339,13 @@ export function AttendanceCheckInForm({
               )}
             </article>
 
-            {/* GPS status strip */}
-            {checkInGps.status !== 'idle' && (
-              <div className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium ${
-                checkInGps.status === 'ok'
-                  ? checkInGps.accuracy! <= 50 ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-yellow-50 text-yellow-700 border border-yellow-200'
-                  : checkInGps.status === 'error' ? 'bg-red-50 text-red-700 border border-red-200'
-                  : 'bg-blue-50 text-blue-700 border border-blue-200'
-              }`}>
+            {/* GPS status strip — TEMPORARILY DISABLED */}
+            {/* {checkInGps.status !== 'idle' && (
+              <div className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium ...`}>
                 <MapPin className="w-3.5 h-3.5 shrink-0" />
-                {checkInGps.status === 'acquiring' && 'Acquiring GPS location…'}
-                {checkInGps.status === 'ok' && (
-                  checkInGps.accuracy! <= 20 ? `GPS: ±${checkInGps.accuracy!.toFixed(0)}m (excellent)`
-                  : checkInGps.accuracy! <= 50 ? `GPS: ±${checkInGps.accuracy!.toFixed(0)}m (good)`
-                  : `GPS: ±${checkInGps.accuracy!.toFixed(0)}m (weak signal)`
-                )}
-                {checkInGps.status === 'error' && `GPS unavailable — ${checkInGps.errorMsg || 'check permissions'}`}
+                ...GPS status...
               </div>
-            )}
+            )} */}
 
             {/* Face Verification or Manual Check-in */}
             {!showCamera ? (

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from 'react';
-import { Upload, RefreshCw, Filter, BarChart3, Users, ClipboardList, PenLine, LogOut, Clock, AlertTriangle, Check, X, MapPin, MapPinOff, Navigation } from 'lucide-react';
+import { useState, useCallback, useEffect } from 'react';
+import { Upload, RefreshCw, Filter, BarChart3, Users, ClipboardList, PenLine, LogOut, Clock, AlertTriangle, Check, X, Eye } from 'lucide-react';
 import { WorkerAttendanceList } from '../../attendance/WorkerAttendanceList';
 import { WorkerPhotoUploadModal } from '../../attendance/WorkerPhotoUploadModal';
 import { AttendanceRecordsTable } from '../../attendance/AttendanceRecordsTable';
 import { FaceVerificationCapture } from '../../attendance/FaceVerificationCapture';
+import { AttendancePhotoViewer } from '../../attendance/AttendancePhotoViewer';
 import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
@@ -86,31 +87,13 @@ export function SupervisorAttendanceSection() {
   // Pending review state
   const [reviewingId, setReviewingId] = useState<number | null>(null);
 
-  // GPS for checkout dialog
-  const [checkoutGps, setCheckoutGps] = useState<{ latitude: number | null; longitude: number | null; accuracy: number | null; status: 'idle' | 'acquiring' | 'ok' | 'error'; errorMsg?: string }>({ latitude: null, longitude: null, accuracy: null, status: 'idle' });
-  const checkoutGpsWatchRef = useRef<number | null>(null);
+  // Photo lightbox — simple full-screen view
+  const [lightboxPhoto, setLightboxPhoto] = useState<{ url: string; label: string } | null>(null);
 
-  const startCheckoutGps = useCallback(() => {
-    if (!navigator.geolocation) {
-      setCheckoutGps({ latitude: null, longitude: null, accuracy: null, status: 'error', errorMsg: 'GPS not supported' });
-      return;
-    }
-    setCheckoutGps({ latitude: null, longitude: null, accuracy: null, status: 'acquiring' });
-    const id = navigator.geolocation.watchPosition(
-      (pos) => setCheckoutGps({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, accuracy: pos.coords.accuracy, status: 'ok' }),
-      (err) => setCheckoutGps({ latitude: null, longitude: null, accuracy: null, status: 'error', errorMsg: err.message }),
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-    );
-    checkoutGpsWatchRef.current = id;
-  }, []);
+  // Attendance Photo Viewer — same pattern as PhotoCaptureModal, shows both check-in + check-out photos
+  const [photoViewerRecord, setPhotoViewerRecord] = useState<any | null>(null);
 
-  const stopCheckoutGps = useCallback(() => {
-    if (checkoutGpsWatchRef.current !== null) {
-      navigator.geolocation?.clearWatch(checkoutGpsWatchRef.current);
-      checkoutGpsWatchRef.current = null;
-    }
-    setCheckoutGps({ latitude: null, longitude: null, accuracy: null, status: 'idle' });
-  }, []);
+  // GPS removed — face-only verification
 
   // Data fetching
   const getWorkers = useCallback(() => apiService.getSupervisorWorkers(), []);
@@ -153,34 +136,23 @@ export function SupervisorAttendanceSection() {
     setCheckoutRecord(record);
     setCheckoutWorker(worker);
     setCheckoutVerification({ status: null });
-    startCheckoutGps();
   };
 
   const closeCheckoutDialog = () => {
     setCheckoutRecord(null);
     setCheckoutWorker(null);
     setCheckoutVerification({ status: null });
-    stopCheckoutGps();
   };
 
   const handleFaceCheckout = async (file: File) => {
     if (!checkoutRecord || !checkoutWorker) return;
-    if (checkoutGps.status !== 'ok' || checkoutGps.latitude == null) {
-      toast.error('GPS not ready — wait for a location fix before capturing.');
-      return;
-    }
-    if (checkoutGps.accuracy != null && checkoutGps.accuracy > 100) {
-      toast.warning(`GPS accuracy is ±${checkoutGps.accuracy.toFixed(0)}m — checkout will be flagged for review.`);
-    }
     setCheckoutProcessing(true);
     setCheckoutVerification({ status: null });
     try {
-      const gpsFields = { latitude: checkoutGps.latitude, longitude: checkoutGps.longitude ?? undefined, gps_accuracy: checkoutGps.accuracy ?? undefined };
       const result = await apiService.attendance.checkOutWithFaceVerification({
         worker_id: checkoutWorker.id,
         farm_id: Number(selectedFarmId),
         file,
-        ...gpsFields,
       });
       const verified = result.face_verification_status === 'verified';
       setCheckoutVerification({
@@ -791,38 +763,79 @@ export function SupervisorAttendanceSection() {
                 <div className="space-y-3">
                   {pendingReviews.map((record: any) => {
                     const workerName =
+                      record.worker_name ||
                       (workers || []).find((w: Worker) => w.id === record.worker_id)?.name ||
                       `Worker #${record.worker_id}`;
+                    const hasCheckinPhoto  = !!record.verification_photo_url;
+                    const hasCheckoutPhoto = !!record.checkout_photo_url;
                     return (
                       <div
                         key={record.id}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 border rounded-lg bg-yellow-50 dark:bg-yellow-950/20"
+                        className="p-3 border rounded-lg bg-yellow-50 dark:bg-yellow-950/20 space-y-3"
                       >
-                        <div className="space-y-0.5 text-sm">
-                          <p className="font-medium">{workerName}</p>
-                          <p className="text-muted-foreground">
-                            {record.date} &bull; {record.check_in_time ? new Date(record.check_in_time).toLocaleTimeString() : '—'}
-                          </p>
-                          {record.notes && (
-                            <p className="text-xs text-muted-foreground">{record.notes}</p>
-                          )}
+                        {/* Top row — worker info + action buttons */}
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                          <div className="space-y-0.5 text-sm">
+                            <p className="font-semibold">{workerName}</p>
+                            <p className="text-muted-foreground text-xs">
+                              {record.date} &bull;{' '}
+                              {record.check_in_time
+                                ? `In: ${new Date(record.check_in_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                                : 'No check-in time'}
+                              {record.check_out_time &&
+                                ` · Out: ${new Date(record.check_out_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                            </p>
+                            {/* Face verification status badge */}
+                            <p className="text-xs">
+                              Status:{' '}
+                              <span className={
+                                record.face_verification_status === 'failed'
+                                  ? 'text-red-600 font-medium'
+                                  : 'text-yellow-700 font-medium'
+                              }>
+                                {record.face_verification_status === 'failed'
+                                  ? 'Face mismatch'
+                                  : 'Manual — no face scan'}
+                              </span>
+                              {record.face_verification_confidence != null &&
+                                ` (${record.face_verification_confidence.toFixed(1)}% confidence)`}
+                            </p>
+                            {record.notes && (
+                              <p className="text-xs text-muted-foreground italic">{record.notes}</p>
+                            )}
+                          </div>
+
+                          {/* Approve / Reject */}
+                          <div className="flex gap-2 shrink-0">
+                            <button
+                              onClick={() => handleReview(record.id, true)}
+                              disabled={reviewingId === record.id}
+                              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors"
+                            >
+                              <Check className="w-3 h-3" />
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleReview(record.id, false)}
+                              disabled={reviewingId === record.id}
+                              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 transition-colors"
+                            >
+                              <X className="w-3 h-3" />
+                              Reject
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex gap-2 shrink-0">
+
+                        {/* Photo row — open AttendancePhotoViewer (same pattern as user/worker photos) */}
+                        <div className="flex flex-wrap gap-3 pt-1 border-t border-yellow-200">
                           <button
-                            onClick={() => handleReview(record.id, true)}
-                            disabled={reviewingId === record.id}
-                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors"
+                            onClick={() => setPhotoViewerRecord(record)}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
                           >
-                            <Check className="w-3 h-3" />
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => handleReview(record.id, false)}
-                            disabled={reviewingId === record.id}
-                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 transition-colors"
-                          >
-                            <X className="w-3 h-3" />
-                            Reject
+                            <Eye className="w-3.5 h-3.5 text-blue-600" />
+                            {hasCheckinPhoto || hasCheckoutPhoto
+                              ? 'View / replace verification photos'
+                              : 'Add verification photo'}
                           </button>
                         </div>
                       </div>
@@ -834,6 +847,39 @@ export function SupervisorAttendanceSection() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Attendance Photo Viewer — same card pattern as PhotoCaptureModal */}
+      <AttendancePhotoViewer
+        record={photoViewerRecord}
+        isOpen={!!photoViewerRecord}
+        onClose={() => setPhotoViewerRecord(null)}
+        onPhotoUpdated={() => { refetchPending(); refetchAttendance(); }}
+      />
+
+      {/* Verification Photo Lightbox */}
+      <Dialog open={!!lightboxPhoto} onOpenChange={(open) => !open && setLightboxPhoto(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="w-4 h-4" />
+              {lightboxPhoto?.label ?? 'Verification Photo'}
+            </DialogTitle>
+          </DialogHeader>
+          {lightboxPhoto && (
+            <figure className="m-0 text-center">
+              <img
+                src={lightboxPhoto.url}
+                alt={lightboxPhoto.label}
+                crossOrigin="anonymous"
+                className="max-w-full max-h-[70vh] rounded-lg mx-auto object-contain"
+              />
+              <figcaption className="text-xs text-muted-foreground mt-2">
+                {lightboxPhoto.label}
+              </figcaption>
+            </figure>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Worker Photo Upload Modal */}
       <WorkerPhotoUploadModal
@@ -854,31 +900,6 @@ export function SupervisorAttendanceSection() {
 
           {checkoutRecord && (
             <div className="space-y-3">
-              {/* GPS status strip */}
-              <div className={`flex items-center gap-2 rounded-md px-3 py-2 text-xs font-medium ${
-                checkoutGps.status === 'ok'
-                  ? checkoutGps.accuracy != null && checkoutGps.accuracy <= 20 ? 'bg-green-50 text-green-800'
-                    : checkoutGps.accuracy != null && checkoutGps.accuracy <= 50 ? 'bg-yellow-50 text-yellow-800'
-                    : 'bg-orange-50 text-orange-800'
-                  : checkoutGps.status === 'acquiring' ? 'bg-blue-50 text-blue-700'
-                  : checkoutGps.status === 'error' ? 'bg-red-50 text-red-700'
-                  : 'bg-gray-50 text-gray-500'
-              }`}>
-                {checkoutGps.status === 'acquiring' && <Navigation className="w-3.5 h-3.5 animate-pulse shrink-0" />}
-                {checkoutGps.status === 'ok' && <MapPin className="w-3.5 h-3.5 shrink-0" />}
-                {(checkoutGps.status === 'error' || checkoutGps.status === 'idle') && <MapPinOff className="w-3.5 h-3.5 shrink-0" />}
-                <span>
-                  {checkoutGps.status === 'acquiring' && 'Acquiring GPS location…'}
-                  {checkoutGps.status === 'ok' && checkoutGps.accuracy != null && (
-                    checkoutGps.accuracy <= 20 ? `GPS: ±${checkoutGps.accuracy.toFixed(0)}m (excellent)`
-                    : checkoutGps.accuracy <= 50 ? `GPS: ±${checkoutGps.accuracy.toFixed(0)}m (good)`
-                    : `GPS: ±${checkoutGps.accuracy.toFixed(0)}m (weak signal)`
-                  )}
-                  {checkoutGps.status === 'error' && `GPS unavailable — ${checkoutGps.errorMsg || 'check permissions'}`}
-                  {checkoutGps.status === 'idle' && 'GPS not started'}
-                </span>
-              </div>
-
               {checkoutWorker ? (
                 <FaceVerificationCapture
                   worker={checkoutWorker}

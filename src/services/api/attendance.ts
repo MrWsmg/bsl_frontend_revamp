@@ -15,9 +15,10 @@ export interface CheckInParams {
   farm_id: number;
   block_id?: number;
   file: File;
-  latitude?: number;
-  longitude?: number;
-  gps_accuracy?: number;
+  // GPS — TEMPORARILY DISABLED
+  // latitude?: number;
+  // longitude?: number;
+  // gps_accuracy?: number;
   status?: AttendanceStatus;
   notes?: string;
 }
@@ -26,9 +27,10 @@ export interface CheckOutParams {
   worker_id: number;
   farm_id: number;
   file: File;
-  latitude?: number;
-  longitude?: number;
-  gps_accuracy?: number;
+  // GPS — TEMPORARILY DISABLED
+  // latitude?: number;
+  // longitude?: number;
+  // gps_accuracy?: number;
   notes?: string;
 }
 
@@ -57,9 +59,10 @@ export class AttendanceApiService extends BaseApiService {
     farm_id,
     block_id,
     file,
-    latitude,
-    longitude,
-    gps_accuracy,
+    // GPS — TEMPORARILY DISABLED
+    // latitude,
+    // longitude,
+    // gps_accuracy,
     status = 'present',
     notes,
   }: CheckInParams): Promise<FaceVerificationResult> {
@@ -68,9 +71,10 @@ export class AttendanceApiService extends BaseApiService {
     formData.append('worker_id', String(worker_id));
     formData.append('farm_id', String(farm_id));
     if (block_id != null) formData.append('block_id', String(block_id));
-    if (latitude != null) formData.append('latitude', String(latitude));
-    if (longitude != null) formData.append('longitude', String(longitude));
-    if (gps_accuracy != null) formData.append('gps_accuracy', String(gps_accuracy));
+    // GPS fields — TEMPORARILY DISABLED
+    // if (latitude != null) formData.append('latitude', String(latitude));
+    // if (longitude != null) formData.append('longitude', String(longitude));
+    // if (gps_accuracy != null) formData.append('gps_accuracy', String(gps_accuracy));
     if (status) formData.append('status', status);
     if (notes) formData.append('notes', notes);
     return this.post<FaceVerificationResult>('/supervisor/attendance/checkin', formData);
@@ -148,18 +152,20 @@ export class AttendanceApiService extends BaseApiService {
     worker_id,
     farm_id,
     file,
-    latitude,
-    longitude,
-    gps_accuracy,
+    // GPS — TEMPORARILY DISABLED
+    // latitude,
+    // longitude,
+    // gps_accuracy,
     notes,
   }: CheckOutParams): Promise<FaceVerificationResult> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('worker_id', String(worker_id));
     formData.append('farm_id', String(farm_id));
-    if (latitude != null) formData.append('latitude', String(latitude));
-    if (longitude != null) formData.append('longitude', String(longitude));
-    if (gps_accuracy != null) formData.append('gps_accuracy', String(gps_accuracy));
+    // GPS fields — TEMPORARILY DISABLED
+    // if (latitude != null) formData.append('latitude', String(latitude));
+    // if (longitude != null) formData.append('longitude', String(longitude));
+    // if (gps_accuracy != null) formData.append('gps_accuracy', String(gps_accuracy));
     if (notes) formData.append('notes', notes);
     return this.post<FaceVerificationResult>('/supervisor/attendance/checkout', formData);
   }
@@ -183,6 +189,27 @@ export class AttendanceApiService extends BaseApiService {
    */
   async updateAttendance(attendanceId: number, data: Record<string, unknown>): Promise<AttendanceResponse> {
     return this.put<AttendanceResponse>(`/supervisor/attendance/${attendanceId}`, data);
+  }
+
+  /**
+   * Replace check-in and/or check-out photos on an attendance record.
+   * PATCH /supervisor/attendance/{id}/update-photos (multipart form)
+   */
+  async updateAttendancePhotos(
+    attendanceId: number,
+    photos: { verification_photo?: File; checkout_photo?: File }
+  ): Promise<AttendanceResponse> {
+    const formData = new FormData();
+    if (photos.verification_photo) {
+      formData.append('verification_photo', photos.verification_photo);
+    }
+    if (photos.checkout_photo) {
+      formData.append('checkout_photo', photos.checkout_photo);
+    }
+    return this.patch<AttendanceResponse>(
+      `/supervisor/attendance/${attendanceId}/update-photos`,
+      formData
+    );
   }
 
   /**

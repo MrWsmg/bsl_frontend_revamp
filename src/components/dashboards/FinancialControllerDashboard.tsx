@@ -7,7 +7,7 @@ import { User } from '../../types';
 import {
   BarChart3, ClipboardList, TrendingUp, FileText, PackageCheck,
   Warehouse, CalendarDays, ReceiptText, ArrowRight, AlertCircle,
-  Users, BarChart2, AlertTriangle, ListChecks,
+  Users, BarChart2, AlertTriangle,
 } from 'lucide-react';
 import { FinancialControllerPayrollSection } from './sections/FinancialControllerPayrollSection';
 import {
@@ -15,7 +15,6 @@ import {
   SharedLpoSection,
   SharedGrnSection,
   SharedGinSection,
-  SharedSimrSection,
   SharedCardexSection,
   SharedWeeklySheetSection,
   SharedPaymentSummarySection,
@@ -43,7 +42,6 @@ type Tab =
   | 'proc-lpo'
   | 'proc-grn'
   | 'proc-gin'
-  | 'proc-simr'
   | 'proc-cardex'
   | 'calendar'
   | 'budget-manager'
@@ -78,7 +76,6 @@ const SIDEBAR_ITEMS = [
     icon: PackageCheck,
     children: [
       { id: 'proc-smr',    label: 'SMR',    icon: FileText      },
-      { id: 'proc-simr',   label: 'SIMR',   icon: ListChecks    },
       { id: 'proc-lpo',    label: 'LPO',    icon: ClipboardList },
       { id: 'proc-grn',    label: 'GRN',    icon: PackageCheck  },
       { id: 'proc-gin',    label: 'GIN',    icon: PackageCheck  },
@@ -147,9 +144,6 @@ export const FinancialControllerDashboard: React.FC<Props> = ({ user, onLogout }
           </div>
           <div hidden={activeTab !== 'proc-gin'}>
             {mountedTabs.current.has('proc-gin') && <SharedGinSection userRole="financial_controller" />}
-          </div>
-          <div hidden={activeTab !== 'proc-simr'}>
-            {mountedTabs.current.has('proc-simr') && <SharedSimrSection userRole="financial_controller" />}
           </div>
           <div hidden={activeTab !== 'proc-cardex'}>
             {mountedTabs.current.has('proc-cardex') && <SharedCardexSection userRole="financial_controller" />}

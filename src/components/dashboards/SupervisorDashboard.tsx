@@ -16,7 +16,6 @@ import PickingDashboard from './PickingDashboard';
 import { SupervisorPayrollSection } from './sections/SupervisorPayrollSection';
 import { SupervisorPayrollPendingSection } from './sections/SupervisorPayrollPendingSection';
 import {
-  SupervisorSimrSection,
   SharedGinSection,
   SharedTransportVoucherSection,
   SharedDeliveryNoteSection,
@@ -63,7 +62,6 @@ const SUPERVISOR_NAV_ITEMS = [
     label: 'Item Requests',
     icon: Package,
     children: [
-      { id: 'proc-simr',   label: 'SIMR',      icon: ClipboardList },
       { id: 'proc-gin',    label: 'GIN',        icon: Package },
       { id: 'proc-tv',     label: 'Transport',  icon: Calendar },
       { id: 'proc-dn',     label: 'Delivery',   icon: CheckCircle },
@@ -175,7 +173,7 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
     () => apiService.getSupervisorWorkHistory(dateRange.startDate, dateRange.endDate),
     [dateRange.startDate, dateRange.endDate]
   );
-  const getItemRequests = useCallback(() => apiService.getSimrRequests(), []);
+  const getItemRequests = useCallback(() => apiService.getGins({ status: 'pending_fm_approval' }), []);
   const getWorkers = useCallback(() => apiService.getWorkers(), []);
   const getFarms = useCallback(() => apiService.getFarms('supervisor'), []);
   const getTaskAssignments = useCallback(() => apiService.getManagerTaskAssignments(), []);
@@ -337,7 +335,7 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
         {/* ── Item Request Breakdown ───────────────────────────────────────── */}
         {itemRequestStats.total > 0 && (
           <div>
-            <OverviewSectionHeader title="Item Request Breakdown" sub="SIMR status across all requests" />
+            <OverviewSectionHeader title="Item Request Breakdown" sub="GIN status across all requests" />
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {[
                 { label: 'Pending',  value: itemRequestStats.pending,  dot: 'bg-amber-400'   },
@@ -415,7 +413,7 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
               <h3 className="text-sm font-semibold text-foreground">Recent Item Requests</h3>
               <p className="text-xs text-muted-foreground">{itemRequestStats.total} total requests</p>
             </div>
-            <button onClick={() => handleTabChange('proc-simr')} className="text-xs font-medium text-primary hover:underline">View all</button>
+            <button onClick={() => handleTabChange('proc-gin')} className="text-xs font-medium text-primary hover:underline">View all</button>
           </div>
           {loadingItemRequests ? (
             <div className="flex justify-center py-6"><LoadingSpinner size="sm" /></div>
@@ -440,7 +438,7 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
                     const firstItem = request.items?.[0];
                     const label = firstItem
                       ? `${firstItem.item_name}${request.items.length > 1 ? ` +${request.items.length - 1}` : ''}`
-                      : request.simr_number || '—';
+                      : request.gin_number || '—';
                     const isApproved = ['approved', 'issued', 'received'].includes(request.status);
                     const isRejected = request.status === 'rejected';
                     return (
@@ -740,7 +738,6 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
         <div className={activeTab === 'budget-summary'  ? '' : 'hidden'}>{mountedTabs.has('budget-summary')  && <SharedBudgetSummarySection   userRole="supervisor" />}</div>
         <div className={activeTab === 'budget-tracking' ? '' : 'hidden'}>{mountedTabs.has('budget-tracking') && <SharedBudgetTrackingSection  userRole="supervisor" />}</div>
         {/* Procurement tabs */}
-        <div className={activeTab === 'proc-simr'   ? '' : 'hidden'}>{mountedTabs.has('proc-simr')   && <SupervisorSimrSection />}</div>
         <div className={activeTab === 'proc-gin'    ? '' : 'hidden'}>{mountedTabs.has('proc-gin')    && <SharedGinSection userRole="supervisor" />}</div>
         <div className={activeTab === 'proc-tv'     ? '' : 'hidden'}>{mountedTabs.has('proc-tv')     && <SharedTransportVoucherSection userRole="supervisor" />}</div>
         <div className={activeTab === 'proc-dn'     ? '' : 'hidden'}>{mountedTabs.has('proc-dn')     && <SharedDeliveryNoteSection userRole="supervisor" />}</div>

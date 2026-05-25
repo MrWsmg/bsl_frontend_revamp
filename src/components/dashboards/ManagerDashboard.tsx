@@ -29,7 +29,6 @@ import {
   SharedPfiSection,
   SharedLpoSection,
   SharedGrnSection,
-  SharedSimrSection,
   SharedGinSection,
   SharedTransportVoucherSection,
   SharedDeliveryNoteSection,
@@ -101,7 +100,6 @@ const PROCUREMENT_GROUP = {
     { id: 'proc-lpo',      label: 'LPO',          icon: ClipboardList },
     { id: 'proc-grn',      label: 'GRN',          icon: PackageCheck },
     { id: 'proc-cardex',   label: 'CARDEX',       icon: TrendingUp },
-    { id: 'proc-simr',     label: 'SIMR',         icon: Package },
     { id: 'proc-gin',      label: 'GIN',          icon: PackageOpen },
     { id: 'proc-tv',       label: 'Transport',    icon: Truck },
     { id: 'proc-dn',       label: 'Delivery',     icon: SendHorizontal },
@@ -186,7 +184,6 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ user, onLogo
         <div className={activeTab === 'proc-pfi'      ? '' : 'hidden'}>{mountedTabs.has('proc-pfi')      && <SharedPfiSection userRole={ROLE} />}</div>
         <div className={activeTab === 'proc-lpo'      ? '' : 'hidden'}>{mountedTabs.has('proc-lpo')      && <SharedLpoSection userRole={ROLE} />}</div>
         <div className={activeTab === 'proc-grn'      ? '' : 'hidden'}>{mountedTabs.has('proc-grn')      && <SharedGrnSection userRole={ROLE} />}</div>
-        <div className={activeTab === 'proc-simr'     ? '' : 'hidden'}>{mountedTabs.has('proc-simr')     && <SharedSimrSection userRole={ROLE} />}</div>
         <div className={activeTab === 'proc-gin'      ? '' : 'hidden'}>{mountedTabs.has('proc-gin')      && <SharedGinSection userRole={ROLE} />}</div>
         <div className={activeTab === 'proc-tv'       ? '' : 'hidden'}>{mountedTabs.has('proc-tv')       && <SharedTransportVoucherSection userRole={ROLE} />}</div>
         <div className={activeTab === 'proc-dn'       ? '' : 'hidden'}>{mountedTabs.has('proc-dn')       && <SharedDeliveryNoteSection userRole={ROLE} />}</div>

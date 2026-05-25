@@ -6,9 +6,10 @@ import apiService from '../../../services/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
-import { GpsLocationManager } from '../../common/GpsLocationManager';
+// GpsLocationManager — TEMPORARILY DISABLED
+// import { GpsLocationManager } from '../../common/GpsLocationManager';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Download, Upload, LayoutGrid, AlertCircle, CheckCircle2, AlertTriangle, MapPin, MapPinOff, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { Download, Upload, LayoutGrid, AlertCircle, CheckCircle2, AlertTriangle, MapPin } from 'lucide-react'; // GPS icons removed — GPS disabled
 import { toast } from 'sonner';
 
 interface SkippedRow {
@@ -42,64 +43,30 @@ export const ManagerBlocksSection: React.FC<ManagerBlocksSectionProps> = ({
   const [result, setResult] = useState<UploadResult | null>(null);
   const [uploadError, setUploadError] = useState('');
 
-  // GPS state — admin can pass overrideFarmId to manage any farm
   const farmId = overrideFarmId ?? user?.farm_id;
   const farmName = overrideFarmName ?? (user as any)?.farm?.name ?? (farmId ? `Farm #${farmId}` : '—');
 
-  const [farmLocation, setFarmLocation] = useState<any>(null);
-  const [farmLocationLoading, setFarmLocationLoading] = useState(false);
-  const [blocks, setBlocks] = useState<any[]>([]);
-  const [blocksLoading, setBlocksLoading] = useState(false);
-  const [blockLocations, setBlockLocations] = useState<Record<number, any>>({});
-  const [expandedBlock, setExpandedBlock] = useState<number | null>(null);
+  // GPS state — TEMPORARILY DISABLED
+  // const [farmLocation, setFarmLocation] = useState<any>(null);
+  // const [farmLocationLoading, setFarmLocationLoading] = useState(false);
+  // const [blocks, setBlocks] = useState<any[]>([]);      // kept below for CSV tab
+  // const [blocksLoading, setBlocksLoading] = useState(false);
+  // const [blockLocations, setBlockLocations] = useState<Record<number, any>>({});
+  // const [expandedBlock, setExpandedBlock] = useState<number | null>(null);
 
-  const loadFarmLocation = useCallback(async () => {
-    if (!farmId) return;
-    setFarmLocationLoading(true);
-    try {
-      const data = await apiService.getFarmLocation(farmId);
-      setFarmLocation(data);
-    } catch {
-      setFarmLocation(null);
-    } finally {
-      setFarmLocationLoading(false);
-    }
-  }, [farmId]);
+  // const loadFarmLocation = useCallback(async () => { ... }, [farmId]);  // GPS disabled
+  const loadFarmLocation = useCallback(async () => {}, []);
 
+  // loadBlocks — GPS tab removed, blocks state no longer needed
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const loadBlocks = useCallback(async () => {
-    if (!farmId) return;
-    setBlocksLoading(true);
-    try {
-      const data = await apiService.getBlocksForFarm(farmId);
-      setBlocks(data || []);
-    } catch {
-      setBlocks([]);
-    } finally {
-      setBlocksLoading(false);
-    }
-  }, [farmId]);
+    // GPS tab disabled — no block listing needed
+  }, []);
 
   useEffect(() => { loadFarmLocation(); loadBlocks(); }, [loadFarmLocation, loadBlocks]);
 
-  const loadBlockLocation = useCallback(async (blockId: number) => {
-    try {
-      const data = await apiService.getBlockLocation(blockId);
-      setBlockLocations((prev) => ({ ...prev, [blockId]: data }));
-    } catch {
-      setBlockLocations((prev) => ({ ...prev, [blockId]: null }));
-    }
-  }, []);
-
-  const handleToggleBlock = (blockId: number) => {
-    if (expandedBlock === blockId) {
-      setExpandedBlock(null);
-    } else {
-      setExpandedBlock(blockId);
-      if (!(blockId in blockLocations)) {
-        loadBlockLocation(blockId);
-      }
-    }
-  };
+  // const loadBlockLocation = useCallback(async (blockId: number) => { ... }, []);  // GPS disabled
+  // const handleToggleBlock = (blockId: number) => { ... };  // GPS disabled
 
   const handleDownloadTemplate = async () => {
     setDownloading(true);
@@ -264,128 +231,14 @@ export const ManagerBlocksSection: React.FC<ManagerBlocksSectionProps> = ({
         </TabsContent>
 
         {/* ── GPS Locations tab ── */}
+        {/* GPS Locations tab — TEMPORARILY DISABLED */}
         <TabsContent value="gps">
-          <div className="space-y-4">
-
-            {/* Farm location */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold text-gray-800 flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-blue-600" />
-                  Farm GPS Boundary
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {!farmId ? (
-                  <p className="text-sm text-gray-500">No farm assigned to your account.</p>
-                ) : (
-                  <GpsLocationManager
-                    label={farmName}
-                    sublabel="Set the GPS centre point and geofence radius for this farm"
-                    current={farmLocation}
-                    defaultRadius={500}
-                    supportsPolygon
-                    loading={farmLocationLoading}
-                    onSave={async (data) => {
-                      await apiService.setFarmLocation(farmId, data);
-                      await loadFarmLocation();
-                    }}
-                  />
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Per-block locations */}
-            <Card>
-              <CardHeader className="pb-3 flex flex-row items-center justify-between">
-                <CardTitle className="text-base font-semibold text-gray-800 flex items-center gap-2">
-                  <LayoutGrid className="w-4 h-4 text-green-600" />
-                  Block GPS Boundaries
-                </CardTitle>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={loadBlocks}
-                  disabled={blocksLoading}
-                  className="text-xs text-gray-500 h-7 px-2"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 mr-1 ${blocksLoading ? 'animate-spin' : ''}`} />
-                  Refresh
-                </Button>
-              </CardHeader>
-              <CardContent>
-                {blocksLoading ? (
-                  <div className="flex justify-center py-6"><LoadingSpinner /></div>
-                ) : blocks.length === 0 ? (
-                  <p className="text-sm text-gray-500 text-center py-6">
-                    No blocks found. Upload a blocks CSV first.
-                  </p>
-                ) : (
-                  <ul className="divide-y divide-gray-100 list-none m-0 p-0 border border-gray-200 rounded-lg overflow-hidden">
-                    {blocks.map((block: any) => {
-                      const isExpanded = expandedBlock === block.id;
-                      const loc = blockLocations[block.id];
-                      const hasLoc = loc?.has_location;
-
-                      return (
-                        <li key={block.id} className="bg-white">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleBlock(block.id)}
-                            className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors text-left"
-                          >
-                            <div className="flex items-center gap-3">
-                              {hasLoc
-                                ? <MapPin className="w-4 h-4 text-green-500 shrink-0" />
-                                : <MapPinOff className="w-4 h-4 text-gray-300 shrink-0" />
-                              }
-                              <div>
-                                <p className="text-sm font-medium text-gray-900">
-                                  {block.name}
-                                  {block.code && <span className="ml-1.5 text-xs text-gray-400 font-mono">({block.code})</span>}
-                                </p>
-                                <p className="text-xs text-gray-400 mt-0.5">
-                                  {block.area_ha != null ? `${block.area_ha} ha` : ''}
-                                  {hasLoc
-                                    ? ` · GPS set (±${loc.geofence_radius_m}m)`
-                                    : ' · GPS not configured'}
-                                </p>
-                              </div>
-                            </div>
-                            {isExpanded
-                              ? <ChevronUp className="w-4 h-4 text-gray-400 shrink-0" />
-                              : <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" />
-                            }
-                          </button>
-
-                          {isExpanded && (
-                            <div className="px-4 pb-4 pt-1 bg-gray-50 border-t border-gray-100">
-                              {!(block.id in blockLocations) ? (
-                                <div className="flex justify-center py-4"><LoadingSpinner size="sm" /></div>
-                              ) : (
-                                <GpsLocationManager
-                                  label={`Block ${block.name}`}
-                                  sublabel="Centre point, radius, and optional polygon for worker location verification"
-                                  current={loc}
-                                  defaultRadius={150}
-                                  supportsPolygon
-                                  onSave={async (data) => {
-                                    await apiService.setBlockLocation(block.id, data);
-                                    await loadBlockLocation(block.id);
-                                  }}
-                                />
-                              )}
-                            </div>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </CardContent>
-            </Card>
-
-          </div>
+          <Card>
+            <CardContent className="py-10 text-center text-sm text-gray-500">
+              <MapPin className="w-8 h-8 mx-auto mb-3 text-gray-300" />
+              <p className="font-medium text-gray-400">GPS location management is temporarily disabled.</p>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

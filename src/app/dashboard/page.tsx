@@ -35,7 +35,7 @@ const DashboardComponents: Record<string, React.ComponentType<any>> = {
   [USER_ROLES.PROCUREMENT_OFFICER]: dynamic(() => import("@/components/dashboards/ProcurementOfficerDashboard").then(m => ({ default: m.ProcurementOfficerDashboard })), { loading: LoadingSpinner }),
   [USER_ROLES.MANAGING_DIRECTOR]: dynamic(() => import("@/components/dashboards/AdminManagerDashboard"), { loading: LoadingSpinner }),
   [USER_ROLES.SUB_SUPERVISOR]: dynamic(() => import("@/components/dashboards/SupervisorDashboard").then(m => ({ default: m.SupervisorDashboard })), { loading: LoadingSpinner }),
-  [USER_ROLES.SCALE_SUPERVISOR]: dynamic(() => import("@/components/dashboards/PickingDashboard"), { loading: LoadingSpinner }),
+  [USER_ROLES.GATE_AUDITOR]: dynamic(() => import("@/components/dashboards/GateAuditorDashboard").then(m => ({ default: m.GateAuditorDashboard })), { loading: LoadingSpinner }),
 };
 
 export default function DashboardPage() {

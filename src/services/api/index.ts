@@ -403,18 +403,11 @@ export class ApiService extends BaseApiService {
     return this.farms.uploadBlocksCsv(file);
   }
 
-  async getFarmLocation(farmId: number) { return this.farms.getFarmLocation(farmId); }
-  async setFarmLocation(farmId: number, data: { center_lat: number; center_lon: number; geofence_radius_m?: number }) { return this.farms.setFarmLocation(farmId, data); }
-  async getBlockLocation(blockId: number) { return this.farms.getBlockLocation(blockId); }
-  async setBlockLocation(
-    blockId: number,
-    data: {
-      center_lat: number;
-      center_lon: number;
-      geofence_radius_m?: number;
-      boundary_polygon?: number[][] | null;
-    },
-  ) { return this.farms.setBlockLocation(blockId, data); }
+  // GPS location methods — TEMPORARILY DISABLED
+  // async getFarmLocation(farmId: number) { return this.farms.getFarmLocation(farmId); }
+  // async setFarmLocation(farmId: number, data: { ... }) { return this.farms.setFarmLocation(farmId, data); }
+  // async getBlockLocation(blockId: number) { return this.farms.getBlockLocation(blockId); }
+  // async setBlockLocation(blockId: number, data: { ... }) { return this.farms.setBlockLocation(blockId, data); }
 
   async getManagerFarms() {
     return this.farms.getManagerFarms();
@@ -757,6 +750,7 @@ export class ApiService extends BaseApiService {
   async patchLpo(lpoId: number, data: Record<string, any>) { return this.procurement.patchLpo(lpoId, data); }
   async getGrnChain(grnNumber: string) { return this.procurement.getGrnChain(grnNumber); }
   async createSmr(data: any) { return this.procurement.createSmr(data); }
+  async getSmrCrossFarmStock(smrId: number) { return this.procurement.getSmrCrossFarmStock(smrId); }
   async getExternalChain(smrNumber: string) { return this.procurement.getExternalChain(smrNumber); }
   // GIN
   async getSimrsReadyForGin(farmId?: number) { return this.procurement.getSimrsReadyForGin(farmId); }
@@ -788,6 +782,9 @@ export class ApiService extends BaseApiService {
   async issueGatePass(gpId: number) { return this.procurement.issueGatePass(gpId); }
   async recordGatePassExit(gpId: number) { return this.procurement.recordGatePassExit(gpId); }
   async verifyGatePass(gpId: number) { return this.procurement.verifyGatePass(gpId); }
+  // Gate Auditor confirmation
+  async gateConfirmGrn(grnId: number, notes?: string) { return this.procurement.gateConfirmGrn(grnId, notes); }
+  async gateConfirmGin(ginId: number, notes?: string) { return this.procurement.gateConfirmGin(ginId, notes); }
   // CARDEX
   async getCardex(farmId: number) { return this.procurement.getCardex(farmId); }
   async getCardexItem(farmId: number, itemName: string) { return this.procurement.getCardexItem(farmId, itemName); }

@@ -344,7 +344,7 @@ export const PriceListSection: React.FC = () => {
             Are you sure you want to delete <strong>"{deleteTarget?.name}"</strong> from the price list?
           </p>
           <p className="text-xs text-gray-500">
-            This will fail if the item is referenced by an existing SMR or SIMR document.
+            This will fail if the item is referenced by an existing SMR document.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>

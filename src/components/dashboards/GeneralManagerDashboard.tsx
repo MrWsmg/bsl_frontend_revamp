@@ -3,7 +3,7 @@
 import React, { useState, useRef } from 'react';
 import {
   LayoutDashboard, TrendingUp, BarChart3, Users, Calendar, CalendarDays,
-  FileText, ShoppingCart, Package, Truck, ArrowLeftRight, BookOpen,
+  FileText, ShoppingCart, Truck, ArrowLeftRight, BookOpen,
   CreditCard, Receipt, ReceiptText, Wallet, ClipboardList, PackageCheck,
   PackageOpen, SendHorizontal, ShieldCheck, Target, ShieldAlert, Scale,
   Building2, UserCog, Activity, Upload, Leaf,
@@ -25,7 +25,6 @@ import {
   SharedLpoSection,
   SharedGrnSection,
   SharedGinSection,
-  SharedSimrSection,
   SharedTransportVoucherSection,
   SharedDeliveryNoteSection,
   SharedGatePassSection,
@@ -69,7 +68,6 @@ const GM_SIDEBAR = [
       { id: 'proc-smr',      label: 'SMR',          icon: FileText       },
       { id: 'proc-lpo',      label: 'LPO',          icon: ClipboardList  },
       { id: 'proc-grn',      label: 'GRN',          icon: PackageCheck   },
-      { id: 'proc-simr',     label: 'SIMR',         icon: Package        },
       { id: 'proc-gin',      label: 'GIN',          icon: PackageOpen    },
       { id: 'proc-tv',       label: 'Transport',    icon: Truck          },
       { id: 'proc-dn',       label: 'Delivery Note', icon: SendHorizontal },
@@ -118,7 +116,7 @@ const GM_SIDEBAR = [
 
 type GmTab =
   | 'overview' | 'financial' | 'performance' | 'meetings'
-  | 'proc-smr' | 'proc-lpo' | 'proc-grn' | 'proc-simr' | 'proc-gin'
+  | 'proc-smr' | 'proc-lpo' | 'proc-grn' | 'proc-gin'
   | 'proc-tv'  | 'proc-dn'  | 'proc-gatepass' | 'proc-transfer' | 'proc-cardex'
   | 'payroll-approval' | 'weekly-sheet' | 'payment-summary' | 'payslip'
   | 'picking'  | 'kpi' | 'hr'
@@ -178,9 +176,6 @@ export const GeneralManagerDashboard: React.FC<GeneralManagerDashboardProps> = (
         </div>
         <div className={show('proc-grn')}>
           {mounted('proc-grn') && <SharedGrnSection userRole={ROLE} />}
-        </div>
-        <div className={show('proc-simr')}>
-          {mounted('proc-simr') && <SharedSimrSection userRole={ROLE} />}
         </div>
         <div className={show('proc-gin')}>
           {mounted('proc-gin') && <SharedGinSection userRole={ROLE} />}
