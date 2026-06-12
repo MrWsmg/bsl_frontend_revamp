@@ -2,6 +2,64 @@ import { BaseApiService } from './base';
 import { AttendanceRecord, FaceVerificationResult } from '../../types';
 import type { AttendanceReportResponse, AttendanceResponse } from '../../types/farm-clerk';
 
+// ── Combined check-in + task assignment ───────────────────────────────────────
+
+export interface CheckinAndAssignParams {
+  farm_id: number;
+  date: string;                    // YYYY-MM-DD
+  check_in_time?: string;          // ISO datetime — defaults to server utcnow()
+  notes?: string;                  // attendance notes
+  task_code: string;
+  block_id: number;
+  crop_type?: string;
+  quantity: number;
+  rate: number;
+  payment_method?: 'per_task' | 'per_day';
+  task_notes?: string;
+}
+
+export interface CheckinAndAssignResult {
+  attendance_id: number;
+  task_id: number;
+  worker_id: number;
+  worker_name: string;
+  farm_id: number;
+  check_in_time: string;
+  task_code: string;
+  block: string;
+  block_id: number;
+  quantity: number;
+  rate: number;
+  total_amount: number;
+  payment_method: string;
+  date_worked: string;
+  status: string;
+}
+
+// ── Combined check-in + face verification + task assignment (multipart) ────────
+
+export interface CheckinAssignWithFaceParams {
+  file: File;
+  farm_id: number;
+  date_worked: string;           // YYYY-MM-DD
+  task_code: string;
+  block_id: number;
+  quantity: number;
+  rate: number;
+  payment_method?: 'per_task' | 'per_day';
+  notes?: string;
+  task_notes?: string;
+  crop_type?: string;
+}
+
+export interface CheckinAssignWithFaceResult extends CheckinAndAssignResult {
+  face_verified: boolean;
+  face_verification_status: 'verified' | 'failed' | 'manual';
+  confidence: number;
+  needs_review: boolean;
+  verification_photo_url?: string;
+}
+
 /** Returns today's date as YYYY-MM-DD in the browser's LOCAL timezone, not UTC. */
 function localDateString(): string {
   const d = new Date();
@@ -235,5 +293,51 @@ export class AttendanceApiService extends BaseApiService {
     const params = new URLSearchParams({ approved: String(approved) });
     if (notes) params.set('notes', notes);
     return this.post(`/supervisor/attendance/${attendanceId}/review?${params}`, {});
+  }
+
+  /**
+   * Combined check-in + task assignment (atomic) —
+   * POST /supervisor/workers/{worker_id}/checkin-and-assign
+   *
+   * Replaces the old two-step pattern:
+   *   POST /workers/{id}/check-in  →  POST /supervisor/workers/{id}/assign-task
+   */
+  async checkinAndAssign(
+    workerId: number,
+    params: CheckinAndAssignParams,
+  ): Promise<CheckinAndAssignResult> {
+    return this.post<CheckinAndAssignResult>(
+      `/supervisor/workers/${workerId}/checkin-and-assign`,
+      params,
+    );
+  }
+
+  /**
+   * Combined check-in + face verification + task assignment (multipart).
+   * POST /supervisor/workers/{workerId}/checkin-assign-with-face
+   *
+   * Sends photo as multipart/form-data alongside all task fields.
+   * Face verification is best-effort on the backend — never blocks the operation.
+   */
+  async checkinAssignWithFace(
+    workerId: number,
+    params: CheckinAssignWithFaceParams,
+  ): Promise<CheckinAssignWithFaceResult> {
+    const fd = new FormData();
+    fd.append('file', params.file);
+    fd.append('farm_id', String(params.farm_id));
+    fd.append('date_worked', params.date_worked);
+    fd.append('task_code', params.task_code);
+    fd.append('block_id', String(params.block_id));
+    fd.append('quantity', String(params.quantity));
+    fd.append('rate', String(params.rate));
+    fd.append('payment_method', params.payment_method ?? 'per_task');
+    if (params.notes)      fd.append('notes', params.notes);
+    if (params.task_notes) fd.append('task_notes', params.task_notes);
+    if (params.crop_type)  fd.append('crop_type', params.crop_type);
+    return this.post<CheckinAssignWithFaceResult>(
+      `/supervisor/workers/${workerId}/checkin-assign-with-face`,
+      fd,
+    );
   }
 }

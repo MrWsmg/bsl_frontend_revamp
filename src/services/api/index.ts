@@ -934,6 +934,16 @@ export class ApiService extends BaseApiService {
     return this.attendance.getAttendanceRecords(params);
   }
 
+  /** Combined check-in + task assignment — delegates to AttendanceApiService */
+  async checkinAndAssign(workerId: number, params: Parameters<typeof this.attendance.checkinAndAssign>[1]) {
+    return this.attendance.checkinAndAssign(workerId, params);
+  }
+
+  /** Combined check-in + face verification + task assignment (multipart) — delegates to AttendanceApiService */
+  async checkinAssignWithFace(workerId: number, params: Parameters<typeof this.attendance.checkinAssignWithFace>[1]) {
+    return this.attendance.checkinAssignWithFace(workerId, params);
+  }
+
   async updateAttendance(attendanceId: number, data: any) {
     return this.attendance.updateAttendance(attendanceId, data);
   }

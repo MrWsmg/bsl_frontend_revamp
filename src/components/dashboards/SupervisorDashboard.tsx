@@ -33,41 +33,53 @@ import { toast } from 'sonner';
 
 // Grouped navigation items with accordions
 const SUPERVISOR_NAV_ITEMS = [
+  // ── Overview ─────────────────────────────────────────────────────────────
   {
     id: 'overview',
     label: 'Overview',
     icon: LayoutDashboard,
   },
+  // ── Primary morning workflow ─────────────────────────────────────────────
   {
-    id: 'team',
-    label: 'Team',
+    id: 'attendance',
+    label: 'Check In & Assign',
+    icon: UserCheck,
+  },
+  // ── Team ─────────────────────────────────────────────────────────────────
+  {
+    id: 'workers',
+    label: 'Workers',
     icon: Users,
-    children: [
-      { id: 'attendance', label: 'Attendance', icon: UserCheck },
-      { id: 'workers', label: 'Workers', icon: Users },
-    ],
   },
+  // ── Daily work ───────────────────────────────────────────────────────────
   {
-    id: 'work',
-    label: 'Work',
+    id: 'tasks',
+    label: 'Tasks',
     icon: ClipboardList,
+  },
+  // ── Payroll (formerly "Work") ─────────────────────────────────────────────
+  {
+    id: 'payroll-group',
+    label: 'Payroll',
+    icon: Wallet,
     children: [
-      { id: 'tasks',           label: 'Tasks',    icon: ClipboardList },
-      { id: 'payroll_pending', label: 'Pending',  icon: Clock         },
-      { id: 'payroll',         label: 'Rejected', icon: AlertCircle   },
+      { id: 'payroll_pending', label: 'Pending',  icon: Clock       },
+      { id: 'payroll',         label: 'Rejected', icon: AlertCircle },
     ],
   },
+  // ── Item Requests ─────────────────────────────────────────────────────────
   {
     id: 'procurement',
     label: 'Item Requests',
     icon: Package,
     children: [
-      { id: 'proc-gin',    label: 'GIN',        icon: Package },
-      { id: 'proc-tv',     label: 'Transport',  icon: Calendar },
-      { id: 'proc-dn',     label: 'Delivery',   icon: CheckCircle },
-      { id: 'proc-cardex', label: 'CARDEX',     icon: TrendingUp },
+      { id: 'proc-gin',    label: 'GIN',       icon: Package     },
+      { id: 'proc-tv',     label: 'Transport', icon: Calendar    },
+      { id: 'proc-dn',     label: 'Delivery',  icon: CheckCircle },
+      { id: 'proc-cardex', label: 'CARDEX',    icon: TrendingUp  },
     ],
   },
+  // ── Other ────────────────────────────────────────────────────────────────
   {
     id: 'calendar',
     label: 'Calendar',
@@ -78,9 +90,9 @@ const SUPERVISOR_NAV_ITEMS = [
     label: 'Budgets',
     icon: Wallet,
     children: [
-      { id: 'budget-manager',  label: 'Budget View',    icon: Wallet     },
-      { id: 'budget-summary',  label: 'Summary Tree',   icon: BarChart3  },
-      { id: 'budget-tracking', label: 'Live Tracking',  icon: TrendingUp },
+      { id: 'budget-manager',  label: 'Budget View',   icon: Wallet     },
+      { id: 'budget-summary',  label: 'Summary Tree',  icon: BarChart3  },
+      { id: 'budget-tracking', label: 'Live Tracking', icon: TrendingUp },
     ],
   },
   {
@@ -144,7 +156,7 @@ interface SupervisorDashboardProps {
 
 export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState('overview');
-  const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set(['overview']));
+  const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set(['overview', 'attendance']));
   const [dateRange, setDateRange] = useState({
     startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0]
@@ -293,6 +305,22 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
 
     return (
       <div className="space-y-6">
+
+        {/* ── Morning CTA ─────────────────────────────────────────────────── */}
+        <div className="flex items-center justify-between gap-4 p-4 rounded-xl border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/40">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">Start your morning workflow</p>
+            <p className="text-xs text-blue-700 dark:text-blue-300 mt-0.5">Check in workers and assign tasks for today</p>
+          </div>
+          <Button
+            onClick={() => handleTabChange('attendance')}
+            size="sm"
+            className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white min-h-[40px]"
+          >
+            <UserCheck className="w-4 h-4 mr-1.5" />
+            Check In &amp; Assign
+          </Button>
+        </div>
 
         {/* ── KPI Row ─────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -528,7 +556,40 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
             <p className="text-muted-foreground">{workerSearch ? 'No workers match your search.' : 'No workers found.'}</p>
           ) : (
             <>
-              <div className="overflow-x-auto">
+              {/* ── Mobile cards (< md) ─────────────────────────────────── */}
+              <div className="md:hidden divide-y divide-border/40">
+                {paginatedWorkers.map((worker: any) => (
+                  <div key={worker.id} className="flex items-center justify-between gap-3 py-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-foreground truncate">
+                        {worker.full_name || worker.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{worker.phone || 'No phone'}</p>
+                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                        <Badge variant={worker.worker_type === 'permanent' ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0.5 h-auto">
+                          {worker.worker_type === 'permanent' ? 'Permanent' : 'Contract'}
+                        </Badge>
+                        <Badge variant={worker.is_active ? 'default' : 'destructive'} className="text-[10px] px-1.5 py-0.5 h-auto">
+                          {worker.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Button variant="outline" size="sm" className="h-9 px-3 text-xs" onClick={() => handleEditWorker(worker)}>
+                        Edit
+                      </Button>
+                      {!worker.is_active && (
+                        <Button variant="outline" size="sm" className="h-9 px-3 text-xs text-green-600 border-green-300 hover:bg-green-50" onClick={() => handleReactivateWorker(worker)}>
+                          Reactivate
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* ── Desktop table (≥ md) ────────────────────────────────── */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-muted/50">
                     <tr>
@@ -542,12 +603,8 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
                   <tbody className="divide-y">
                     {paginatedWorkers.map((worker: any) => (
                       <tr key={worker.id} className="hover:bg-muted/50">
-                        <td className="px-4 py-4 text-sm font-medium">
-                          {worker.full_name || worker.name}
-                        </td>
-                        <td className="px-4 py-4 text-sm text-muted-foreground">
-                          {worker.phone || 'N/A'}
-                        </td>
+                        <td className="px-4 py-4 text-sm font-medium">{worker.full_name || worker.name}</td>
+                        <td className="px-4 py-4 text-sm text-muted-foreground">{worker.phone || 'N/A'}</td>
                         <td className="px-4 py-4">
                           <Badge variant={worker.worker_type === 'permanent' ? 'default' : 'secondary'}>
                             {worker.worker_type === 'permanent' ? 'Permanent' : 'Contract'}
@@ -559,9 +616,7 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
                           </Badge>
                         </td>
                         <td className="px-4 py-4 flex gap-2">
-                          <Button variant="link" size="sm" onClick={() => handleEditWorker(worker)}>
-                            Edit
-                          </Button>
+                          <Button variant="link" size="sm" onClick={() => handleEditWorker(worker)}>Edit</Button>
                           {!worker.is_active && (
                             <Button variant="outline" size="sm" className="text-green-600 border-green-300 hover:bg-green-50" onClick={() => handleReactivateWorker(worker)}>
                               Reactivate
@@ -573,6 +628,7 @@ export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, 
                   </tbody>
                 </table>
               </div>
+
               <Pagination
                 currentPage={workersPage}
                 totalPages={workersTotalPages}

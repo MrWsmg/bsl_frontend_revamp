@@ -7,8 +7,19 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
-import { Plus, CheckCircle, User, Search, RefreshCw, XCircle } from 'lucide-react';
+import { Plus, CheckCircle, User, Search, RefreshCw, XCircle, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
+import { CheckinAndAssignModal } from '../../attendance/CheckinAndAssignModal';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { taskAssignmentSchema, taskCompletionSchema, type TaskAssignmentFormData, type TaskCompletionFormData } from '@/lib/schemas';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,6 +47,12 @@ export const SupervisorTasksSection: React.FC = () => {
   const [blocks, setBlocks] = useState<any[]>([]);
   const [workerSearch, setWorkerSearch] = useState('');
   const [showOffsite, setShowOffsite] = useState(false);
+
+  // Combined check-in + assign modal
+  const [checkinAssignWorker, setCheckinAssignWorker] = useState<any>(null);
+
+  // Cancel-task confirmation dialog (replaces browser confirm())
+  const [cancelTarget, setCancelTarget] = useState<any>(null);
 
   // Task Assignment Form
   const assignForm = useForm<TaskAssignmentFormData>({
@@ -261,14 +278,21 @@ export const SupervisorTasksSection: React.FC = () => {
     }
   };
 
-  const handleCancelTask = async (task: any) => {
-    if (!confirm(`Cancel task "${task.task_code}" for ${task.worker_name || 'this worker'}?`)) return;
+  const handleCancelTask = (task: any) => {
+    // Open AlertDialog — actual deletion handled in handleConfirmCancel
+    setCancelTarget(task);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!cancelTarget) return;
     try {
-      await apiService.workers.cancelTaskAssignment(task.id);
+      await apiService.workers.cancelTaskAssignment(cancelTarget.id);
       toast.success('Task cancelled');
       refetchTasks();
     } catch (error: any) {
       toast.error(error.message || 'Failed to cancel task');
+    } finally {
+      setCancelTarget(null);
     }
   };
 
@@ -399,7 +423,7 @@ export const SupervisorTasksSection: React.FC = () => {
                     Not on-site ({offSite.length})
                   </button>
                   {showOffsite && (
-                    <ul className="divide-y divide-gray-50 list-none m-0 p-0 mt-1 opacity-60">
+                    <ul className="divide-y divide-gray-50 list-none m-0 p-0 mt-1">
                       {offSite.map((worker: any) => (
                         <li key={worker.id} className="flex items-center gap-3 py-2 px-1">
                           <span className="w-2 h-2 rounded-full bg-gray-300 shrink-0" />
@@ -407,9 +431,18 @@ export const SupervisorTasksSection: React.FC = () => {
                             {initials(worker)}
                           </span>
                           <span className="flex-1 min-w-0">
-                            <span className="text-sm text-gray-500 truncate block">{worker.full_name || worker.name}</span>
+                            <span className="text-sm text-gray-600 truncate block">{worker.full_name || worker.name}</span>
                             <span className="text-xs text-gray-400">{worker.worker_type || 'Worker'}</span>
                           </span>
+                          {/* ✅ New: Check In & Assign button for off-site workers */}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 px-2.5 text-xs border-blue-300 text-blue-700 hover:bg-blue-50 shrink-0"
+                            onClick={() => setCheckinAssignWorker(worker)}
+                          >
+                            <UserCheck className="w-3 h-3 mr-1" />Check In &amp; Assign
+                          </Button>
                         </li>
                       ))}
                     </ul>
@@ -725,6 +758,44 @@ export const SupervisorTasksSection: React.FC = () => {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* ── Combined Check-In + Assign Modal ─────────────────────────── */}
+      {checkinAssignWorker && (
+        <CheckinAndAssignModal
+          isOpen={!!checkinAssignWorker}
+          onClose={() => setCheckinAssignWorker(null)}
+          worker={checkinAssignWorker}
+          farms={farms ?? []}
+          taskCodes={taskCodes ?? []}
+          onSuccess={() => {
+            setCheckinAssignWorker(null);
+            refetchTasks();
+          }}
+        />
+      )}
+
+      {/* ── Cancel Task Confirmation (replaces browser confirm()) ───── */}
+      <AlertDialog open={!!cancelTarget} onOpenChange={(open) => !open && setCancelTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Task?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cancel task <strong>{cancelTarget?.task_code}</strong> for{' '}
+              <strong>{cancelTarget?.worker_name || 'this worker'}</strong>?
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCancelTarget(null)}>Keep Task</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmCancel}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Yes, Cancel Task
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Complete Task Modal */}
       <Dialog open={showCompleteModal} onOpenChange={setShowCompleteModal}>
