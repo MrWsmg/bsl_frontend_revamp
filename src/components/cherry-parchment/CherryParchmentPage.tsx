@@ -15,7 +15,8 @@ import { ParchmentRecordList } from './ParchmentRecordList';
 import { ParchmentGradeList } from './ParchmentGradeList';
 import { SummaryByBlock } from './SummaryByBlock';
 import { ReconciliationReport } from './ReconciliationReport';
-import { Leaf, Droplets, FileText, Package, BarChart2, GitCompareArrows } from 'lucide-react';
+import { MillingComparisonReport } from './MillingComparisonReport';
+import { Leaf, Droplets, FileText, Package, BarChart2, GitCompareArrows, Sprout } from 'lucide-react';
 
 function defaultDateFrom() {
   const d = new Date();
@@ -98,6 +99,9 @@ export const CherryParchmentPage: React.FC = () => {
           <TabsTrigger value="reconciliation">
             <GitCompareArrows className="w-4 h-4 mr-1" /> Reconciliation
           </TabsTrigger>
+          <TabsTrigger value="cherry-green">
+            <Sprout className="w-4 h-4 mr-1" /> Cherry → Green
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="cherry-picking">
@@ -142,6 +146,10 @@ export const CherryParchmentPage: React.FC = () => {
 
         <TabsContent value="reconciliation">
           <ReconciliationReport farmId={farmId} dateFrom={dateFrom} dateTo={dateTo} />
+        </TabsContent>
+
+        <TabsContent value="cherry-green">
+          <MillingComparisonReport farmId={farmId} dateFrom={dateFrom} dateTo={dateTo} />
         </TabsContent>
       </Tabs>
     </div>
