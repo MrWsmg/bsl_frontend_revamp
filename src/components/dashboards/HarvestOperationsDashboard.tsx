@@ -1,6 +1,7 @@
 "use client";
 
 // Harvest Operations Dashboard — yield forecasting, harvest planning, processing pipeline
+import { useTabParam } from '@/hooks';
 import React, { useState, useCallback } from 'react';
 import {
   Sprout, BarChart3, ClipboardList, Scale, Layers, Thermometer,
@@ -68,8 +69,8 @@ interface HarvestOperationsDashboardProps {
 }
 
 export const HarvestOperationsDashboard: React.FC<HarvestOperationsDashboardProps> = ({ user, onLogout }) => {
-  const [activeTab, setActiveTab] = useState('overview');
-  const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set(['overview']));
+  const [activeTab, setActiveTab] = useTabParam('overview');
+  const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set(['overview', activeTab]));
   const [selectedFarmId, setSelectedFarmId] = useState<string>('');
   const [selectedPlanId, setSelectedPlanId] = useState<string>('');
   const [selectedBatchId, setSelectedBatchId] = useState<string>('');

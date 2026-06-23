@@ -1,5 +1,6 @@
 "use client";
 
+import { useTabParam } from '@/hooks';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Layout } from '../layout/Layout';
 import { ErrorBoundary } from '../common/ErrorBoundary';
@@ -98,8 +99,8 @@ const SIDEBAR_ITEMS = [
 ];
 
 export const FinancialControllerDashboard: React.FC<Props> = ({ user, onLogout }) => {
-  const [activeTab, setActiveTab] = useState<Tab>('overview');
-  const mountedTabs = useRef<Set<Tab>>(new Set(['overview']));
+  const [activeTab, setActiveTab] = useTabParam<Tab>('overview');
+  const mountedTabs = useRef<Set<Tab>>(new Set(['overview', activeTab]));
 
   const handleTabChange = (id: string) => {
     const tab = id as Tab;

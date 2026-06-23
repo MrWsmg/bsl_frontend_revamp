@@ -1,5 +1,6 @@
 "use client";
 
+import { useTabParam } from '@/hooks';
 import React, { useState, useCallback } from 'react';
 import { useApi } from '../../hooks';
 import apiService from '../../services/api';
@@ -60,7 +61,7 @@ const WORKFLOW_STEPS = [
 ] as const;
 
 export const ProcurementOfficerDashboard: React.FC<Props> = ({ user, onLogout }) => {
-  const [activeTab, setActiveTab] = useState<Tab>('overview');
+  const [activeTab, setActiveTab] = useTabParam<Tab>('overview');
 
   return (
     <ErrorBoundary>

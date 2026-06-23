@@ -6,3 +6,4 @@ export { useApi, useMultipleApi } from './useApi';
 export { useLocalStorage } from './useLocalStorage';
 export { useDebounce } from './useDebounce';
 export { usePresignedUrl, resolvePhotoUrl } from './usePresignedUrl';
+export { useTabParam } from './useTabParam';

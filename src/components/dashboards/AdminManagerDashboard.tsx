@@ -1,5 +1,6 @@
 "use client";
 
+import { useTabParam } from '@/hooks';
 import { useState, useEffect, useRef } from "react";
 import apiService from "../../services/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -569,8 +570,8 @@ const MD_SIDEBAR = [
 ];
 
 const AdminManagerDashboard = ({ user, onLogout }: AdminManagerDashboardProps) => {
-  const [activeTab, setActiveTab] = useState<MdTab>('overview');
-  const mountedTabs = useRef<Set<MdTab>>(new Set(['overview']));
+  const [activeTab, setActiveTab] = useTabParam<MdTab>('overview');
+  const mountedTabs = useRef<Set<MdTab>>(new Set(['overview', activeTab]));
 
   const handleTabChange = (tab: string) => {
     mountedTabs.current.add(tab as MdTab);

@@ -1,6 +1,7 @@
 "use client";
 
 // Manager Dashboard component
+import { useTabParam } from '@/hooks';
 import React, { useState } from 'react';
 import { Layout } from '../layout/Layout';
 import { ErrorBoundary } from '../common/ErrorBoundary';
@@ -153,8 +154,8 @@ const MANAGER_SIDEBAR = (() => {
 })();
 
 export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ user, onLogout }) => {
-  const [activeTab, setActiveTab] = useState('overview');
-  const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set(['overview']));
+  const [activeTab, setActiveTab] = useTabParam('overview');
+  const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set(['overview', activeTab]));
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);

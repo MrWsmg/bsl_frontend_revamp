@@ -1,6 +1,7 @@
 "use client";
 
 // Farm Clerk Dashboard - shadcn patterns
+import { useTabParam } from '@/hooks';
 import React, { useState, useCallback, useMemo } from 'react';
 import {
   Package,
@@ -142,8 +143,8 @@ const sidebarItems = [
 ];
 
 const FarmClerkDashboard: React.FC<FarmClerkDashboardProps> = ({ user, onLogout }) => {
-  const [activeTab, setActiveTab] = useState('overview');
-  const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set(['overview']));
+  const [activeTab, setActiveTab] = useTabParam('overview');
+  const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set(['overview', activeTab]));
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);

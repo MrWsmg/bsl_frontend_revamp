@@ -1,5 +1,6 @@
 "use client";
 
+import { useTabParam } from '@/hooks';
 import React, { useState } from 'react';
 import { Layout } from '../layout/Layout';
 import { ErrorBoundary } from '../common/ErrorBoundary';
@@ -53,8 +54,8 @@ const TAB_COMPONENTS: Record<string, React.FC> = {
 };
 
 export const StockDashboard: React.FC<StockDashboardProps> = ({ user, onLogout }) => {
-  const [activeTab, setActiveTab] = useState('overview');
-  const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set(['overview']));
+  const [activeTab, setActiveTab] = useTabParam('overview');
+  const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set(['overview', activeTab]));
 
   const sidebarItems = [
     { id: 'overview',     label: 'Overview',          icon: BarChart3 },

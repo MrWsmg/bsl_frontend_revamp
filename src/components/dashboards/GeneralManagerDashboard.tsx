@@ -1,5 +1,6 @@
 "use client";
 
+import { useTabParam } from '@/hooks';
 import React, { useState, useRef } from 'react';
 import {
   LayoutDashboard, TrendingUp, BarChart3, Users, Calendar, CalendarDays,
@@ -130,8 +131,8 @@ interface GeneralManagerDashboardProps {
 }
 
 export const GeneralManagerDashboard: React.FC<GeneralManagerDashboardProps> = ({ user, onLogout }) => {
-  const [activeTab, setActiveTab] = useState<GmTab>('overview');
-  const mountedTabs = useRef<Set<GmTab>>(new Set(['overview']));
+  const [activeTab, setActiveTab] = useTabParam<GmTab>('overview');
+  const mountedTabs = useRef<Set<GmTab>>(new Set(['overview', activeTab]));
 
   const handleTabChange = (tab: string) => {
     mountedTabs.current.add(tab as GmTab);

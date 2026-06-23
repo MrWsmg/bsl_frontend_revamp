@@ -1,5 +1,6 @@
 "use client";
 
+import { useTabParam } from '@/hooks';
 import React, { useState, useCallback, useRef } from 'react';
 import { Layout } from '../layout/Layout';
 import { ErrorBoundary } from '../common/ErrorBoundary';
@@ -84,8 +85,8 @@ const ADMIN_NAV_ITEMS = [
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
 export const AdminDashboard: React.FC<Props> = ({ user, onLogout }) => {
-  const [activeTab, setActiveTab] = useState<Tab>('overview');
-  const mountedTabs = useRef<Set<Tab>>(new Set(['overview']));
+  const [activeTab, setActiveTab] = useTabParam<Tab>('overview');
+  const mountedTabs = useRef<Set<Tab>>(new Set(['overview', activeTab]));
 
   const handleTabChange = (id: string) => {
     const tab = id as Tab;

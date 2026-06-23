@@ -1,6 +1,7 @@
 "use client";
 
 // Supervisor Dashboard component
+import { useTabParam } from '@/hooks';
 import React, { useState, useCallback, useMemo } from 'react';
 import { Layout } from '../layout/Layout';
 import { ErrorBoundary } from '../common/ErrorBoundary';
@@ -155,8 +156,8 @@ interface SupervisorDashboardProps {
 }
 
 export const SupervisorDashboard: React.FC<SupervisorDashboardProps> = ({ user, onLogout }) => {
-  const [activeTab, setActiveTab] = useState('overview');
-  const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set(['overview', 'attendance']));
+  const [activeTab, setActiveTab] = useTabParam('overview');
+  const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set(['overview', 'attendance', activeTab]));
   const [dateRange, setDateRange] = useState({
     startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0]

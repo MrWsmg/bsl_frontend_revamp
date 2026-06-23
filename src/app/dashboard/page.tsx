@@ -5,7 +5,7 @@ import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { Toaster } from "@/components/ui/sonner";
 import { USER_ROLES } from "@/constants";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import dynamic from "next/dynamic";
 
 const LoadingSpinner = () => (
@@ -87,7 +87,9 @@ export default function DashboardPage() {
   // Render the appropriate dashboard
   return (
     <ErrorBoundary>
-      <DashboardComponent user={user} onLogout={logout} />
+      <Suspense fallback={<LoadingSpinner />}>
+        <DashboardComponent user={user} onLogout={logout} />
+      </Suspense>
       <Toaster />
     </ErrorBoundary>
   );

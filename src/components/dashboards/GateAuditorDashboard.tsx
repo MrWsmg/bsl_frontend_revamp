@@ -1,5 +1,6 @@
 "use client";
 
+import { useTabParam } from '@/hooks';
 import React, { useState, useCallback } from 'react';
 import { ShieldCheck, PackageCheck, PackageOpen, RefreshCw, CheckCircle2, AlertCircle, ChevronRight, ClipboardList } from 'lucide-react';
 import { SharedGatePassSection } from './sections/SharedGatePassSection';
@@ -527,7 +528,7 @@ function OutboundPanel() {
 // ── Main dashboard ────────────────────────────────────────────────────────────
 
 export function GateAuditorDashboard({ user, onLogout }: Props) {
-  const [activeTab, setActiveTab] = useState('inbound');
+  const [activeTab, setActiveTab] = useTabParam('inbound');
 
   return (
     <ErrorBoundary>

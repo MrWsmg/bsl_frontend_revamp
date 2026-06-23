@@ -1,6 +1,7 @@
 "use client";
 
 // Godown Manager Dashboard - matches Layout/sidebar pattern
+import { useTabParam } from '@/hooks';
 import React, { useState, useCallback } from 'react';
 import {
   Warehouse, Package, ArrowDownToLine, ArrowUpFromLine, Blend,
@@ -51,8 +52,8 @@ interface GodownManagerDashboardProps {
 }
 
 export const GodownManagerDashboard: React.FC<GodownManagerDashboardProps> = ({ user, onLogout }) => {
-  const [activeTab, setActiveTab] = useState('overview');
-  const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set(['overview']));
+  const [activeTab, setActiveTab] = useTabParam('overview');
+  const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set(['overview', activeTab]));
   const [selectedFarmId, setSelectedFarmId] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
