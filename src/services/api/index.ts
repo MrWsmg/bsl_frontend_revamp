@@ -1537,6 +1537,9 @@ export class ApiService extends BaseApiService {
   async getFuelChemProducts(params?: { sub_store?: 'coffee' | 'otc'; category?: string; active_only?: boolean }) {
     return this.fuelChem.getFuelChemProducts(params);
   }
+  async getFuelChemLocations(params?: { farm_id?: number }) {
+    return this.fuelChem.getFuelChemLocations(params);
+  }
   async getFuelChemEntries(params?: { farm_id?: number; sub_store?: 'coffee' | 'otc'; category?: string; transaction_type?: 'in' | 'out'; start_date?: string; end_date?: string }) {
     return this.fuelChem.getFuelChemEntries(params);
   }
@@ -1545,6 +1548,9 @@ export class ApiService extends BaseApiService {
   async deleteFuelChemEntry(entryId: number) { return this.fuelChem.deleteFuelChemEntry(entryId); }
   async getFuelChemBalances(params?: { farm_id?: number; sub_store?: 'coffee' | 'otc'; category?: string }) {
     return this.fuelChem.getFuelChemBalances(params);
+  }
+  async getFuelChemBlockConsumption(params?: { farm_id?: number; start_date?: string; end_date?: string; category?: string }) {
+    return this.fuelChem.getFuelChemBlockConsumption(params);
   }
 
   // ===========================

@@ -78,6 +78,7 @@ export { StockOtherCropsSection } from './StockOtherCropsSection';
 export { StockMbuniSection } from './StockMbuniSection';
 export { StockFertilizerSection } from './StockFertilizerSection';
 export { StockFuelChemicalsSection } from './StockFuelChemicalsSection';
+export { FuelChemBlockConsumptionSection } from './FuelChemBlockConsumptionSection';
 export { StockIrrigationSection } from './StockIrrigationSection';
 export { StockFishFarmingSection } from './StockFishFarmingSection';
 export { StockCsvImportSection } from './StockCsvImportSection';

@@ -1,6 +1,6 @@
 // Fuel & Chemicals API service
 import { BaseApiService } from './base';
-import { FuelChemProduct, FuelChemEntry, FuelChemBalance } from '../../types';
+import { FuelChemProduct, FuelChemEntry, FuelChemBalance, FuelChemLocations, FuelChemBlockConsumption } from '../../types';
 
 export class FuelChemApiService extends BaseApiService {
   async getFuelChemProducts(params?: {
@@ -9,6 +9,10 @@ export class FuelChemApiService extends BaseApiService {
     active_only?: boolean;
   }): Promise<FuelChemProduct[]> {
     return this.get<FuelChemProduct[]>('/fuel-chemicals/products', params);
+  }
+
+  async getFuelChemLocations(params?: { farm_id?: number }): Promise<FuelChemLocations> {
+    return this.get<FuelChemLocations>('/fuel-chemicals/locations', params);
   }
 
   async getFuelChemEntries(params?: {
@@ -41,5 +45,14 @@ export class FuelChemApiService extends BaseApiService {
     category?: string;
   }): Promise<FuelChemBalance[]> {
     return this.get<FuelChemBalance[]>('/fuel-chemicals/balances', params);
+  }
+
+  async getFuelChemBlockConsumption(params?: {
+    farm_id?: number;
+    start_date?: string;
+    end_date?: string;
+    category?: string;
+  }): Promise<FuelChemBlockConsumption> {
+    return this.get<FuelChemBlockConsumption>('/fuel-chemicals/reports/block-consumption', params);
   }
 }

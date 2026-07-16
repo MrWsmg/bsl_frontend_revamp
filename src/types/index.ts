@@ -1643,17 +1643,62 @@ export interface FuelChemProduct {
   active?: boolean;
 }
 
+export type FuelChemLocationType = 'CARDEX' | 'BLOCK' | 'EXTERNAL';
+
 export interface FuelChemEntry {
   id: number;
-  product_id: number;
+  price_list_id: number;
   farm_id: number;
   entry_date: string;
   transaction_type: 'in' | 'out';
   quantity: number;
   from_to_location?: string;
+  // Structured origin → destination
+  origin_type?: FuelChemLocationType | null;
+  origin_farm_id?: number | null;
+  origin_block_id?: number | null;
+  origin_label?: string | null;
+  dest_type?: FuelChemLocationType | null;
+  dest_farm_id?: number | null;
+  dest_block_id?: number | null;
+  dest_label?: string | null;
+  internal_transfer_id?: number | null;
   delivery_note_ref?: string;
   serial_number?: string;
   comments?: string;
+}
+
+export interface FuelChemLocations {
+  location_types: FuelChemLocationType[];
+  sub_stores: Array<'coffee' | 'otc'>;
+  farms: Array<{ farm_id: number; name: string }>;
+  blocks: Array<{ id: number; farm_id: number; code: string; name: string }>;
+}
+
+export interface FuelChemBlockConsumptionProduct {
+  product_name: string;
+  category: string;
+  unit: string;
+  quantity: number;
+  cost: number;
+}
+
+export interface FuelChemBlockConsumptionRow {
+  block_id: number;
+  block_code: string | null;
+  block_name: string | null;
+  farm_id: number | null;
+  farm_name: string | null;
+  area_ha: number | null;
+  total_cost: number;
+  cost_per_ha: number | null;
+  products: FuelChemBlockConsumptionProduct[];
+}
+
+export interface FuelChemBlockConsumption {
+  blocks: FuelChemBlockConsumptionRow[];
+  grand_total_cost: number;
+  block_count: number;
 }
 
 export interface FuelChemBalance {

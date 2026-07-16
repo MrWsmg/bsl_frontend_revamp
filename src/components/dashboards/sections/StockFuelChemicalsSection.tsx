@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from '../../ui/sonner';
 import { ArrowDownToLine, ArrowUpFromLine, Pencil, Trash2 } from 'lucide-react';
+import { FuelChemBlockConsumptionSection } from './FuelChemBlockConsumptionSection';
 
 // ─── Role helpers ──────────────────────────────────────────────────────────
 
@@ -51,11 +52,34 @@ interface EntryFormProps {
   onSaved: () => void;
 }
 
+// Default From/To location config for a fresh entry, based on direction.
+//   OUT: from CARDEX(own farm) → to a BLOCK (consumption) or another farm
+//   IN:  from EXTERNAL (supplier) or another farm → to CARDEX(own farm)
+function locationDefaults(type: 'in' | 'out', farmId: string) {
+  if (type === 'out') {
+    return {
+      origin_type: 'CARDEX', origin_farm_id: farmId, origin_block_id: '', origin_label: '',
+      dest_type: 'BLOCK', dest_farm_id: farmId, dest_block_id: '', dest_label: '',
+    };
+  }
+  return {
+    origin_type: 'EXTERNAL', origin_farm_id: '', origin_block_id: '', origin_label: '',
+    dest_type: 'CARDEX', dest_farm_id: farmId, dest_block_id: '', dest_label: '',
+  };
+}
+
+const LOCATION_TYPES = [
+  { value: 'CARDEX', label: 'Farm CARDEX' },
+  { value: 'BLOCK', label: 'Block' },
+  { value: 'EXTERNAL', label: 'External / Supplier' },
+] as const;
+
 const EntryForm: React.FC<EntryFormProps> = ({
   initialType, initialFarmId, initialCategory, farms, editingEntry, onClose, onSaved,
 }) => {
   const [saving, setSaving] = useState(false);
   const isFuel = initialCategory === 'FUEL AND LUBRICANTS';
+  const startFarm = initialFarmId !== 'all' ? initialFarmId : '';
   const [form, setForm] = useState<Record<string, any>>(editingEntry ? {
     farm_id: String(editingEntry.farm_id),
     category: editingEntry.category || initialCategory || CATEGORIES[0].value,
@@ -64,30 +88,55 @@ const EntryForm: React.FC<EntryFormProps> = ({
     transaction_type: editingEntry.transaction_type,
     quantity: String(editingEntry.quantity ?? ''),
     sub_store: editingEntry.sub_store || '',
-    from_to_location: editingEntry.from_to_location || '',
     delivery_note_ref: editingEntry.delivery_note_ref || '',
     serial_number: editingEntry.serial_number || '',
     comments: editingEntry.comments || '',
+    origin_type: editingEntry.origin_type || '',
+    origin_farm_id: editingEntry.origin_farm_id ? String(editingEntry.origin_farm_id) : '',
+    origin_block_id: editingEntry.origin_block_id ? String(editingEntry.origin_block_id) : '',
+    origin_label: editingEntry.origin_label || '',
+    dest_type: editingEntry.dest_type || '',
+    dest_farm_id: editingEntry.dest_farm_id ? String(editingEntry.dest_farm_id) : '',
+    dest_block_id: editingEntry.dest_block_id ? String(editingEntry.dest_block_id) : '',
+    dest_label: editingEntry.dest_label || '',
   } : {
-    farm_id: initialFarmId !== 'all' ? initialFarmId : '',
+    farm_id: startFarm,
     category: initialCategory || CATEGORIES[0].value,
     price_list_id: '',
     entry_date: new Date().toISOString().slice(0, 10),
     transaction_type: initialType,
     quantity: '',
     sub_store: isFuel ? '' : 'coffee',
-    from_to_location: '',
     delivery_note_ref: '',
     serial_number: '',
     comments: '',
+    ...locationDefaults(initialType, startFarm),
   });
 
-  const setField = (k: string, v: any) => setForm(p => ({
-    ...p,
-    [k]: v,
+  const setField = (k: string, v: any) => setForm(p => {
+    const next: Record<string, any> = { ...p, [k]: v };
     // Reset product when category changes
-    ...(k === 'category' ? { price_list_id: '', sub_store: v === 'FUEL AND LUBRICANTS' ? '' : (p.sub_store || 'coffee') } : {}),
-  }));
+    if (k === 'category') {
+      next.price_list_id = '';
+      next.sub_store = v === 'FUEL AND LUBRICANTS' ? '' : (p.sub_store || 'coffee');
+    }
+    // Re-apply From/To defaults when direction changes (only for new entries)
+    if (k === 'transaction_type' && !editingEntry) {
+      Object.assign(next, locationDefaults(v, p.farm_id || ''));
+    }
+    // Keep the "own farm" CARDEX side + block selection in sync with the Farm field
+    if (k === 'farm_id') {
+      if (p.origin_type === 'CARDEX' && p.origin_farm_id === p.farm_id) next.origin_farm_id = v;
+      if (p.dest_type === 'CARDEX' && p.dest_farm_id === p.farm_id) next.dest_farm_id = v;
+    }
+    // Any farm change (entry farm or a CARDEX-side farm) invalidates block picks,
+    // since blocks are within-farm.
+    if (k === 'farm_id' || k === 'origin_farm_id' || k === 'dest_farm_id') {
+      next.origin_block_id = '';
+      next.dest_block_id = '';
+    }
+    return next;
+  });
 
   const getProducts = useCallback(
     () => apiService.getFuelChemProducts({ category: form.category }),
@@ -97,24 +146,63 @@ const EntryForm: React.FC<EntryFormProps> = ({
     getProducts, { dependencies: [form.category] }
   );
 
+  // Blocks are within-farm. The relevant farm for a BLOCK picker is the CARDEX
+  // ("own farm") side of the movement — i.e. the From/To Farm the user just chose —
+  // falling back to the top-level entry farm.
+  const cardexFarmId =
+    form.origin_type === 'CARDEX' ? form.origin_farm_id
+    : form.dest_type === 'CARDEX' ? form.dest_farm_id
+    : '';
+  const ownFarmId = cardexFarmId || form.farm_id;
+
+  const getModalBlocks = useCallback(
+    () => ownFarmId ? apiService.getBlocksForFarm(Number(ownFarmId)) : Promise.resolve([]),
+    [ownFarmId]
+  );
+  const { data: modalBlocks } = useApi(getModalBlocks, { dependencies: [ownFarmId] });
+
   const selectedProduct = (products || []).find((p: any) => String(p.id) === String(form.price_list_id));
   const showSubStore = form.category !== 'FUEL AND LUBRICANTS';
 
+  const buildEndpoint = (prefix: 'origin' | 'dest') => {
+    const type = form[`${prefix}_type`];
+    if (!type) return {};
+    const out: Record<string, any> = { [`${prefix}_type`]: type };
+    if (type === 'CARDEX') {
+      out[`${prefix}_farm_id`] = Number(form[`${prefix}_farm_id`] || form.farm_id);
+    } else if (type === 'BLOCK') {
+      out[`${prefix}_block_id`] = form[`${prefix}_block_id`] ? Number(form[`${prefix}_block_id`]) : null;
+    } else if (type === 'EXTERNAL') {
+      out[`${prefix}_label`] = form[`${prefix}_label`] || 'External';
+    }
+    return out;
+  };
+
   const handleSave = async () => {
-    if (!form.farm_id || !form.price_list_id || !form.quantity) {
+    if (!ownFarmId || !form.price_list_id || !form.quantity) {
       toast.error('Farm, product, and quantity are required');
       return;
+    }
+    if (form.origin_type === 'BLOCK' && !form.origin_block_id) {
+      toast.error('Select a block for the From location'); return;
+    }
+    if (form.dest_type === 'BLOCK' && !form.dest_block_id) {
+      toast.error('Select a block for the To location'); return;
+    }
+    if (form.origin_type === 'EXTERNAL' && form.dest_type === 'EXTERNAL') {
+      toast.error('From and To cannot both be External'); return;
     }
     setSaving(true);
     try {
       const payload = {
         price_list_id: Number(form.price_list_id),
-        farm_id: Number(form.farm_id),
+        farm_id: Number(ownFarmId),
         entry_date: new Date(form.entry_date).toISOString(),
         transaction_type: form.transaction_type,
         quantity: Number(form.quantity),
         ...(form.sub_store ? { sub_store: form.sub_store } : {}),
-        from_to_location: form.from_to_location || null,
+        ...buildEndpoint('origin'),
+        ...buildEndpoint('dest'),
         delivery_note_ref: form.delivery_note_ref || null,
         serial_number: form.serial_number || null,
         comments: form.comments || null,
@@ -245,10 +333,53 @@ const EntryForm: React.FC<EntryFormProps> = ({
         <Input type="number" min="0" step="0.01" value={form.quantity} onChange={e => setField('quantity', e.target.value)} placeholder="0" />
       </div>
 
-      <div>
-        <Label>From / To Location</Label>
-        <Input value={form.from_to_location} onChange={e => setField('from_to_location', e.target.value)} placeholder="e.g. Main Tank / TB MAIN STORE" />
-      </div>
+      {/* Structured From / To location pickers */}
+      {(['origin', 'dest'] as const).map(prefix => {
+        const title = prefix === 'origin' ? 'From' : 'To';
+        const type = form[`${prefix}_type`];
+        return (
+          <div key={prefix} className="rounded-md border p-2 space-y-2">
+            <Label className="text-xs font-semibold">{title} *</Label>
+            <Select value={type} onValueChange={v => setField(`${prefix}_type`, v)}>
+              <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select type" /></SelectTrigger>
+              <SelectContent>
+                {LOCATION_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+
+            {type === 'CARDEX' && (
+              <Select value={String(form[`${prefix}_farm_id`] || '')} onValueChange={v => setField(`${prefix}_farm_id`, v)}>
+                <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select farm" /></SelectTrigger>
+                <SelectContent>
+                  {farms.map((f: any) => (
+                    <SelectItem key={f.farm_id ?? f.id} value={String(f.farm_id ?? f.id)}>{f.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            {type === 'BLOCK' && (
+              <Select value={String(form[`${prefix}_block_id`] || '')} onValueChange={v => setField(`${prefix}_block_id`, v)}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue placeholder={ownFarmId ? 'Select block' : 'Pick a farm first'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {(modalBlocks || []).map((b: any) => (
+                    <SelectItem key={b.id} value={String(b.id)}>{b.code} — {b.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            {type === 'EXTERNAL' && (
+              <Input className="h-8 text-sm" value={form[`${prefix}_label`] || ''}
+                onChange={e => setField(`${prefix}_label`, e.target.value)}
+                placeholder="e.g. supplier name" />
+            )}
+          </div>
+        );
+      })}
+
       <div>
         <Label>DN Reference</Label>
         <Input value={form.delivery_note_ref} onChange={e => setField('delivery_note_ref', e.target.value)} placeholder="e.g. DN-2026-001" />
@@ -276,6 +407,7 @@ export const StockFuelChemicalsSection: React.FC = () => {
   const { user } = useAuth();
   const canRecord = CAN_RECORD.has((user as any)?.role || '');
 
+  const [view, setView] = useState<'ledger' | 'report'>('ledger');
   const [farmId, setFarmId] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [filterType, setFilterType] = useState<string>('all');
@@ -335,6 +467,26 @@ export const StockFuelChemicalsSection: React.FC = () => {
 
   return (
     <div className="space-y-4">
+      {/* View toggle */}
+      <div className="flex gap-2">
+        {(['ledger', 'report'] as const).map(v => (
+          <button
+            key={v}
+            type="button"
+            onClick={() => setView(v)}
+            className={`px-3 py-1.5 rounded-md border text-sm font-medium transition-colors ${
+              view === v
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'bg-background border-border text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            {v === 'ledger' ? 'Ledger' : 'Per-Block Consumption'}
+          </button>
+        ))}
+      </div>
+
+      {view === 'report' ? <FuelChemBlockConsumptionSection /> : (
+      <>
       {/* Filter bar */}
       <Card>
         <CardContent className="p-3">
@@ -465,7 +617,11 @@ export const StockFuelChemicalsSection: React.FC = () => {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right font-medium">{fmt(e.quantity)}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{e.from_to_location || '—'}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {e.from_to_location
+                      || [e.origin_label, e.dest_label].filter(Boolean).join(' → ')
+                      || '—'}
+                  </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{e.delivery_note_ref || '—'}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{e.recorded_by || '—'}</TableCell>
                   {canRecord && (
@@ -505,6 +661,8 @@ export const StockFuelChemicalsSection: React.FC = () => {
           />
         </DialogContent>
       </Dialog>
+      </>
+      )}
     </div>
   );
 };
