@@ -16,6 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Pagination, usePagination } from '../../common/Pagination';
 
 function parseFarmAssignments(raw: any): number[] {
   if (!raw) return [];
@@ -39,6 +40,14 @@ export const ManagerWorkersSection: React.FC = () => {
   const activeWorkers = workers?.filter((w: any) => w.is_active) || [];
   const permanentWorkers = workers?.filter((w: any) => w.worker_type === 'permanent') || [];
   const contractWorkers = workers?.filter((w: any) => w.worker_type === 'contract') || [];
+
+  // Client-side pagination over the full workers list.
+  const {
+    paginatedItems: pagedRows,
+    currentPage, setCurrentPage,
+    itemsPerPage, setItemsPerPage,
+    totalPages, totalItems,
+  } = usePagination<any>((workers as any[]) || [], 25);
 
   if (loading) {
     return (
@@ -85,6 +94,7 @@ export const ManagerWorkersSection: React.FC = () => {
           {!workers || workers.length === 0 ? (
             <p className="text-center text-muted-foreground py-12">No workers found</p>
           ) : (
+            <>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -98,7 +108,7 @@ export const ManagerWorkersSection: React.FC = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {workers.map((worker: any) => (
+                  {pagedRows.map((worker: any) => (
                     <TableRow key={worker.id}>
                       <TableCell className="font-medium">
                         {worker.full_name || worker.name}
@@ -135,6 +145,17 @@ export const ManagerWorkersSection: React.FC = () => {
                 </TableBody>
               </Table>
             </div>
+            {totalItems > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={setItemsPerPage}
+              />
+            )}
+            </>
           )}
         </CardContent>
       </Card>

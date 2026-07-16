@@ -29,6 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Pagination, usePagination } from '../../common/Pagination';
 import {
   Dialog,
   DialogContent,
@@ -110,6 +111,13 @@ export const PayrollRecordsSection: React.FC = () => {
       amount: records.reduce((sum: number, r: PayrollRecord) => sum + (r.total_amount || 0), 0),
     };
   }, [records]);
+
+  const {
+    paginatedItems: pagedRows,
+    currentPage, setCurrentPage,
+    itemsPerPage, setItemsPerPage,
+    totalPages, totalItems,
+  } = usePagination<any>((filteredRecords as any[]) || [], 25);
 
   const calculatedTotal = useMemo(
     () => (formData.quantity || 0) * (formData.rate || 0),
@@ -302,7 +310,7 @@ export const PayrollRecordsSection: React.FC = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredRecords.map((record: PayrollRecord) => (
+                  {pagedRows.map((record: PayrollRecord) => (
                     <TableRow
                       key={record.id}
                       className="cursor-pointer hover:bg-muted/50"
@@ -345,6 +353,16 @@ export const PayrollRecordsSection: React.FC = () => {
                   ))}
                 </TableBody>
               </Table>
+              {totalItems > 0 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={totalItems}
+                  itemsPerPage={itemsPerPage}
+                  onPageChange={setCurrentPage}
+                  onItemsPerPageChange={setItemsPerPage}
+                />
+              )}
             </div>
           )}
         </CardContent>

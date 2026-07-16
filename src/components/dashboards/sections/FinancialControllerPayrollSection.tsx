@@ -7,6 +7,7 @@ import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { ApprovalStatusBadge } from '../../common/ApprovalStatusBadge';
 import { Check, X, Banknote, CheckSquare, AlertTriangle, Clock, History } from 'lucide-react';
 import { toast } from '../../ui/sonner';
+import { Pagination, usePagination } from '../../common/Pagination';
 
 type PayrollTab = 'pending' | 'approved';
 
@@ -118,6 +119,13 @@ export const FinancialControllerPayrollSection: React.FC = () => {
     const all = pendingPayroll || [];
     setSelectedIds(selectedIds.length === all.length ? [] : all.map((r: any) => r.id));
   };
+
+  const {
+    paginatedItems: pagedRows,
+    currentPage, setCurrentPage,
+    itemsPerPage, setItemsPerPage,
+    totalPages, totalItems,
+  } = usePagination<any>((records as any[]) || [], 25);
 
   return (
     <div className="space-y-6">
@@ -271,7 +279,7 @@ export const FinancialControllerPayrollSection: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {records.map((record: any) => (
+                  {pagedRows.map((record: any) => (
                     <tr key={record.id} className="hover:bg-gray-50">
                       {payrollTab === 'pending' && (
                         <td className="px-4 py-3">
@@ -333,6 +341,16 @@ export const FinancialControllerPayrollSection: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+              {totalItems > 0 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={totalItems}
+                  itemsPerPage={itemsPerPage}
+                  onPageChange={setCurrentPage}
+                  onItemsPerPageChange={setItemsPerPage}
+                />
+              )}
             </div>
           )}
         </div>

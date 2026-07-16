@@ -35,6 +35,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Pagination, usePagination } from '../../common/Pagination';
 
 interface StockFormData {
   farm_id: number;
@@ -67,7 +68,7 @@ const StatCard = ({ title, value, valueClassName = "text-foreground" }: StatCard
   </Card>
 );
 
-export const StockRecordsSection: React.FC = () => {
+export const StockRecordsSection: React.FC<{ readOnly?: boolean }> = ({ readOnly = false }) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedFarm, setSelectedFarm] = useState<string>('all');
   const [startDate, setStartDate] = useState<string>('');
@@ -101,6 +102,14 @@ export const StockRecordsSection: React.FC = () => {
 
   const { data: farms } = useApi(getFarms);
   const { data: records, loading, refetch } = useApi(getStockRecords);
+
+  // Client-side pagination over the returned harvest records.
+  const {
+    paginatedItems: pagedRecords,
+    currentPage, setCurrentPage,
+    itemsPerPage, setItemsPerPage,
+    totalPages, totalItems,
+  } = usePagination<any>((records as any[]) || [], 25);
 
   const stats = useMemo(() => {
     if (!records?.length) return { total: 0, totalQuantity: 0, totalWorkers: 0, totalPayment: 0 };
@@ -244,10 +253,12 @@ export const StockRecordsSection: React.FC = () => {
               <Filter className="h-5 w-5 text-muted-foreground" />
               <CardTitle className="text-lg">Filters</CardTitle>
             </div>
-            <Button onClick={() => { resetForm(); setShowCreateModal(true); }}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Harvest Record
-            </Button>
+            {!readOnly && (
+              <Button onClick={() => { resetForm(); setShowCreateModal(true); }}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Harvest Record
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -329,7 +340,7 @@ export const StockRecordsSection: React.FC = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {records.map((record: any) => (
+                  {pagedRecords.map((record: any) => (
                     <TableRow key={record.id}>
                       <TableCell>{record.farm_name || 'N/A'}</TableCell>
                       <TableCell className="font-medium">{record.item_description}</TableCell>
@@ -349,13 +360,23 @@ export const StockRecordsSection: React.FC = () => {
                   ))}
                 </TableBody>
               </Table>
+              {totalItems > 0 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={totalItems}
+                  itemsPerPage={itemsPerPage}
+                  onPageChange={setCurrentPage}
+                  onItemsPerPageChange={setItemsPerPage}
+                />
+              )}
             </div>
           )}
         </CardContent>
       </Card>
 
       {/* Create Record Dialog */}
-      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+      <Dialog open={!readOnly && showCreateModal} onOpenChange={setShowCreateModal}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add Harvest Record</DialogTitle>

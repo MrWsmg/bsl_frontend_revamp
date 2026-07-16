@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Pagination, usePagination } from '../../common/Pagination';
 import { toast } from '../../ui/sonner';
 import { ArrowDownToLine, ArrowUpFromLine, Pencil, Trash2 } from 'lucide-react';
 import { FuelChemBlockConsumptionSection } from './FuelChemBlockConsumptionSection';
@@ -446,6 +447,14 @@ export const StockFuelChemicalsSection: React.FC = () => {
     getEntries, { dependencies: [farmId, categoryFilter, filterType, filterStart, filterEnd] }
   );
 
+  // Client-side pagination over the returned ledger entries.
+  const {
+    paginatedItems: pagedEntries,
+    currentPage, setCurrentPage,
+    itemsPerPage, setItemsPerPage,
+    totalPages, totalItems,
+  } = usePagination<any>((entries as any[]) || [], 25);
+
   const handleEntrySaved = () => { refetchEntries(); refetchBalances(); };
   const openEntry = (type: 'in' | 'out') => { setEntryType(type); setEditingEntry(null); setShowEntry(true); };
   const openEdit = (entry: any) => { setEditingEntry(entry); setEntryType(entry.transaction_type); setShowEntry(true); };
@@ -604,7 +613,7 @@ export const StockFuelChemicalsSection: React.FC = () => {
                 <TableRow>
                   <TableCell colSpan={8} className="text-center text-muted-foreground py-8">No entries found</TableCell>
                 </TableRow>
-              ) : (entries as any[]).slice(0, 200).map((e: any, i: number) => (
+              ) : pagedEntries.map((e: any, i: number) => (
                 <TableRow key={e.id ?? i}>
                   <TableCell className="whitespace-nowrap">{fmtDate(e.entry_date)}</TableCell>
                   <TableCell className="font-medium whitespace-nowrap">{e.product_name || `#${e.price_list_id ?? e.product_id}`}</TableCell>
@@ -641,6 +650,16 @@ export const StockFuelChemicalsSection: React.FC = () => {
               ))}
             </TableBody>
           </Table>
+          {totalItems > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={setItemsPerPage}
+            />
+          )}
         </div>
       )}
 

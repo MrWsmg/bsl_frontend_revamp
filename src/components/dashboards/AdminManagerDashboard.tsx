@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Building2, Users, DollarSign, Calendar, CalendarDays, LucideIcon, TrendingUp, ChevronLeft, ChevronRight, Bell, FileText, TrendingUp as TrendUp, BarChart3, ClipboardList, ShoppingCart, Package, Truck, ArrowLeftRight, BookOpen, CreditCard, Receipt, UserCog, LayoutDashboard, ShieldCheck, Upload, Leaf } from "lucide-react";
+import { Building2, Users, DollarSign, Calendar, CalendarDays, LucideIcon, TrendingUp, ChevronLeft, ChevronRight, Bell, FileText, TrendingUp as TrendUp, BarChart3, ClipboardList, ShoppingCart, Package, Truck, ArrowLeftRight, BookOpen, CreditCard, Receipt, UserCog, LayoutDashboard, ShieldCheck, Upload, Leaf, Coffee, Fuel, Droplets, Fish, Sprout } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine, LineChart, Line, PieChart, Pie, Cell, AreaChart, Area } from "recharts";
 import { Layout } from '../layout/Layout';
 import { ErrorBoundary } from '../common/ErrorBoundary';
@@ -39,6 +39,17 @@ import {
   StockCsvImportSection,
   FieldApplicationSection,
   MandayBudgetSection,
+  // Stock-role sections mirrored into the MD dashboard (view-only for oversight)
+  StockOverviewSection,
+  StockRecordsSection,
+  StockOtherCropsSection,
+  StockMbuniSection,
+  StockFertilizerSection,
+  StockFuelChemicalsSection,
+  StockIrrigationSection,
+  StockFishFarmingSection,
+  StockCherryParchmentSection,
+  StockReportsSection,
 } from './sections';
 
 // ── Formatting helpers ────────────────────────────────────────────────────
@@ -507,7 +518,10 @@ type MdTab =
   | 'weekly-sheet' | 'payment-summary' | 'payslip'
   | 'calendar' | 'users' | 'activities' | 'audit-logs'
   | 'budget-manager' | 'budget-summary' | 'budget-tracking'
-  | 'field-applications' | 'csv-import' | 'manday';
+  | 'field-applications' | 'csv-import' | 'manday'
+  | 'stock-overview' | 'stock-records' | 'stock-othercrops' | 'stock-mbuni'
+  | 'stock-fertilizer' | 'stock-fuelchem' | 'stock-irrigation' | 'stock-fish'
+  | 'stock-cherry' | 'stock-reports';
 
 interface AdminManagerDashboardProps {
   user: User;
@@ -559,6 +573,23 @@ const MD_SIDEBAR = [
       { id: 'budget-manager',  label: 'Budget Manager', icon: BookOpen    },
       { id: 'budget-summary',  label: 'Summary Tree',   icon: BarChart3   },
       { id: 'budget-tracking', label: 'Live Tracking',  icon: TrendingUp  },
+    ],
+  },
+  {
+    id: 'stock-group',
+    label: 'Stock (view-only)',
+    icon: Package,
+    children: [
+      { id: 'stock-overview',   label: 'Overview',           icon: LayoutDashboard },
+      { id: 'stock-records',    label: 'Stock Records',      icon: Package },
+      { id: 'stock-othercrops', label: 'Other Crops',        icon: Leaf },
+      { id: 'stock-mbuni',      label: 'Mbuni',              icon: Coffee },
+      { id: 'stock-fertilizer', label: 'Fertilizer',         icon: Leaf },
+      { id: 'stock-fuelchem',   label: 'Fuel & Chemicals',   icon: Fuel },
+      { id: 'stock-irrigation', label: 'Irrigation Parts',   icon: Droplets },
+      { id: 'stock-fish',       label: 'Fish Farming',       icon: Fish },
+      { id: 'stock-cherry',     label: 'Cherry & Parchment', icon: Sprout },
+      { id: 'stock-reports',    label: 'Stock Reports',      icon: TrendingUp },
     ],
   },
   { id: 'activities', label: 'Activities', icon: Bell },
@@ -665,6 +696,38 @@ const AdminManagerDashboard = ({ user, onLogout }: AdminManagerDashboardProps) =
         </div>
         <div className={activeTab !== 'manday' ? 'hidden' : ''}>
           {mountedTabs.current.has('manday') && <MandayBudgetSection />}
+        </div>
+
+        {/* ── Stock (view-only mirror of the Stock role) ── */}
+        <div className={activeTab !== 'stock-overview' ? 'hidden' : ''}>
+          {mountedTabs.current.has('stock-overview') && <StockOverviewSection />}
+        </div>
+        <div className={activeTab !== 'stock-records' ? 'hidden' : ''}>
+          {mountedTabs.current.has('stock-records') && <StockRecordsSection readOnly />}
+        </div>
+        <div className={activeTab !== 'stock-othercrops' ? 'hidden' : ''}>
+          {mountedTabs.current.has('stock-othercrops') && <StockOtherCropsSection readOnly />}
+        </div>
+        <div className={activeTab !== 'stock-mbuni' ? 'hidden' : ''}>
+          {mountedTabs.current.has('stock-mbuni') && <StockMbuniSection readOnly />}
+        </div>
+        <div className={activeTab !== 'stock-fertilizer' ? 'hidden' : ''}>
+          {mountedTabs.current.has('stock-fertilizer') && <StockFertilizerSection />}
+        </div>
+        <div className={activeTab !== 'stock-fuelchem' ? 'hidden' : ''}>
+          {mountedTabs.current.has('stock-fuelchem') && <StockFuelChemicalsSection />}
+        </div>
+        <div className={activeTab !== 'stock-irrigation' ? 'hidden' : ''}>
+          {mountedTabs.current.has('stock-irrigation') && <StockIrrigationSection readOnly />}
+        </div>
+        <div className={activeTab !== 'stock-fish' ? 'hidden' : ''}>
+          {mountedTabs.current.has('stock-fish') && <StockFishFarmingSection userRole="managing_director" />}
+        </div>
+        <div className={activeTab !== 'stock-cherry' ? 'hidden' : ''}>
+          {mountedTabs.current.has('stock-cherry') && <StockCherryParchmentSection />}
+        </div>
+        <div className={activeTab !== 'stock-reports' ? 'hidden' : ''}>
+          {mountedTabs.current.has('stock-reports') && <StockReportsSection />}
         </div>
       </Layout>
     </ErrorBoundary>

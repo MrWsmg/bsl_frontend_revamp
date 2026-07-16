@@ -5,6 +5,7 @@ import React, { useCallback, useState } from 'react';
 import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
+import { Pagination, usePagination } from '../../common/Pagination';
 import { Calendar, Users, UserCheck, UserX, Clock } from 'lucide-react';
 import { AttendanceFilters } from '../../../types';
 
@@ -31,6 +32,13 @@ export const ManagerAttendanceSection: React.FC = () => {
   const { data: farms, loading: farmsLoading } = useApi(getFarms);
   const { data: attendance, loading: attendanceLoading, refetch: refetchAttendance } = useApi(getAttendance, { immediate: false });
   const { data: report, loading: reportLoading, refetch: refetchReport } = useApi(getReport, { immediate: false });
+
+  const {
+    paginatedItems: pagedRows,
+    currentPage, setCurrentPage,
+    itemsPerPage, setItemsPerPage,
+    totalPages, totalItems,
+  } = usePagination<any>((attendance as any[]) || [], 25);
 
   const handleLoadAttendance = () => {
     refetchAttendance();
@@ -210,7 +218,7 @@ export const ManagerAttendanceSection: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {attendance.map((record: any) => (
+                  {pagedRows.map((record: any) => (
                     <tr key={record.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {record.worker_name}
@@ -244,6 +252,10 @@ export const ManagerAttendanceSection: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+              {totalItems > 0 && (
+                <Pagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems}
+                  itemsPerPage={itemsPerPage} onPageChange={setCurrentPage} onItemsPerPageChange={setItemsPerPage} />
+              )}
             </div>
           ) : (
             <p className="text-center text-gray-500 py-12">No attendance records found. Use filters above to load records.</p>

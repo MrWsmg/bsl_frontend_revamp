@@ -7,6 +7,7 @@ import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { ApprovalStatusBadge } from '../../common/ApprovalStatusBadge';
 import { toast } from '../../ui/sonner';
 import { Pencil, Trash2, Clock } from 'lucide-react';
+import { Pagination, usePagination } from '../../common/Pagination';
 import { PayrollRecord } from '../../../types';
 
 interface EditState {
@@ -25,6 +26,13 @@ export const SupervisorPayrollPendingSection: React.FC = () => {
 
   const fetchPending = useCallback(() => apiService.getSupervisorPendingPayroll(), []);
   const { data: records, loading, refetch } = useApi(fetchPending);
+
+  const {
+    paginatedItems: pagedRows,
+    currentPage, setCurrentPage,
+    itemsPerPage, setItemsPerPage,
+    totalPages, totalItems,
+  } = usePagination<PayrollRecord>((records as PayrollRecord[]) || [], 25);
 
   const openEdit = (r: PayrollRecord) => {
     setEditingRecord(r);
@@ -90,6 +98,7 @@ export const SupervisorPayrollPendingSection: React.FC = () => {
               <p>No pending records — all records have been processed.</p>
             </div>
           ) : (
+            <>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -100,7 +109,7 @@ export const SupervisorPayrollPendingSection: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {records.map((r) => (
+                  {pagedRows.map((r) => (
                     <tr key={r.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{new Date((r.date_worked?.split('T')[0] ?? '') + 'T00:00:00').toLocaleDateString()}</td>
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">{r.worker_name}</td>
@@ -134,6 +143,17 @@ export const SupervisorPayrollPendingSection: React.FC = () => {
                 </tbody>
               </table>
             </div>
+            {totalItems > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={setItemsPerPage}
+              />
+            )}
+            </>
           )}
         </div>
       </div>

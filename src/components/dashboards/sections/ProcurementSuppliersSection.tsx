@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
+import { Pagination, usePagination } from '../../common/Pagination';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
@@ -49,6 +50,14 @@ export const ProcurementSuppliersSection: React.FC = () => {
   const fetchSuppliers = useCallback(() => apiService.getSuppliers(), []);
   const { data: suppliers, loading, error, refetch } = useApi(fetchSuppliers);
   const list = Array.isArray(suppliers) ? suppliers : [];
+
+  // Client-side pagination over the suppliers list.
+  const {
+    paginatedItems: pagedRows,
+    currentPage, setCurrentPage,
+    itemsPerPage, setItemsPerPage,
+    totalPages, totalItems,
+  } = usePagination<any>(list, 25);
 
   const setField = (key: keyof SupplierForm, value: string) =>
     setForm(prev => ({ ...prev, [key]: value }));
@@ -147,6 +156,7 @@ export const ProcurementSuppliersSection: React.FC = () => {
               <p className="text-sm">No suppliers yet</p>
             </div>
           ) : (
+            <>
             <Table>
               <TableHeader>
                 <TableRow className="bg-gray-50">
@@ -160,7 +170,7 @@ export const ProcurementSuppliersSection: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {list.map((s: any) => (
+                {pagedRows.map((s: any) => (
                   <TableRow key={s.id} className="hover:bg-amber-50/30">
                     <TableCell className="font-medium text-sm text-gray-900">{s.name}</TableCell>
                     <TableCell className="text-sm text-gray-600">{s.contact_person ?? '—'}</TableCell>
@@ -200,6 +210,17 @@ export const ProcurementSuppliersSection: React.FC = () => {
                 ))}
               </TableBody>
             </Table>
+            {totalItems > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={setItemsPerPage}
+              />
+            )}
+            </>
           )}
         </CardContent>
       </Card>

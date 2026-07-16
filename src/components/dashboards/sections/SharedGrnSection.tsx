@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
+import { Pagination, usePagination } from '../../common/Pagination';
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from '@/components/ui/sheet';
@@ -148,6 +149,13 @@ export const SharedGrnSection: React.FC<Props> = ({ userRole, farmId, farmName }
   const fetchGrns = useCallback(() => apiService.getGrns(), []);
   const { data: grns, loading, error, refetch } = useApi(fetchGrns);
   const list = Array.isArray(grns) ? grns : (grns as any)?.results ?? [];
+
+  const {
+    paginatedItems: pagedDocs,
+    currentPage, setCurrentPage,
+    itemsPerPage, setItemsPerPage,
+    totalPages, totalItems,
+  } = usePagination<any>(list, 25);
 
   // Load eligible LPOs fresh every time the dialog opens
   useEffect(() => {
@@ -490,7 +498,7 @@ export const SharedGrnSection: React.FC<Props> = ({ userRole, farmId, farmName }
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {list.map((grn: any) => {
+                {pagedDocs.map((grn: any) => {
                   const isDirect = grn.receipt_type === 'direct' || (!grn.lpo_id && !grn.lpo_number);
                   const supplier = grn.supplier_name ?? grn.supplier?.name ?? '';
                   return (
@@ -538,6 +546,10 @@ export const SharedGrnSection: React.FC<Props> = ({ userRole, farmId, farmName }
                 })}
               </TableBody>
             </Table>
+          )}
+          {totalItems > 0 && (
+            <Pagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems}
+              itemsPerPage={itemsPerPage} onPageChange={setCurrentPage} onItemsPerPageChange={setItemsPerPage} />
           )}
         </CardContent>
       </Card>

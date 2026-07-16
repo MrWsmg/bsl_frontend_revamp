@@ -26,6 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Pagination, usePagination } from '../../common/Pagination';
 
 export const PayrollPickingSection: React.FC = () => {
   const [selectedFarm, setSelectedFarm] = useState<string>('all');
@@ -55,6 +56,13 @@ export const PayrollPickingSection: React.FC = () => {
   const { data: summary, loading: summaryLoading } = useApi(getPickingSummary);
 
   const loading = recordsLoading || summaryLoading;
+
+  const {
+    paginatedItems: pagedRows,
+    currentPage, setCurrentPage,
+    itemsPerPage, setItemsPerPage,
+    totalPages, totalItems,
+  } = usePagination<any>((records as any[]) || [], 25);
 
   const clearFilters = () => {
     setSelectedFarm('all');
@@ -202,7 +210,7 @@ export const PayrollPickingSection: React.FC = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {records.map((record: any) => (
+                  {pagedRows.map((record: any) => (
                     <TableRow key={record.id}>
                       <TableCell className="font-medium">{record.worker_name}</TableCell>
                       <TableCell>{record.farm_name}</TableCell>
@@ -217,6 +225,16 @@ export const PayrollPickingSection: React.FC = () => {
                   ))}
                 </TableBody>
               </Table>
+              {totalItems > 0 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={totalItems}
+                  itemsPerPage={itemsPerPage}
+                  onPageChange={setCurrentPage}
+                  onItemsPerPageChange={setItemsPerPage}
+                />
+              )}
             </div>
           )}
         </CardContent>

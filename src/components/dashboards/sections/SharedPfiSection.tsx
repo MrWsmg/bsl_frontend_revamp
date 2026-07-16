@@ -5,6 +5,7 @@ import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { getApiError } from '../../../utils';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
+import { Pagination, usePagination } from '../../common/Pagination';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -108,6 +109,20 @@ export const SharedPfiSection: React.FC<Props> = ({ userRole }) => {
   const fetchPfis = useCallback(() => apiService.getPfis(), []);
   const { data: pfis, loading: loadingPfis, error: pfiError, refetch: refetchPfis } = useApi(fetchPfis);
   const pfiList = Array.isArray(pfis) ? pfis : [];
+
+  // Client-side pagination for each main list (tab-switched).
+  const {
+    paginatedItems: pagedSmrs,
+    currentPage: smrPage, setCurrentPage: setSmrPage,
+    itemsPerPage: smrPerPage, setItemsPerPage: setSmrPerPage,
+    totalPages: smrTotalPages, totalItems: smrTotalItems,
+  } = usePagination<any>(smrList, 25);
+  const {
+    paginatedItems: pagedPfis,
+    currentPage: pfiPage, setCurrentPage: setPfiPage,
+    itemsPerPage: pfiPerPage, setItemsPerPage: setPfiPerPage,
+    totalPages: pfiTotalPages, totalItems: pfiTotalItems,
+  } = usePagination<any>(pfiList, 25);
 
   // ── open create dialog ────────────────────────────────────
   const openCreate = (smr: any) => {
@@ -222,7 +237,7 @@ export const SharedPfiSection: React.FC<Props> = ({ userRole }) => {
               </div>
             ) : (
               <div className="divide-y divide-gray-100">
-                {smrList.map((smr: any) => (
+                {pagedSmrs.map((smr: any) => (
                   <div key={smr.id} className="px-4 py-3 hover:bg-amber-50/30 transition-colors">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
@@ -266,6 +281,16 @@ export const SharedPfiSection: React.FC<Props> = ({ userRole }) => {
                 ))}
               </div>
             )}
+            {smrTotalItems > 0 && (
+              <Pagination
+                currentPage={smrPage}
+                totalPages={smrTotalPages}
+                totalItems={smrTotalItems}
+                itemsPerPage={smrPerPage}
+                onPageChange={setSmrPage}
+                onItemsPerPageChange={setSmrPerPage}
+              />
+            )}
           </CardContent>
         </Card>
       )}
@@ -307,7 +332,7 @@ export const SharedPfiSection: React.FC<Props> = ({ userRole }) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pfiList.map((pfi: any) => (
+                  {pagedPfis.map((pfi: any) => (
                     <TableRow
                       key={pfi.id}
                       className="cursor-pointer hover:bg-amber-50/40"
@@ -336,6 +361,16 @@ export const SharedPfiSection: React.FC<Props> = ({ userRole }) => {
                   ))}
                 </TableBody>
               </Table>
+            )}
+            {pfiTotalItems > 0 && (
+              <Pagination
+                currentPage={pfiPage}
+                totalPages={pfiTotalPages}
+                totalItems={pfiTotalItems}
+                itemsPerPage={pfiPerPage}
+                onPageChange={setPfiPage}
+                onItemsPerPageChange={setPfiPerPage}
+              />
             )}
           </CardContent>
         </Card>

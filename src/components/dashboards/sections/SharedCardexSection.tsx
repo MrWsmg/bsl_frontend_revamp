@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
+import { Pagination, usePagination } from '../../common/Pagination';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -157,6 +158,14 @@ export const SharedCardexSection: React.FC<Props> = ({ userRole, farmId: farmIdP
     }
     return items;
   }, [allItems, activeCategory, search]);
+
+  /* ── Pagination over the filtered CARDEX rows ── */
+  const {
+    paginatedItems: pagedItems,
+    currentPage, setCurrentPage,
+    itemsPerPage, setItemsPerPage,
+    totalPages, totalItems,
+  } = usePagination<StoreSummaryItem>(filtered, 25);
 
   /* ── Bin-card history ── */
   const [historyData, setHistoryData]       = useState<StoreHistoryEntry[]>([]);
@@ -512,6 +521,7 @@ export const SharedCardexSection: React.FC<Props> = ({ userRole, farmId: farmIdP
                 <p className="text-sm">No items match your filter</p>
               </div>
             ) : (
+              <>
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gray-50 border-b border-gray-100">
@@ -535,7 +545,7 @@ export const SharedCardexSection: React.FC<Props> = ({ userRole, farmId: farmIdP
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((item, i) => (
+                  {pagedItems.map((item, i) => (
                     <TableRow
                       key={i}
                       className={`hover:bg-indigo-50/40 cursor-pointer transition-colors
@@ -587,6 +597,17 @@ export const SharedCardexSection: React.FC<Props> = ({ userRole, farmId: farmIdP
                   ))}
                 </TableBody>
               </Table>
+              {totalItems > 0 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={totalItems}
+                  itemsPerPage={itemsPerPage}
+                  onPageChange={setCurrentPage}
+                  onItemsPerPageChange={setItemsPerPage}
+                />
+              )}
+              </>
             )}
           </CardContent>
         </Card>

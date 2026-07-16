@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Pagination, usePagination } from '../../common/Pagination';
 import { toast } from '../../ui/sonner';
 import { Plus, ArrowDownToLine, ArrowUpFromLine, Pencil, Trash2 } from 'lucide-react';
 
@@ -24,7 +25,7 @@ function fmtDate(d: string) {
   return d ? new Date(d).toLocaleDateString() : '—';
 }
 
-export const StockIrrigationSection: React.FC = () => {
+export const StockIrrigationSection: React.FC<{ readOnly?: boolean }> = ({ readOnly = false }) => {
   const [farmId, setFarmId] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -73,6 +74,13 @@ export const StockIrrigationSection: React.FC = () => {
 
   const { data: parts } = useApi(getParts);
   const { data: entries, loading: entriesLoading, refetch: refetchEntries } = useApi(getEntries);
+
+  const {
+    paginatedItems: pagedItems,
+    currentPage, setCurrentPage,
+    itemsPerPage, setItemsPerPage,
+    totalPages, totalItems,
+  } = usePagination<any>((entries as any[]) || [], 25);
 
   const setField = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }));
 
@@ -156,9 +164,11 @@ export const StockIrrigationSection: React.FC = () => {
                 </SelectContent>
               </Select>
             </div>
-            <Button size="sm" onClick={() => setShowModal(true)}>
-              <Plus className="w-4 h-4 mr-1" /> Add Entry
-            </Button>
+            {!readOnly && (
+              <Button size="sm" onClick={() => setShowModal(true)}>
+                <Plus className="w-4 h-4 mr-1" /> Add Entry
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -228,7 +238,7 @@ export const StockIrrigationSection: React.FC = () => {
                     <TableBody>
                       {!entries || entries.length === 0 ? (
                         <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">No entries</TableCell></TableRow>
-                      ) : entries.slice(0, 50).map((e: any, i: number) => {
+                      ) : pagedItems.map((e: any, i: number) => {
                         const part = parts?.find((p: any) => p.id === e.part_id);
                         return (
                           <TableRow key={e.id ?? i}>
@@ -244,20 +254,32 @@ export const StockIrrigationSection: React.FC = () => {
                             <TableCell className="text-sm text-muted-foreground">{e.from_location || '—'}</TableCell>
                             <TableCell className="text-sm text-muted-foreground">{e.notes || '—'}</TableCell>
                             <TableCell>
-                              <div className="flex items-center gap-1">
-                                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(e)}>
-                                  <Pencil className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500 hover:text-red-700" disabled={deleting === e.id} onClick={() => handleDelete(e.id)}>
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
+                              {!readOnly && (
+                                <div className="flex items-center gap-1">
+                                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(e)}>
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500 hover:text-red-700" disabled={deleting === e.id} onClick={() => handleDelete(e.id)}>
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              )}
                             </TableCell>
                           </TableRow>
                         );
                       })}
                     </TableBody>
                   </Table>
+                  {totalItems > 0 && (
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      totalItems={totalItems}
+                      itemsPerPage={itemsPerPage}
+                      onPageChange={setCurrentPage}
+                      onItemsPerPageChange={setItemsPerPage}
+                    />
+                  )}
                 </div>
               )}
             </CardContent>

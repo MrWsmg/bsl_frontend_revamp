@@ -13,6 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
+import { Pagination, usePagination } from '../../common/Pagination';
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from '@/components/ui/sheet';
@@ -83,6 +84,13 @@ export const SharedTransportVoucherSection: React.FC<Props> = ({ userRole }) => 
   const fetchTVs = useCallback(() => apiService.getTransportVouchers(), []);
   const { data: tvs, loading, error, refetch } = useApi(fetchTVs);
   const list = Array.isArray(tvs) ? tvs : [];
+
+  const {
+    paginatedItems: pagedDocs,
+    currentPage, setCurrentPage,
+    itemsPerPage, setItemsPerPage,
+    totalPages, totalItems,
+  } = usePagination<any>(list, 25);
 
   const action = async (fn: () => Promise<any>, successMsg: string, id: number) => {
     setActionBusy(id);
@@ -175,7 +183,7 @@ export const SharedTransportVoucherSection: React.FC<Props> = ({ userRole }) => 
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {list.map((tv: any) => {
+                {pagedDocs.map((tv: any) => {
                   const s = tv.status?.toLowerCase();
                   return (
                     <TableRow key={tv.id} className="hover:bg-amber-50/40">
@@ -216,6 +224,10 @@ export const SharedTransportVoucherSection: React.FC<Props> = ({ userRole }) => 
                 })}
               </TableBody>
             </Table>
+          )}
+          {totalItems > 0 && (
+            <Pagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems}
+              itemsPerPage={itemsPerPage} onPageChange={setCurrentPage} onItemsPerPageChange={setItemsPerPage} />
           )}
         </CardContent>
       </Card>

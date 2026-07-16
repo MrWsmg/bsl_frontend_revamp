@@ -22,7 +22,7 @@ function fmtDate(d: string) {
   return d ? new Date(d).toLocaleDateString() : '—';
 }
 
-export const StockMbuniSection: React.FC = () => {
+export const StockMbuniSection: React.FC<{ readOnly?: boolean }> = ({ readOnly = false }) => {
   const [selectedFarmId, setSelectedFarmId] = useState<string>('all');
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -166,9 +166,11 @@ export const StockMbuniSection: React.FC = () => {
             </SelectContent>
           </Select>
         </div>
-        <Button size="sm" onClick={() => setShowModal(true)}>
-          <Plus className="w-4 h-4 mr-1" /> Add Mbuni Record
-        </Button>
+        {!readOnly && (
+          <Button size="sm" onClick={() => setShowModal(true)}>
+            <Plus className="w-4 h-4 mr-1" /> Add Mbuni Record
+          </Button>
+        )}
       </div>
 
       {/* Table */}
@@ -203,19 +205,21 @@ export const StockMbuniSection: React.FC = () => {
                       <TableCell className="text-right">{r.mbuni_to_green_ratio ?? '—'}</TableCell>
                       <TableCell className="text-right">{r.total_payment ? fmt(r.total_payment) : '—'}</TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(r)}>
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            size="icon" variant="ghost"
-                            className="h-7 w-7 text-red-500 hover:text-red-700"
-                            disabled={deleting === r.id}
-                            onClick={() => handleDelete(r.id)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
+                        {!readOnly && (
+                          <div className="flex items-center gap-1">
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(r)}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              size="icon" variant="ghost"
+                              className="h-7 w-7 text-red-500 hover:text-red-700"
+                              disabled={deleting === r.id}
+                              onClick={() => handleDelete(r.id)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

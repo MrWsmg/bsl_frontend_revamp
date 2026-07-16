@@ -13,6 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
+import { Pagination, usePagination } from '../../common/Pagination';
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from '@/components/ui/sheet';
@@ -78,6 +79,13 @@ export const SharedDeliveryNoteSection: React.FC<Props> = ({ userRole }) => {
   const fetchDNs = useCallback(() => apiService.getDeliveryNotes(), []);
   const { data: dns, loading, error, refetch } = useApi(fetchDNs);
   const list = Array.isArray(dns) ? dns : [];
+
+  const {
+    paginatedItems: pagedDocs,
+    currentPage, setCurrentPage,
+    itemsPerPage, setItemsPerPage,
+    totalPages, totalItems,
+  } = usePagination<any>(list, 25);
 
   const updateItem = (i: number, patch: Partial<DnItem>) =>
     setForm(f => ({ ...f, items: f.items.map((r, idx) => idx === i ? { ...r, ...patch } : r) }));
@@ -173,7 +181,7 @@ export const SharedDeliveryNoteSection: React.FC<Props> = ({ userRole }) => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {list.map((dn: any) => {
+                {pagedDocs.map((dn: any) => {
                   const s = dn.status?.toLowerCase();
                   return (
                     <TableRow key={dn.id} className="hover:bg-amber-50/40">
@@ -222,6 +230,10 @@ export const SharedDeliveryNoteSection: React.FC<Props> = ({ userRole }) => {
                 })}
               </TableBody>
             </Table>
+          )}
+          {totalItems > 0 && (
+            <Pagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems}
+              itemsPerPage={itemsPerPage} onPageChange={setCurrentPage} onItemsPerPageChange={setItemsPerPage} />
           )}
         </CardContent>
       </Card>

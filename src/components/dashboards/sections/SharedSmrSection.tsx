@@ -15,6 +15,7 @@ import { Separator } from '@/components/ui/separator';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
+import { Pagination, usePagination } from '../../common/Pagination';
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from '@/components/ui/sheet';
@@ -112,6 +113,13 @@ export const SharedSmrSection: React.FC<Props> = ({ userRole }) => {
   );
   const { data: smrs, loading, error, refetch } = useApi(fetchSmrs);
   const list = Array.isArray(smrs) ? smrs : [];
+
+  const {
+    paginatedItems: pagedDocs,
+    currentPage, setCurrentPage,
+    itemsPerPage, setItemsPerPage,
+    totalPages, totalItems,
+  } = usePagination<any>(list, 25);
 
   const loadChain = async (smrNumber: string) => {
     setChain(null);
@@ -298,7 +306,7 @@ export const SharedSmrSection: React.FC<Props> = ({ userRole }) => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {list.map((smr: any) => (
+                {pagedDocs.map((smr: any) => (
                   <TableRow
                     key={smr.id}
                     className="cursor-pointer hover:bg-amber-50/40 transition-colors"
@@ -321,6 +329,10 @@ export const SharedSmrSection: React.FC<Props> = ({ userRole }) => {
                 ))}
               </TableBody>
             </Table>
+          )}
+          {totalItems > 0 && (
+            <Pagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems}
+              itemsPerPage={itemsPerPage} onPageChange={setCurrentPage} onItemsPerPageChange={setItemsPerPage} />
           )}
         </CardContent>
       </Card>

@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Pagination, usePagination } from '../../common/Pagination';
 import { toast } from '../../ui/sonner';
 import { ArrowDownToLine, ArrowUpFromLine, Pencil, Trash2 } from 'lucide-react';
 
@@ -338,6 +339,13 @@ export const StockFertilizerSection: React.FC = () => {
     return (balances as any[] || []).filter(b => b.category === filterCategory);
   }, [balances, filterCategory]);
 
+  const {
+    paginatedItems: pagedItems,
+    currentPage, setCurrentPage,
+    itemsPerPage, setItemsPerPage,
+    totalPages, totalItems,
+  } = usePagination<any>((filteredEntries as any[]) || [], 25);
+
   const handleEntrySaved = () => { refetchEntries(); refetchBalances(); };
   const openEntry = (type: 'in' | 'out') => { setEntryType(type); setEditingEntry(null); setShowEntry(true); };
   const openEdit = (entry: any) => { setEditingEntry(entry); setEntryType(entry.transaction_type); setShowEntry(true); };
@@ -508,7 +516,7 @@ export const StockFertilizerSection: React.FC = () => {
                 <TableRow>
                   <TableCell colSpan={canRecord ? 11 : 10} className="text-center text-muted-foreground py-8">No entries found</TableCell>
                 </TableRow>
-              ) : (filteredEntries as any[]).slice(0, 200).map((e: any, i: number) => (
+              ) : pagedItems.map((e: any, i: number) => (
                 <TableRow key={e.id ?? i}>
                   <TableCell className="whitespace-nowrap">{fmtDate(e.entry_date)}</TableCell>
                   <TableCell className="font-medium whitespace-nowrap">{e.product_name || `#${e.price_list_id ?? e.product_id}`}</TableCell>
@@ -543,6 +551,16 @@ export const StockFertilizerSection: React.FC = () => {
               ))}
             </TableBody>
           </Table>
+          {totalItems > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={setItemsPerPage}
+            />
+          )}
         </div>
       )}
 

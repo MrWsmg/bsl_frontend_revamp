@@ -5,6 +5,7 @@ import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { getApiError } from '../../../utils';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
+import { Pagination, usePagination } from '../../common/Pagination';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -55,6 +56,14 @@ export const SharedTransferSection: React.FC<Props> = ({ userRole }) => {
   const { data: transfers, loading, error, refetch } = useApi(fetchTransfers);
   const list = Array.isArray(transfers) ? transfers : [];
 
+  // Client-side pagination over the transfers list.
+  const {
+    paginatedItems: pagedDocs,
+    currentPage, setCurrentPage,
+    itemsPerPage, setItemsPerPage,
+    totalPages, totalItems,
+  } = usePagination<any>(list, 25);
+
   const act = async (id: number, action: () => Promise<any>, successMsg: string) => {
     setActionBusy(id);
     try { await action(); toast.success(successMsg); refetch(); setSelected(null); }
@@ -97,7 +106,7 @@ export const SharedTransferSection: React.FC<Props> = ({ userRole }) => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {list.map((t: any) => {
+                {pagedDocs.map((t: any) => {
                   const status = t.status?.toLowerCase();
                   const isApproved   = status === 'approved';
                   const isDispatched = status === 'dispatched';
@@ -146,6 +155,16 @@ export const SharedTransferSection: React.FC<Props> = ({ userRole }) => {
                 })}
               </TableBody>
             </Table>
+          )}
+          {totalItems > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={setItemsPerPage}
+            />
           )}
         </CardContent>
       </Card>

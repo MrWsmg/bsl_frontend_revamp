@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
+import { Pagination, usePagination } from '../../common/Pagination';
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from '@/components/ui/sheet';
@@ -204,6 +205,13 @@ export const SharedLpoSection: React.FC<Props> = ({ userRole }) => {
   const { data: lpos, loading, error, refetch } = useApi(fetchLpos);
   const list = Array.isArray(lpos) ? lpos : [];
 
+  const {
+    paginatedItems: pagedDocs,
+    currentPage, setCurrentPage,
+    itemsPerPage, setItemsPerPage,
+    totalPages, totalItems,
+  } = usePagination<any>(list, 25);
+
   const openDetail = async (lpo: any) => {
     setSelected(lpo);
     setDetailData(null); setChain(null); setNoChainReason(''); setResolvedSmrNumber(null);
@@ -386,7 +394,7 @@ export const SharedLpoSection: React.FC<Props> = ({ userRole }) => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {list.map((lpo: any) => (
+                {pagedDocs.map((lpo: any) => (
                   <TableRow key={lpo.id} className="cursor-pointer hover:bg-amber-50/40" onClick={() => openDetail(lpo)}>
                     <TableCell>
                       <div className="flex flex-col gap-1">
@@ -418,6 +426,10 @@ export const SharedLpoSection: React.FC<Props> = ({ userRole }) => {
                 ))}
               </TableBody>
             </Table>
+          )}
+          {totalItems > 0 && (
+            <Pagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems}
+              itemsPerPage={itemsPerPage} onPageChange={setCurrentPage} onItemsPerPageChange={setItemsPerPage} />
           )}
         </CardContent>
       </Card>

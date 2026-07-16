@@ -43,9 +43,10 @@ interface HarvestSubTabProps {
   farmId: number | null;
   cropType: OtherCropType;
   farms: any[];
+  readOnly?: boolean;
 }
 
-const HarvestSubTab: React.FC<HarvestSubTabProps> = ({ farmId, cropType, farms }) => {
+const HarvestSubTab: React.FC<HarvestSubTabProps> = ({ farmId, cropType, farms, readOnly = false }) => {
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Record<string, any>>({
@@ -118,11 +119,13 @@ const HarvestSubTab: React.FC<HarvestSubTabProps> = ({ farmId, cropType, farms }
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button size="sm" onClick={() => setShowModal(true)}>
-          <Plus className="w-4 h-4 mr-1" /> Add Harvest Record
-        </Button>
-      </div>
+      {!readOnly && (
+        <div className="flex justify-end">
+          <Button size="sm" onClick={() => setShowModal(true)}>
+            <Plus className="w-4 h-4 mr-1" /> Add Harvest Record
+          </Button>
+        </div>
+      )}
 
       <div className="rounded-md border">
         <Table>
@@ -220,9 +223,10 @@ const HarvestSubTab: React.FC<HarvestSubTabProps> = ({ farmId, cropType, farms }
 interface ShellingSubTabProps {
   farmId: number | null;
   farms: any[];
+  readOnly?: boolean;
 }
 
-const ShellingSubTab: React.FC<ShellingSubTabProps> = ({ farmId, farms }) => {
+const ShellingSubTab: React.FC<ShellingSubTabProps> = ({ farmId, farms, readOnly = false }) => {
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingRecord, setEditingRecord] = useState<any>(null);
@@ -332,11 +336,13 @@ const ShellingSubTab: React.FC<ShellingSubTabProps> = ({ farmId, farms }) => {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button size="sm" onClick={() => setShowModal(true)}>
-          <Plus className="w-4 h-4 mr-1" /> Add Shelling Record
-        </Button>
-      </div>
+      {!readOnly && (
+        <div className="flex justify-end">
+          <Button size="sm" onClick={() => setShowModal(true)}>
+            <Plus className="w-4 h-4 mr-1" /> Add Shelling Record
+          </Button>
+        </div>
+      )}
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -347,7 +353,7 @@ const ShellingSubTab: React.FC<ShellingSubTabProps> = ({ farmId, farms }) => {
               <TableHead className="text-right">Bags Out</TableHead>
               <TableHead className="text-right">Shellers</TableHead>
               <TableHead className="text-right">Payment</TableHead>
-              <TableHead className="w-20"></TableHead>
+              {!readOnly && <TableHead className="w-20"></TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -361,16 +367,18 @@ const ShellingSubTab: React.FC<ShellingSubTabProps> = ({ farmId, farms }) => {
                 <TableCell className="text-right">{fmt(r.bags_out)}</TableCell>
                 <TableCell className="text-right">{fmt(r.num_shellers)}</TableCell>
                 <TableCell className="text-right">{r.total_payment ? `TZS ${fmt(r.total_payment)}` : '—'}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-1">
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(r)}>
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500 hover:text-red-700" disabled={deleting === r.id} onClick={() => handleDelete(r.id)}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </TableCell>
+                {!readOnly && (
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(r)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500 hover:text-red-700" disabled={deleting === r.id} onClick={() => handleDelete(r.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>
@@ -439,9 +447,10 @@ interface SalesSubTabProps {
   farmId: number | null;
   cropType: OtherCropType;
   farms: any[];
+  readOnly?: boolean;
 }
 
-const SalesSubTab: React.FC<SalesSubTabProps> = ({ farmId, cropType, farms }) => {
+const SalesSubTab: React.FC<SalesSubTabProps> = ({ farmId, cropType, farms, readOnly = false }) => {
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingRecord, setEditingRecord] = useState<any>(null);
@@ -535,11 +544,13 @@ const SalesSubTab: React.FC<SalesSubTabProps> = ({ farmId, cropType, farms }) =>
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button size="sm" onClick={() => setShowModal(true)}>
-          <Plus className="w-4 h-4 mr-1" /> Record Sale
-        </Button>
-      </div>
+      {!readOnly && (
+        <div className="flex justify-end">
+          <Button size="sm" onClick={() => setShowModal(true)}>
+            <Plus className="w-4 h-4 mr-1" /> Record Sale
+          </Button>
+        </div>
+      )}
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -550,7 +561,7 @@ const SalesSubTab: React.FC<SalesSubTabProps> = ({ farmId, cropType, farms }) =>
               <TableHead className="text-right">KGs Sold</TableHead>
               <TableHead className="text-right">Amount (TZS)</TableHead>
               <TableHead>Vehicle</TableHead>
-              <TableHead className="w-20"></TableHead>
+              {!readOnly && <TableHead className="w-20"></TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -564,16 +575,18 @@ const SalesSubTab: React.FC<SalesSubTabProps> = ({ farmId, cropType, farms }) =>
                 <TableCell className="text-right">{fmt(r.kgs_sold)}</TableCell>
                 <TableCell className="text-right">{r.paid_amount ? fmt(r.paid_amount) : '—'}</TableCell>
                 <TableCell>{r.vehicle_registration || '—'}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-1">
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(r)}>
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500 hover:text-red-700" disabled={deleting === r.id} onClick={() => handleDelete(r.id)}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </TableCell>
+                {!readOnly && (
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(r)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500 hover:text-red-700" disabled={deleting === r.id} onClick={() => handleDelete(r.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>
@@ -659,7 +672,7 @@ const BalanceSubTab: React.FC<BalanceSubTabProps> = ({ farmId, cropType }) => {
 
 // ─── Main Section ──────────────────────────────────────────────────────────
 
-export const StockOtherCropsSection: React.FC = () => {
+export const StockOtherCropsSection: React.FC<{ readOnly?: boolean }> = ({ readOnly = false }) => {
   const [selectedFarmId, setSelectedFarmId] = useState<number | null>(null);
   const [activeCrop, setActiveCrop] = useState<OtherCropType>('maize');
 
@@ -711,15 +724,15 @@ export const StockOtherCropsSection: React.FC = () => {
                 <TabsTrigger value="balance">Balance</TabsTrigger>
               </TabsList>
               <TabsContent value="harvest">
-                <HarvestSubTab farmId={selectedFarmId} cropType={crop} farms={farms || []} />
+                <HarvestSubTab farmId={selectedFarmId} cropType={crop} farms={farms || []} readOnly={readOnly} />
               </TabsContent>
               {crop === 'maize' && (
                 <TabsContent value="shelling">
-                  <ShellingSubTab farmId={selectedFarmId} farms={farms || []} />
+                  <ShellingSubTab farmId={selectedFarmId} farms={farms || []} readOnly={readOnly} />
                 </TabsContent>
               )}
               <TabsContent value="sales">
-                <SalesSubTab farmId={selectedFarmId} cropType={crop} farms={farms || []} />
+                <SalesSubTab farmId={selectedFarmId} cropType={crop} farms={farms || []} readOnly={readOnly} />
               </TabsContent>
               <TabsContent value="balance">
                 <BalanceSubTab farmId={selectedFarmId} cropType={crop} />

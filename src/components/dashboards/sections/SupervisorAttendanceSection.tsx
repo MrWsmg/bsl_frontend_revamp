@@ -13,6 +13,7 @@ import { AttendancePhotoViewer } from '../../attendance/AttendancePhotoViewer';
 import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
+import { Pagination, usePagination } from '../../common/Pagination';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -179,6 +180,13 @@ export function SupervisorAttendanceSection() {
   const { data: pendingReviewRaw,  loading: loadingPending,    refetch: refetchPending                       } = useApi(getPendingReview);
   const { data: taskCodesRaw                                                                                  } = useApi(getTaskCodes);
   const taskCodes = useMemo(() => (Array.isArray(taskCodesRaw) ? taskCodesRaw : []), [taskCodesRaw]);
+
+  const {
+    paginatedItems: pagedRows,
+    currentPage, setCurrentPage,
+    itemsPerPage, setItemsPerPage,
+    totalPages, totalItems,
+  } = usePagination<any>((attendanceRecords as any[]) || [], 25);
 
   const pendingReviews: any[] = Array.isArray(pendingReviewRaw) ? pendingReviewRaw : [];
   const todayRecords:   any[] = Array.isArray(todayRecordsRaw)  ? todayRecordsRaw  : [];
@@ -609,7 +617,13 @@ export function SupervisorAttendanceSection() {
               {loadingAttendance ? (
                 <div className="flex justify-center py-8"><LoadingSpinner /></div>
               ) : (
-                <AttendanceRecordsTable records={attendanceRecords || []} showVerificationDetails={true} />
+                <>
+                  <AttendanceRecordsTable records={pagedRows} showVerificationDetails={true} />
+                  {totalItems > 0 && (
+                    <Pagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems}
+                      itemsPerPage={itemsPerPage} onPageChange={setCurrentPage} onItemsPerPageChange={setItemsPerPage} />
+                  )}
+                </>
               )}
             </div>
           )}

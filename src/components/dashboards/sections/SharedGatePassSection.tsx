@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
+import { Pagination, usePagination } from '../../common/Pagination';
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from '@/components/ui/sheet';
@@ -69,6 +70,13 @@ export const SharedGatePassSection: React.FC<Props> = ({ userRole }) => {
   const fetchGatePasses = useCallback(() => apiService.getGatePasses(), []);
   const { data: gatePasses, loading, error, refetch } = useApi(fetchGatePasses);
   const list = Array.isArray(gatePasses) ? gatePasses : [];
+
+  const {
+    paginatedItems: pagedDocs,
+    currentPage, setCurrentPage,
+    itemsPerPage, setItemsPerPage,
+    totalPages, totalItems,
+  } = usePagination<any>(list, 25);
 
   const act = async (id: number, action: () => Promise<any>, msg: string) => {
     setActionBusy(id);
@@ -147,7 +155,7 @@ export const SharedGatePassSection: React.FC<Props> = ({ userRole }) => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {list.map((gp: any) => {
+                {pagedDocs.map((gp: any) => {
                   const status = gp.status?.toLowerCase();
                   const isDraft  = status === 'draft';
                   const isIssued = status === 'issued';
@@ -204,6 +212,10 @@ export const SharedGatePassSection: React.FC<Props> = ({ userRole }) => {
                 })}
               </TableBody>
             </Table>
+          )}
+          {totalItems > 0 && (
+            <Pagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems}
+              itemsPerPage={itemsPerPage} onPageChange={setCurrentPage} onItemsPerPageChange={setItemsPerPage} />
           )}
         </CardContent>
       </Card>

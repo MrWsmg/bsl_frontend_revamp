@@ -7,6 +7,7 @@ import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { ApprovalStatusBadge } from '../../common/ApprovalStatusBadge';
 import { toast } from '../../ui/sonner';
 import { Link2, CheckSquare } from 'lucide-react';
+import { Pagination, usePagination } from '../../common/Pagination';
 import { PayrollRecord } from '../../../types';
 
 export const PayrollQuickBooksSection: React.FC = () => {
@@ -16,6 +17,13 @@ export const PayrollQuickBooksSection: React.FC = () => {
 
   const fetchPending = useCallback(() => apiService.getQuickBooksPending(), []);
   const { data: records, loading, refetch } = useApi(fetchPending);
+
+  const {
+    paginatedItems: pagedRows,
+    currentPage, setCurrentPage,
+    itemsPerPage, setItemsPerPage,
+    totalPages, totalItems,
+  } = usePagination<PayrollRecord>((records as PayrollRecord[]) || [], 25);
 
   const toggleSelect = (id: number) => {
     setSelectedIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
@@ -91,6 +99,7 @@ export const PayrollQuickBooksSection: React.FC = () => {
               <p>No records awaiting QuickBooks sync.</p>
             </div>
           ) : (
+            <>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -109,7 +118,7 @@ export const PayrollQuickBooksSection: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {records.map((r: PayrollRecord) => (
+                  {pagedRows.map((r: PayrollRecord) => (
                     <tr key={r.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3">
                         <input
@@ -134,6 +143,17 @@ export const PayrollQuickBooksSection: React.FC = () => {
                 </tbody>
               </table>
             </div>
+            {totalItems > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={setItemsPerPage}
+              />
+            )}
+            </>
           )}
         </div>
       </div>

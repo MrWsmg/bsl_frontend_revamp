@@ -4,6 +4,7 @@ import React, { useCallback, useState } from 'react';
 import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
+import { Pagination, usePagination } from '../../common/Pagination';
 import { Users, Search, X, ChevronDown, ChevronUp } from 'lucide-react';
 
 export const FarmClerkWorkersSection: React.FC = () => {
@@ -22,6 +23,14 @@ export const FarmClerkWorkersSection: React.FC = () => {
         (w.worker_id || '').toLowerCase().includes(search.toLowerCase())
       )
     : workers;
+
+  // Client-side pagination over the (optionally filtered) worker list.
+  const {
+    paginatedItems: pagedRows,
+    currentPage, setCurrentPage,
+    itemsPerPage, setItemsPerPage,
+    totalPages, totalItems,
+  } = usePagination<any>(filtered, 25);
 
   const toggleExpand = async (workerId: number) => {
     if (expandedId === workerId) {
@@ -86,8 +95,9 @@ export const FarmClerkWorkersSection: React.FC = () => {
             <p className="text-gray-500">{search ? 'No workers match your search' : 'No workers found'}</p>
           </div>
         ) : (
+          <>
           <div className="divide-y divide-gray-100">
-            {filtered.map((w: any) => {
+            {pagedRows.map((w: any) => {
               const isExpanded = expandedId === w.id;
               const workerDetail = detail[w.id];
               return (
@@ -142,6 +152,17 @@ export const FarmClerkWorkersSection: React.FC = () => {
               );
             })}
           </div>
+          {totalItems > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={setItemsPerPage}
+            />
+          )}
+          </>
         )}
       </div>
     </div>
