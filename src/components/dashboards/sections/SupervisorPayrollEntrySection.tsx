@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import apiService from '../../../services/api';
 import { useAuth } from '../../../contexts/AuthContext';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '../../ui/sonner';
 import { PlusCircle } from 'lucide-react';
 
@@ -127,17 +128,20 @@ export const SupervisorPayrollEntrySection: React.FC = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Farm</label>
               {isAdmin ? (
-                <select
-                  value={form.farm_id}
-                  onChange={(e) => set('farm_id', e.target.value ? Number(e.target.value) : '')}
-                  className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                <Select
+                  value={form.farm_id ? String(form.farm_id) : ''}
+                  onValueChange={(val) => set('farm_id', val ? Number(val) : '')}
                   required
                 >
-                  <option value="">Select farm…</option>
-                  {farms.map((f) => (
-                    <option key={f.id} value={f.id}>{f.name}</option>
-                  ))}
-                </select>
+                  <SelectTrigger className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <SelectValue placeholder="Select farm…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {farms.map((f) => (
+                      <SelectItem key={f.id} value={String(f.id)}>{f.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               ) : (
                 <input
                   type="text"
@@ -181,30 +185,37 @@ export const SupervisorPayrollEntrySection: React.FC = () => {
             {/* Task code */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Task Code</label>
-              <select
+              <Select
                 value={form.task_code}
-                onChange={(e) => set('task_code', e.target.value)}
+                onValueChange={(val) => set('task_code', val)}
                 required
-                className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">Select task…</option>
-                {taskCodes.map((t) => (
-                  <option key={t.id} value={t.code}>{t.code} — {t.name}</option>
-                ))}
-              </select>
+                <SelectTrigger className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <SelectValue placeholder="Select task…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {taskCodes.map((t) => (
+                    <SelectItem key={t.id} value={t.code}>{t.code} — {t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Worker type */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Worker Type</label>
-              <select
+              <Select
                 value={form.worker_type}
-                onChange={(e) => set('worker_type', e.target.value as any)}
-                className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onValueChange={(val) => set('worker_type', val as any)}
               >
-                <option value="permanent">Permanent</option>
-                <option value="contracted">Contracted</option>
-              </select>
+                <SelectTrigger className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <SelectValue placeholder="Select worker type…" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="permanent">Permanent</SelectItem>
+                  <SelectItem value="contracted">Contracted</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Block */}
@@ -222,14 +233,18 @@ export const SupervisorPayrollEntrySection: React.FC = () => {
             {/* Payment method — auto-filled, editable */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-              <select
+              <Select
                 value={form.payment_method}
-                onChange={(e) => set('payment_method', e.target.value as any)}
-                className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onValueChange={(val) => set('payment_method', val as any)}
               >
-                <option value="per_task">Per Task</option>
-                <option value="per_day">Per Day</option>
-              </select>
+                <SelectTrigger className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <SelectValue placeholder="Select payment method…" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="per_task">Per Task</SelectItem>
+                  <SelectItem value="per_day">Per Day</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Crop type */}

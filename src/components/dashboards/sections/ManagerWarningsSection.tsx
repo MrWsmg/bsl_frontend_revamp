@@ -6,6 +6,7 @@ import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { ShieldAlert, CheckCircle, Search, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '../../ui/sonner';
 
 const WARNING_TYPES = ['Verbal', 'Written', 'Final', 'Termination'];
@@ -84,18 +85,24 @@ export const ManagerWarningsSection: React.FC = () => {
           {/* Status */}
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">Status</label>
-            <select value={filters.status} onChange={e => setFilters(f => ({ ...f, status: e.target.value }))} className="border border-gray-300 rounded-md px-3 py-1.5 text-sm">
-              <option value="">All statuses</option>
-              {STATUSES.map(s => <option key={s} value={s} className="capitalize">{s}</option>)}
-            </select>
+            <Select value={filters.status ? String(filters.status) : '__all__'} onValueChange={(val) => setFilters(f => ({ ...f, status: val === '__all__' ? '' : val }))}>
+              <SelectTrigger className="border border-gray-300 rounded-md px-3 py-1.5 text-sm"><SelectValue placeholder="All statuses" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All statuses</SelectItem>
+                {STATUSES.map(s => <SelectItem key={s} value={String(s)} className="capitalize">{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           {/* Type */}
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">Warning type</label>
-            <select value={filters.warning_type} onChange={e => setFilters(f => ({ ...f, warning_type: e.target.value }))} className="border border-gray-300 rounded-md px-3 py-1.5 text-sm">
-              <option value="">All types</option>
-              {WARNING_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
+            <Select value={filters.warning_type ? String(filters.warning_type) : '__all__'} onValueChange={(val) => setFilters(f => ({ ...f, warning_type: val === '__all__' ? '' : val }))}>
+              <SelectTrigger className="border border-gray-300 rounded-md px-3 py-1.5 text-sm"><SelectValue placeholder="All types" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All types</SelectItem>
+                {WARNING_TYPES.map(t => <SelectItem key={t} value={String(t)}>{t}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           {/* Date range */}
           <div>

@@ -5,6 +5,7 @@ import { Eye, Globe, Download } from 'lucide-react';
 import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 
 export const ReportsSection: React.FC = () => {
@@ -151,12 +152,14 @@ export const ReportsSection: React.FC = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Farm (optional)</label>
-              <select value={dailyFilters.farm_id}
-                onChange={e => setDailyFilters(p => ({ ...p, farm_id: e.target.value }))}
-                className={inputCls}>
-                <option value="">All Farms</option>
-                {farmList.map((f: any) => <option key={f.id ?? f.farm_id} value={f.id ?? f.farm_id}>{f.name}</option>)}
-              </select>
+              <Select value={dailyFilters.farm_id ? String(dailyFilters.farm_id) : '__all__'}
+                onValueChange={(val) => setDailyFilters(p => ({ ...p, farm_id: val === '__all__' ? '' : val }))}>
+                <SelectTrigger className={inputCls}><SelectValue placeholder="All Farms" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All Farms</SelectItem>
+                  {farmList.map((f: any) => <SelectItem key={f.id ?? f.farm_id} value={String(f.id ?? f.farm_id)}>{f.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-end">
               <button onClick={generateDailyReport} disabled={loading} className={btnBlue}>
@@ -213,12 +216,14 @@ export const ReportsSection: React.FC = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Farm (optional)</label>
-              <select value={weeklyFilters.farm_id}
-                onChange={e => setWeeklyFilters(p => ({ ...p, farm_id: e.target.value }))}
-                className={inputCls}>
-                <option value="">All Farms</option>
-                {farmList.map((f: any) => <option key={f.id ?? f.farm_id} value={f.id ?? f.farm_id}>{f.name}</option>)}
-              </select>
+              <Select value={weeklyFilters.farm_id ? String(weeklyFilters.farm_id) : '__all__'}
+                onValueChange={(val) => setWeeklyFilters(p => ({ ...p, farm_id: val === '__all__' ? '' : val }))}>
+                <SelectTrigger className={inputCls}><SelectValue placeholder="All Farms" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All Farms</SelectItem>
+                  {farmList.map((f: any) => <SelectItem key={f.id ?? f.farm_id} value={String(f.id ?? f.farm_id)}>{f.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-end">
               <button onClick={generateWeeklyReport} disabled={loading} className={btnGreen}>
@@ -251,28 +256,33 @@ export const ReportsSection: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Farm *</label>
-              <select value={monthlyFilters.farm_id}
-                onChange={e => setMonthlyFilters(p => ({ ...p, farm_id: e.target.value }))}
-                className={inputCls}>
-                <option value="">Select farm…</option>
-                {farmList.map((f: any) => <option key={f.id ?? f.farm_id} value={f.id ?? f.farm_id}>{f.name}</option>)}
-              </select>
+              <Select value={monthlyFilters.farm_id}
+                onValueChange={(val) => setMonthlyFilters(p => ({ ...p, farm_id: val }))}>
+                <SelectTrigger className={inputCls}><SelectValue placeholder="Select farm…" /></SelectTrigger>
+                <SelectContent>
+                  {farmList.map((f: any) => <SelectItem key={f.id ?? f.farm_id} value={String(f.id ?? f.farm_id)}>{f.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
-              <select value={monthlyFilters.year}
-                onChange={e => setMonthlyFilters(p => ({ ...p, year: e.target.value }))}
-                className={inputCls}>
-                {years.map(y => <option key={y} value={y}>{y}</option>)}
-              </select>
+              <Select value={monthlyFilters.year}
+                onValueChange={(val) => setMonthlyFilters(p => ({ ...p, year: val }))}>
+                <SelectTrigger className={inputCls}><SelectValue placeholder="Year" /></SelectTrigger>
+                <SelectContent>
+                  {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Month</label>
-              <select value={monthlyFilters.month}
-                onChange={e => setMonthlyFilters(p => ({ ...p, month: e.target.value }))}
-                className={inputCls}>
-                {MONTHS.map((m, i) => <option key={i + 1} value={String(i + 1)}>{m}</option>)}
-              </select>
+              <Select value={monthlyFilters.month}
+                onValueChange={(val) => setMonthlyFilters(p => ({ ...p, month: val }))}>
+                <SelectTrigger className={inputCls}><SelectValue placeholder="Month" /></SelectTrigger>
+                <SelectContent>
+                  {MONTHS.map((m, i) => <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-end">
               <button onClick={generateMonthlyReport} disabled={loading} className={btnBlue}>

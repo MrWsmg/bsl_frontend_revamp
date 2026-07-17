@@ -7,6 +7,7 @@ import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TrendingUp, RefreshCw, AlertCircle, BarChart3, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -83,10 +84,13 @@ const ExpenditureView: React.FC = () => {
         <div className="flex flex-wrap gap-3 items-end">
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Farm</label>
-            <select value={farmId} onChange={e => setFarmId(e.target.value)} className={inputCls}>
-              <option value="">All farms</option>
-              {farmList.map((f: any) => { const fid = f.id ?? f.farm_id; return <option key={fid} value={fid}>{f.name}</option>; })}
-            </select>
+            <Select value={farmId ? String(farmId) : '__all__'} onValueChange={(val) => setFarmId(val === '__all__' ? '' : val)}>
+              <SelectTrigger className={inputCls}><SelectValue placeholder="All farms" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All farms</SelectItem>
+                {farmList.map((f: any) => { const fid = f.id ?? f.farm_id; return <SelectItem key={fid} value={String(fid)}>{f.name}</SelectItem>; })}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">From</label>

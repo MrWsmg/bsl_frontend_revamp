@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface PaginationProps {
   currentPage: number;
@@ -80,18 +81,24 @@ export function Pagination({
             <label htmlFor="items-per-page" className="text-sm text-gray-700">
               Per page:
             </label>
-            <select
-              id="items-per-page"
-              value={itemsPerPage}
-              onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
-              className="px-2 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            <Select
+              value={String(itemsPerPage)}
+              onValueChange={(val) => onItemsPerPageChange(Number(val))}
             >
-              {itemsPerPageOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger
+                id="items-per-page"
+                className="px-2 py-1 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {itemsPerPageOptions.map((option) => (
+                  <SelectItem key={option} value={String(option)}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         )}
       </div>

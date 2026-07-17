@@ -5,6 +5,7 @@ import { CheckCircle, XCircle, Clock, Eye, FileText, AlertTriangle } from 'lucid
 import apiService from '../../services/api';
 import { PurchaseRequest, Farm } from '../../types';
 import { PR_STATUS, APPROVAL_LEVELS } from '../../constants';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 
 interface PurchaseRequestListProps {
@@ -171,34 +172,38 @@ export const PurchaseRequestList: React.FC<PurchaseRequestListProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Farm</label>
-            <select
-              value={selectedFarm}
-              onChange={(e) => setSelectedFarm(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            <Select
+              value={selectedFarm ? String(selectedFarm) : '__all__'}
+              onValueChange={(val) => setSelectedFarm(val === '__all__' ? '' : val)}
             >
-              <option value="">All Farms</option>
-              {farms.map((farm) => (
-                <option key={farm.id} value={farm.id}>
-                  {farm.name}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full px-3 py-2 border border-gray-300 rounded-md"><SelectValue placeholder="All Farms" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All Farms</SelectItem>
+                {farms.map((farm) => (
+                  <SelectItem key={farm.id} value={String(farm.id)}>
+                    {farm.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Status</label>
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            <Select
+              value={selectedStatus ? String(selectedStatus) : '__all__'}
+              onValueChange={(val) => setSelectedStatus(val === '__all__' ? '' : val)}
             >
-              <option value="">All Statuses</option>
-              <option value={PR_STATUS.PENDING_APPROVAL}>Pending Manager</option>
-              <option value={PR_STATUS.PENDING_GM_APPROVAL}>Pending GM</option>
-              <option value={PR_STATUS.PENDING_MD_APPROVAL}>Pending MD</option>
-              <option value={PR_STATUS.APPROVED}>Approved</option>
-              <option value={PR_STATUS.REJECTED}>Rejected</option>
-            </select>
+              <SelectTrigger className="w-full px-3 py-2 border border-gray-300 rounded-md"><SelectValue placeholder="All Statuses" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All Statuses</SelectItem>
+                <SelectItem value={PR_STATUS.PENDING_APPROVAL}>Pending Manager</SelectItem>
+                <SelectItem value={PR_STATUS.PENDING_GM_APPROVAL}>Pending GM</SelectItem>
+                <SelectItem value={PR_STATUS.PENDING_MD_APPROVAL}>Pending MD</SelectItem>
+                <SelectItem value={PR_STATUS.APPROVED}>Approved</SelectItem>
+                <SelectItem value={PR_STATUS.REJECTED}>Rejected</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex items-end">

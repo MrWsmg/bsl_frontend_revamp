@@ -7,6 +7,7 @@ import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { Pagination, usePagination } from '../../common/Pagination';
 import { Calendar, Users, UserCheck, UserX, Clock } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AttendanceFilters } from '../../../types';
 
 export const ManagerAttendanceSection: React.FC = () => {
@@ -130,16 +131,18 @@ export const ManagerAttendanceSection: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Farm</label>
-              <select
-                value={filters.farm_id || ''}
-                onChange={(e) => setFilters({ ...filters, farm_id: e.target.value ? Number(e.target.value) : undefined })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
+              <Select
+                value={filters.farm_id ? String(filters.farm_id) : '__all__'}
+                onValueChange={(val) => setFilters({ ...filters, farm_id: val === '__all__' ? undefined : Number(val) })}
               >
-                <option value="">All Farms</option>
-                {farms?.map((farm: any, i: number) => (
-                  <option key={farm.id ?? i} value={farm.id}>{farm.name}</option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"><SelectValue placeholder="All Farms" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All Farms</SelectItem>
+                  {farms?.map((farm: any, i: number) => (
+                    <SelectItem key={farm.id ?? i} value={String(farm.id)}>{farm.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
@@ -161,17 +164,19 @@ export const ManagerAttendanceSection: React.FC = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-              <select
-                value={filters.status}
-                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
+              <Select
+                value={filters.status ? String(filters.status) : '__all__'}
+                onValueChange={(val) => setFilters({ ...filters, status: val === '__all__' ? '' : val })}
               >
-                <option value="">All Status</option>
-                <option value="present">Present</option>
-                <option value="absent">Absent</option>
-                <option value="leave">On Leave</option>
-                <option value="sick">Sick</option>
-              </select>
+                <SelectTrigger className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"><SelectValue placeholder="All Status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All Status</SelectItem>
+                  <SelectItem value="present">Present</SelectItem>
+                  <SelectItem value="absent">Absent</SelectItem>
+                  <SelectItem value="leave">On Leave</SelectItem>
+                  <SelectItem value="sick">Sick</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-end">
               <button
@@ -272,16 +277,17 @@ export const ManagerAttendanceSection: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Farm</label>
-              <select
-                value={selectedFarm || ''}
-                onChange={(e) => setSelectedFarm(e.target.value ? Number(e.target.value) : null)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
+              <Select
+                value={selectedFarm ? String(selectedFarm) : ''}
+                onValueChange={(val) => setSelectedFarm(val ? Number(val) : null)}
               >
-                <option value="">Select Farm</option>
-                {farms?.map((farm: any, i: number) => (
-                  <option key={farm.id ?? i} value={farm.id}>{farm.name}</option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"><SelectValue placeholder="Select Farm" /></SelectTrigger>
+                <SelectContent>
+                  {farms?.map((farm: any, i: number) => (
+                    <SelectItem key={farm.id ?? i} value={String(farm.id)}>{farm.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Report Date</label>

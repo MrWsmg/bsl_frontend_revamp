@@ -7,6 +7,7 @@ import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileText, CalendarDays, RefreshCw, AlertCircle, Send, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -96,24 +97,29 @@ const ReportsPanel: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Report Type *</label>
-              <select value={reportType} onChange={e => setReportType(e.target.value)} className={inputCls}>
-                <option value="">Select type…</option>
-                <option value="financial">Financial</option>
-                <option value="operational">Operational</option>
-                <option value="payroll">Payroll</option>
-                <option value="harvest">Harvest</option>
-                <option value="stock">Stock</option>
-                <option value="custom">Custom</option>
-              </select>
+              <Select value={String(reportType ?? '')} onValueChange={(val) => setReportType(val)}>
+                <SelectTrigger className={inputCls}><SelectValue placeholder="Select type…" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="financial">Financial</SelectItem>
+                  <SelectItem value="operational">Operational</SelectItem>
+                  <SelectItem value="payroll">Payroll</SelectItem>
+                  <SelectItem value="harvest">Harvest</SelectItem>
+                  <SelectItem value="stock">Stock</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Farm</label>
-              <select value={farmId} onChange={e => setFarmId(e.target.value)} className={inputCls}>
-                <option value="">All farms</option>
-                {farmList.map((f: any) => (
-                  <option key={f.id ?? f.farm_id} value={f.id ?? f.farm_id}>{f.name}</option>
-                ))}
-              </select>
+              <Select value={farmId ? String(farmId) : '__all__'} onValueChange={(val) => setFarmId(val === '__all__' ? '' : val)}>
+                <SelectTrigger className={inputCls}><SelectValue placeholder="All farms" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All farms</SelectItem>
+                  {farmList.map((f: any) => (
+                    <SelectItem key={f.id ?? f.farm_id} value={String(f.id ?? f.farm_id)}>{f.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Period (e.g. 2025-Q1)</label>
@@ -275,12 +281,15 @@ const MeetingsPanel: React.FC = () => {
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Farm</label>
-            <select value={farmId} onChange={e => setFarmId(e.target.value)} className={inputCls}>
-              <option value="">All / General</option>
-              {farmList.map((f: any) => (
-                <option key={f.id ?? f.farm_id} value={f.id ?? f.farm_id}>{f.name}</option>
-              ))}
-            </select>
+            <Select value={farmId ? String(farmId) : '__all__'} onValueChange={(val) => setFarmId(val === '__all__' ? '' : val)}>
+              <SelectTrigger className={inputCls}><SelectValue placeholder="All / General" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All / General</SelectItem>
+                {farmList.map((f: any) => (
+                  <SelectItem key={f.id ?? f.farm_id} value={String(f.id ?? f.farm_id)}>{f.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Location</label>

@@ -7,6 +7,7 @@ import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ShieldCheck, RefreshCw, AlertCircle, Search } from 'lucide-react';
 
 const ACTIONS = [
@@ -94,21 +95,27 @@ export const AdminAuditLogsSection: React.FC = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Action</label>
-              <select value={action} onChange={e => setAction(e.target.value)} className={`w-full ${inputCls}`}>
-                <option value="">All actions</option>
-                {ACTIONS.map(a => (
-                  <option key={a} value={a}>{a}</option>
-                ))}
-              </select>
+              <Select value={action ? String(action) : '__all__'} onValueChange={(val) => setAction(val === '__all__' ? '' : val)}>
+                <SelectTrigger className={`w-full ${inputCls}`}><SelectValue placeholder="All actions" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All actions</SelectItem>
+                  {ACTIONS.map(a => (
+                    <SelectItem key={a} value={a}>{a}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">User</label>
-              <select value={userId} onChange={e => setUserId(e.target.value)} className={`w-full ${inputCls}`}>
-                <option value="">All users</option>
-                {userList.map((u: any) => (
-                  <option key={u.id} value={u.id}>{u.full_name || u.username}</option>
-                ))}
-              </select>
+              <Select value={userId ? String(userId) : '__all__'} onValueChange={(val) => setUserId(val === '__all__' ? '' : val)}>
+                <SelectTrigger className={`w-full ${inputCls}`}><SelectValue placeholder="All users" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All users</SelectItem>
+                  {userList.map((u: any) => (
+                    <SelectItem key={u.id} value={String(u.id)}>{u.full_name || u.username}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Start Date</label>

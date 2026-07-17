@@ -5,6 +5,7 @@ import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { SaturdayWeekPicker } from '../../common/SaturdayWeekPicker';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '../../ui/sonner';
 import {
   Wallet, Plus, Pencil, Trash2, ChevronDown, ChevronRight,
@@ -227,11 +228,13 @@ export const SharedBudgetManagerSection: React.FC<Props> = ({ userRole }) => {
         </div>
 
         {/* Farm filter */}
-        <select value={farmFilter} onChange={e => setFarmFilter(e.target.value)}
-          className="border border-gray-200 rounded-md px-3 py-2 text-sm bg-white">
-          <option value="">All farms</option>
-          {farms.map(f => <option key={f.id} value={String(f.id)}>{f.name}</option>)}
-        </select>
+        <Select value={farmFilter || '__all__'} onValueChange={(val) => setFarmFilter(val === '__all__' ? '' : val)}>
+          <SelectTrigger className="border border-gray-200 rounded-md px-3 py-2 text-sm bg-white"><SelectValue placeholder="All farms" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All farms</SelectItem>
+            {farms.map(f => <SelectItem key={f.id} value={String(f.id)}>{f.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
 
         {/* Fiscal year */}
         <input type="number" value={fiscalYear} onChange={e => setFiscalYear(Number(e.target.value))}
@@ -443,10 +446,12 @@ export const SharedBudgetManagerSection: React.FC<Props> = ({ userRole }) => {
               {/* Farm */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Farm <span className="text-red-500">*</span></label>
-                <select value={form.farm_id} onChange={e => setForm(f => ({ ...f, farm_id: e.target.value }))} className={inputCls}>
-                  <option value="">Select farm…</option>
-                  {farms.map(f => <option key={f.id} value={String(f.id)}>{f.name}</option>)}
-                </select>
+                <Select value={form.farm_id} onValueChange={(val) => setForm(f => ({ ...f, farm_id: val }))}>
+                  <SelectTrigger className={inputCls}><SelectValue placeholder="Select farm…" /></SelectTrigger>
+                  <SelectContent>
+                    {farms.map(f => <SelectItem key={f.id} value={String(f.id)}>{f.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Fiscal year */}
@@ -460,10 +465,12 @@ export const SharedBudgetManagerSection: React.FC<Props> = ({ userRole }) => {
               {period === 'monthly' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Month <span className="text-red-500">*</span></label>
-                  <select value={form.month} onChange={e => setForm(f => ({ ...f, month: e.target.value }))} className={inputCls}>
-                    <option value="">Select month…</option>
-                    {MONTHS.map((m, i) => <option key={i + 1} value={String(i + 1)}>{m}</option>)}
-                  </select>
+                  <Select value={form.month} onValueChange={(val) => setForm(f => ({ ...f, month: val }))}>
+                    <SelectTrigger className={inputCls}><SelectValue placeholder="Select month…" /></SelectTrigger>
+                    <SelectContent>
+                      {MONTHS.map((m, i) => <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
 
@@ -513,11 +520,14 @@ export const SharedBudgetManagerSection: React.FC<Props> = ({ userRole }) => {
               {/* Status */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} className={inputCls}>
-                  <option value="draft">Draft</option>
-                  <option value="active">Active</option>
-                  <option value="closed">Closed</option>
-                </select>
+                <Select value={form.status} onValueChange={(val) => setForm(f => ({ ...f, status: val }))}>
+                  <SelectTrigger className={inputCls}><SelectValue placeholder="Select status…" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="closed">Closed</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Notes */}

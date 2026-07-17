@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ShieldAlert, RefreshCw, AlertCircle } from 'lucide-react';
 
 const HR_ACTIONS: Record<string, { label: string; cls: string }> = {
@@ -90,23 +91,29 @@ export const GmHrSection: React.FC = () => {
           <div className="flex flex-wrap gap-3 items-end">
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">Farm</label>
-              <select value={farmId} onChange={e => setFarmId(e.target.value)} className={inputCls}>
-                <option value="">All farms</option>
-                {farmList.map((f: any) => {
-                  const fid = f.id ?? f.farm_id;
-                  return <option key={fid} value={fid}>{f.name}</option>;
-                })}
-              </select>
+              <Select value={farmId ? String(farmId) : '__all__'} onValueChange={(val) => setFarmId(val === '__all__' ? '' : val)}>
+                <SelectTrigger className={inputCls}><SelectValue placeholder="All farms" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All farms</SelectItem>
+                  {farmList.map((f: any) => {
+                    const fid = f.id ?? f.farm_id;
+                    return <SelectItem key={fid} value={String(fid)}>{f.name}</SelectItem>;
+                  })}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">Status</label>
-              <select value={statusFilter} onChange={e => setStatus(e.target.value)} className={inputCls}>
-                <option value="">All statuses</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="escalated">Escalated</option>
-                <option value="closed">Closed</option>
-              </select>
+              <Select value={statusFilter ? String(statusFilter) : '__all__'} onValueChange={(val) => setStatus(val === '__all__' ? '' : val)}>
+                <SelectTrigger className={inputCls}><SelectValue placeholder="All statuses" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All statuses</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="escalated">Escalated</SelectItem>
+                  <SelectItem value="closed">Closed</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <Button size="sm" variant="outline" onClick={() => refetch()}>
               <RefreshCw className="w-3.5 h-3.5" />

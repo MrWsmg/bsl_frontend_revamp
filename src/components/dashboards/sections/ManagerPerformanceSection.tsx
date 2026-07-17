@@ -6,6 +6,7 @@ import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { TrendingUp, Target, Award, BarChart3 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PerformanceFilters } from '../../../types';
 
 export const ManagerPerformanceSection: React.FC = () => {
@@ -116,29 +117,31 @@ export const ManagerPerformanceSection: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">User (Supervisor)</label>
-              <select
-                value={filters.user_id || ''}
-                onChange={(e) => setFilters({ ...filters, user_id: e.target.value ? Number(e.target.value) : undefined, worker_id: undefined })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
+              <Select
+                value={String(filters.user_id ?? '')}
+                onValueChange={(val) => setFilters({ ...filters, user_id: val ? Number(val) : undefined, worker_id: undefined })}
               >
-                <option value="">Select User</option>
-                {users?.map((user: any) => (
-                  <option key={user.id} value={user.id}>{user.full_name}</option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"><SelectValue placeholder="Select User" /></SelectTrigger>
+                <SelectContent>
+                  {users?.map((user: any) => (
+                    <SelectItem key={user.id} value={String(user.id)}>{user.full_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Worker</label>
-              <select
-                value={filters.worker_id || ''}
-                onChange={(e) => setFilters({ ...filters, worker_id: e.target.value ? Number(e.target.value) : undefined, user_id: undefined })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
+              <Select
+                value={String(filters.worker_id ?? '')}
+                onValueChange={(val) => setFilters({ ...filters, worker_id: val ? Number(val) : undefined, user_id: undefined })}
               >
-                <option value="">Select Worker</option>
-                {workers?.map((worker: any) => (
-                  <option key={worker.id} value={worker.id}>{worker.full_name || worker.name}</option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"><SelectValue placeholder="Select Worker" /></SelectTrigger>
+                <SelectContent>
+                  {workers?.map((worker: any) => (
+                    <SelectItem key={worker.id} value={String(worker.id)}>{worker.full_name || worker.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>

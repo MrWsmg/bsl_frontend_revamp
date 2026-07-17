@@ -6,6 +6,7 @@ import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { Wrench, CheckCircle, AlertTriangle, XCircle, Plus } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '../../ui/sonner';
 
 export const ManagerEquipmentSection: React.FC = () => {
@@ -247,16 +248,17 @@ export const ManagerEquipmentSection: React.FC = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Farm *</label>
-                <select
-                  value={newEquipment.farm_id}
-                  onChange={(e) => setNewEquipment({ ...newEquipment, farm_id: Number(e.target.value) })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
+                <Select
+                  value={newEquipment.farm_id ? String(newEquipment.farm_id) : ''}
+                  onValueChange={(val) => setNewEquipment({ ...newEquipment, farm_id: Number(val) })}
                 >
-                  <option value={0}>Select Farm</option>
-                  {farms?.map((farm: any) => (
-                    <option key={farm.id} value={farm.id}>{farm.name}</option>
-                  ))}
-                </select>
+                  <SelectTrigger className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"><SelectValue placeholder="Select Farm" /></SelectTrigger>
+                  <SelectContent>
+                    {farms?.map((farm: any) => (
+                      <SelectItem key={farm.id} value={String(farm.id)}>{farm.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Equipment Name *</label>
@@ -280,15 +282,17 @@ export const ManagerEquipmentSection: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                <select
-                  value={newEquipment.status}
-                  onChange={(e) => setNewEquipment({ ...newEquipment, status: e.target.value as any })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
+                <Select
+                  value={String(newEquipment.status ?? '')}
+                  onValueChange={(val) => setNewEquipment({ ...newEquipment, status: val as any })}
                 >
-                  <option value="operational">Operational</option>
-                  <option value="maintenance">Maintenance</option>
-                  <option value="broken">Broken</option>
-                </select>
+                  <SelectTrigger className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"><SelectValue placeholder="Status" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="operational">Operational</SelectItem>
+                    <SelectItem value="maintenance">Maintenance</SelectItem>
+                    <SelectItem value="broken">Broken</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>

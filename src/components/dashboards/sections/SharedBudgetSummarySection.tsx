@@ -4,6 +4,7 @@ import React, { useState, useCallback } from 'react';
 import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChevronDown, ChevronRight, TreePine, AlertCircle } from 'lucide-react';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -152,11 +153,12 @@ export const SharedBudgetSummarySection: React.FC<Props> = ({ userRole }) => {
       <div className="flex flex-wrap gap-3 items-end">
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Farm</label>
-          <select value={farmId} onChange={e => setFarmId(e.target.value)}
-            className="border border-gray-200 rounded-md px-3 py-2 text-sm bg-white min-w-[180px]">
-            <option value="">Select farm…</option>
-            {farms.map(f => <option key={f.id} value={String(f.id)}>{f.name}</option>)}
-          </select>
+          <Select value={String(farmId ?? '')} onValueChange={(val) => setFarmId(val)}>
+            <SelectTrigger className="border border-gray-200 rounded-md px-3 py-2 text-sm bg-white min-w-[180px]"><SelectValue placeholder="Select farm…" /></SelectTrigger>
+            <SelectContent>
+              {farms.map(f => <SelectItem key={f.id} value={String(f.id)}>{f.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Fiscal Year</label>

@@ -610,19 +610,21 @@ export const ProcurementPfiSection: React.FC = () => {
               <FileText className="w-4 h-4 text-amber-600" />
               Material Requisitions (SMR)
             </h2>
-            <select
-              value={smrStatusFilter}
-              onChange={e => setSmrStatusFilter(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"
+            <Select
+              value={smrStatusFilter ? smrStatusFilter : '__all__'}
+              onValueChange={(val) => setSmrStatusFilter(val === '__all__' ? '' : val)}
             >
-              <option value="">All statuses</option>
-              <option value="approved">Approved</option>
-              <option value="pending_approval">Pending approval</option>
-              <option value="pending_gm_approval">Pending GM approval</option>
-              <option value="pending_md_approval">Pending MD approval</option>
-              <option value="ordered">Ordered</option>
-              <option value="rejected">Rejected</option>
-            </select>
+              <SelectTrigger className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white"><SelectValue placeholder="All statuses" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All statuses</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="pending_approval">Pending approval</SelectItem>
+                <SelectItem value="pending_gm_approval">Pending GM approval</SelectItem>
+                <SelectItem value="pending_md_approval">Pending MD approval</SelectItem>
+                <SelectItem value="ordered">Ordered</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {smrError && (

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { SaturdayWeekPicker } from '../../common/SaturdayWeekPicker';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '../../ui/sonner';
 import { Eye, FileDown, FileText } from 'lucide-react';
 
@@ -92,15 +93,18 @@ export const SharedWeeklySheetSection: React.FC<SharedWeeklySheetSectionProps> =
           {/* Farm */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Farm</label>
-            <select
+            <Select
               value={farmId === '' ? '' : String(farmId)}
-              onChange={(e) => setFarmId(e.target.value ? Number(e.target.value) : '')}
+              onValueChange={(val) => setFarmId(val ? Number(val) : '')}
               disabled={!farmsLoaded}
-              className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
             >
-              <option value="">{farmsLoaded ? 'Select farm…' : 'Loading…'}</option>
-              {farms.map((f) => <option key={String(f.id)} value={String(f.id)}>{f.name}</option>)}
-            </select>
+              <SelectTrigger className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100">
+                <SelectValue placeholder={farmsLoaded ? 'Select farm…' : 'Loading…'} />
+              </SelectTrigger>
+              <SelectContent>
+                {farms.map((f) => <SelectItem key={String(f.id)} value={String(f.id)}>{f.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Saturday week picker */}

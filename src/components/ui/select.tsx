@@ -1,5 +1,6 @@
 import * as React from "react";
 import * as SelectPrimitive from "@radix-ui/react-select";
+import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
 import { Check, ChevronDown, ChevronUp } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -61,12 +62,32 @@ SelectScrollDownButton.displayName = SelectPrimitive.ScrollDownButton.displayNam
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
->(({ className, children, position = "popper", ...props }, ref) => (
+>(({ className, children, position = "popper", ...props }, ref) => {
+  const viewportRef = React.useRef<HTMLDivElement>(null);
+
+  // Radix Select hijacks wheel events to drive its own scroll-button scrolling,
+  // which blocks the mouse wheel from reaching the ScrollArea viewport. Attach a
+  // direct listener on the real scroll container so the wheel scrolls it and the
+  // event never bubbles to Select's handler.
+  React.useEffect(() => {
+    const vp = viewportRef.current;
+    if (!vp) return;
+    const onWheel = (e: WheelEvent) => {
+      if (vp.scrollHeight <= vp.clientHeight) return;
+      e.preventDefault();
+      e.stopPropagation();
+      vp.scrollTop += e.deltaY;
+    };
+    vp.addEventListener("wheel", onWheel, { passive: false });
+    return () => vp.removeEventListener("wheel", onWheel);
+  }, []);
+
+  return (
   <SelectPrimitive.Portal>
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+        "relative z-50 max-h-[min(24rem,var(--radix-select-content-available-height))] min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
         position === "popper" &&
           "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
         className,
@@ -74,20 +95,33 @@ const SelectContent = React.forwardRef<
       position={position}
       {...props}
     >
-      <SelectScrollUpButton />
-      <SelectPrimitive.Viewport
-        className={cn(
-          "p-1",
-          position === "popper" &&
-            "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]",
-        )}
-      >
-        {children}
-      </SelectPrimitive.Viewport>
-      <SelectScrollDownButton />
+      <ScrollAreaPrimitive.Root type="auto" className="relative overflow-hidden">
+        <ScrollAreaPrimitive.Viewport
+          ref={viewportRef}
+          style={{ maxHeight: "min(24rem, var(--radix-select-content-available-height))" }}
+          className="w-full [&>div]:!block"
+        >
+          <SelectPrimitive.Viewport
+            className={cn(
+              "p-1",
+              position === "popper" &&
+                "w-full min-w-[var(--radix-select-trigger-width)]",
+            )}
+          >
+            {children}
+          </SelectPrimitive.Viewport>
+        </ScrollAreaPrimitive.Viewport>
+        <ScrollAreaPrimitive.Scrollbar
+          orientation="vertical"
+          className="flex touch-none select-none p-[1px] transition-colors w-2.5 border-l border-l-transparent"
+        >
+          <ScrollAreaPrimitive.Thumb className="relative flex-1 rounded-full bg-border hover:bg-muted-foreground/50" />
+        </ScrollAreaPrimitive.Scrollbar>
+      </ScrollAreaPrimitive.Root>
     </SelectPrimitive.Content>
   </SelectPrimitive.Portal>
-));
+  );
+});
 SelectContent.displayName = SelectPrimitive.Content.displayName;
 
 const SelectLabel = React.forwardRef<

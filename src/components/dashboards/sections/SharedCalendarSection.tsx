@@ -17,6 +17,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
@@ -370,17 +371,21 @@ export function SharedCalendarSection({ userRole, farmId }: SharedCalendarSectio
         <CardContent className="p-4">
           <div className="flex items-center gap-2 flex-wrap">
             {farms.length > 1 && (
-              <select
+              <Select
                 value={farmFilter || 'all'}
-                onChange={e => setFarmFilter(e.target.value === 'all' ? '' : e.target.value)}
-                className="h-7 text-xs border border-gray-300 rounded-md px-2 focus:outline-none focus:ring-1 focus:ring-blue-500 w-36"
+                onValueChange={(val) => setFarmFilter(val === 'all' ? '' : val)}
               >
-                <option value="all">All farms</option>
-                {farms.map((f: any) => {
-                  const id = String(f.id ?? f.farm_id);
-                  return <option key={id} value={id}>{f.name}</option>;
-                })}
-              </select>
+                <SelectTrigger className="h-7 text-xs border border-gray-300 rounded-md px-2 focus:outline-none focus:ring-1 focus:ring-blue-500 w-36">
+                  <SelectValue placeholder="All farms" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All farms</SelectItem>
+                  {farms.map((f: any) => {
+                    const id = String(f.id ?? f.farm_id);
+                    return <SelectItem key={id} value={id}>{f.name}</SelectItem>;
+                  })}
+                </SelectContent>
+              </Select>
             )}
             <button
               onClick={() => refetch()}
@@ -776,31 +781,39 @@ export function SharedCalendarSection({ userRole, farmId }: SharedCalendarSectio
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-              <select
+              <Select
                 value={form.event_type}
-                onChange={e => setForm(f => ({ ...f, event_type: e.target.value }))}
-                className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onValueChange={(val) => setForm(f => ({ ...f, event_type: val }))}
               >
-                <option value="meeting">Meeting</option>
-                <option value="reminder">Reminder</option>
-                <option value="maintenance">Maintenance</option>
-                <option value="custom">Other</option>
-              </select>
+                <SelectTrigger className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <SelectValue placeholder="Select type…" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="meeting">Meeting</SelectItem>
+                  <SelectItem value="reminder">Reminder</SelectItem>
+                  <SelectItem value="maintenance">Maintenance</SelectItem>
+                  <SelectItem value="custom">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Repeat</label>
-              <select
+              <Select
                 value={form.recurrence ?? 'none'}
-                onChange={e => setForm(f => ({ ...f, recurrence: e.target.value }))}
-                className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onValueChange={(val) => setForm(f => ({ ...f, recurrence: val }))}
               >
-                <option value="none">Does not repeat</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-                <option value="quarterly">Quarterly</option>
-                <option value="annually">Annually</option>
-              </select>
+                <SelectTrigger className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <SelectValue placeholder="Does not repeat" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Does not repeat</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="quarterly">Quarterly</SelectItem>
+                  <SelectItem value="annually">Annually</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="col-span-2 flex items-center gap-2">
@@ -859,31 +872,39 @@ export function SharedCalendarSection({ userRole, farmId }: SharedCalendarSectio
             {farms.length > 0 && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Farm</label>
-                <select
-                  value={form.farm_id ? String(form.farm_id) : ''}
-                  onChange={e => setForm(f => ({ ...f, farm_id: e.target.value ? Number(e.target.value) : undefined }))}
-                  className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                <Select
+                  value={form.farm_id ? String(form.farm_id) : '__none__'}
+                  onValueChange={(val) => setForm(f => ({ ...f, farm_id: val === '__none__' ? undefined : Number(val) }))}
                 >
-                  <option value="">No specific farm</option>
-                  {farms.map((farm: any) => {
-                    const id = String(farm.id ?? farm.farm_id);
-                    return <option key={id} value={id}>{farm.name}</option>;
-                  })}
-                </select>
+                  <SelectTrigger className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <SelectValue placeholder="No specific farm" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">No specific farm</SelectItem>
+                    {farms.map((farm: any) => {
+                      const id = String(farm.id ?? farm.farm_id);
+                      return <SelectItem key={id} value={id}>{farm.name}</SelectItem>;
+                    })}
+                  </SelectContent>
+                </Select>
               </div>
             )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Visibility</label>
-              <select
+              <Select
                 value={form.visibility}
-                onChange={e => setForm(f => ({ ...f, visibility: e.target.value }))}
-                className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onValueChange={(val) => setForm(f => ({ ...f, visibility: val }))}
               >
-                <option value="private">Only me</option>
-                <option value="farm">My farm</option>
-                {canSetAllVisibility && <option value="all">Everyone</option>}
-              </select>
+                <SelectTrigger className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <SelectValue placeholder="Select visibility…" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="private">Only me</SelectItem>
+                  <SelectItem value="farm">My farm</SelectItem>
+                  {canSetAllVisibility && <SelectItem value="all">Everyone</SelectItem>}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="col-span-2">

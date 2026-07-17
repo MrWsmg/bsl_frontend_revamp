@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, FileText, AlertCircle, RefreshCw, Plus, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -85,16 +86,15 @@ export const ProcurementSmrSection: React.FC<Props> = ({ onCreateLpo }) => {
                 className="pl-8 text-sm"
               />
             </div>
-            <select
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value)}
-              className="border border-gray-200 rounded-md px-3 py-2 text-sm bg-white"
-            >
-              <option value="">All statuses</option>
-              <option value="approved">Approved</option>
-              <option value="pending_approval">Pending approval</option>
-              <option value="ordered">Ordered</option>
-            </select>
+            <Select value={statusFilter ? String(statusFilter) : '__all__'} onValueChange={(val) => setStatusFilter(val === '__all__' ? '' : val)}>
+              <SelectTrigger className="border border-gray-200 rounded-md px-3 py-2 text-sm bg-white"><SelectValue placeholder="All statuses" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All statuses</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="pending_approval">Pending approval</SelectItem>
+                <SelectItem value="ordered">Ordered</SelectItem>
+              </SelectContent>
+            </Select>
             <Button size="sm" variant="outline" onClick={() => refetch()}>
               <RefreshCw className="w-3.5 h-3.5" />
             </Button>

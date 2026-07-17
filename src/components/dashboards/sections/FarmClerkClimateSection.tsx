@@ -5,6 +5,7 @@ import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { CloudRain, Plus, Pencil, Check, X, Thermometer } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '../../ui/sonner';
 import { useAuth } from '../../../contexts/AuthContext';
 
@@ -187,10 +188,12 @@ export const FarmClerkClimateSection: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Weather Type <span className="text-red-500">*</span></label>
-                <select value={form.weather_type} onChange={e => setForm(f => ({ ...f, weather_type: e.target.value }))} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
-                  <option value="">Select...</option>
-                  {WEATHER_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
+                <Select value={String(form.weather_type ?? '')} onValueChange={(val) => setForm(f => ({ ...f, weather_type: val }))}>
+                  <SelectTrigger className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
+                  <SelectContent>
+                    {WEATHER_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Temp Min (°C)</label>

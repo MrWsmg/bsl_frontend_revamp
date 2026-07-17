@@ -30,6 +30,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { toast } from 'sonner';
 
@@ -398,14 +399,15 @@ const TaskCodesSection: React.FC = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Activity Type *</label>
-              <select
-                value={form.activity_type}
-                onChange={e => setForm(p => ({ ...p, activity_type: e.target.value }))}
-                className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm bg-white"
+              <Select
+                value={String(form.activity_type ?? '')}
+                onValueChange={(val) => setForm(p => ({ ...p, activity_type: val }))}
               >
-                <option value="">Select activity type</option>
-                {ACTIVITY_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
-              </select>
+                <SelectTrigger className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm bg-white"><SelectValue placeholder="Select activity type" /></SelectTrigger>
+                <SelectContent>
+                  {ACTIVITY_TYPES.map(t => <SelectItem key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
@@ -444,16 +446,17 @@ const AdminBlocksSection: React.FC = () => {
           ) : (
             <div className="space-y-1">
               <label className="block text-sm font-medium text-gray-700 mb-1">Select Farm</label>
-              <select
-                value={selectedFarmId ?? ''}
-                onChange={e => setSelectedFarmId(e.target.value ? Number(e.target.value) : null)}
-                className="w-full max-w-xs border border-gray-200 rounded-md px-3 py-2 text-sm bg-white"
+              <Select
+                value={selectedFarmId != null ? String(selectedFarmId) : ''}
+                onValueChange={(val) => setSelectedFarmId(val ? Number(val) : null)}
               >
-                <option value="">— choose a farm —</option>
-                {farms.map(f => (
-                  <option key={f.farm_id} value={f.farm_id}>{f.name ?? `Farm #${f.farm_id}`}</option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full max-w-xs border border-gray-200 rounded-md px-3 py-2 text-sm bg-white"><SelectValue placeholder="— choose a farm —" /></SelectTrigger>
+                <SelectContent>
+                  {farms.map(f => (
+                    <SelectItem key={f.farm_id} value={String(f.farm_id)}>{f.name ?? `Farm #${f.farm_id}`}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
         </CardContent>

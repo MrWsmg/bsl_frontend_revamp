@@ -1000,15 +1000,17 @@ export const SharedGrnSection: React.FC<Props> = ({ userRole, farmId, farmName }
                             </div>
                           </div>
                           <div className="flex gap-2 items-center">
-                            <select
-                              value={row.condition}
-                              onChange={e => updateItem(i, { condition: e.target.value as GrnItem['condition'] })}
-                              className="border border-gray-200 rounded px-2 py-1.5 text-xs bg-white"
+                            <Select
+                              value={String(row.condition ?? '')}
+                              onValueChange={(val) => updateItem(i, { condition: val as GrnItem['condition'] })}
                             >
-                              <option value="good">Good condition</option>
-                              <option value="partial">Partial delivery</option>
-                              <option value="rejected">Rejected</option>
-                            </select>
+                              <SelectTrigger className="border border-gray-200 rounded px-2 py-1.5 text-xs bg-white"><SelectValue placeholder="Condition" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="good">Good condition</SelectItem>
+                                <SelectItem value="partial">Partial delivery</SelectItem>
+                                <SelectItem value="rejected">Rejected</SelectItem>
+                              </SelectContent>
+                            </Select>
                             {row.condition !== 'good' && (
                               <Input
                                 value={row.rejection_reason}
@@ -1303,15 +1305,17 @@ export const SharedGrnSection: React.FC<Props> = ({ userRole, farmId, farmName }
                           </div>
                           <div>
                             <label className="text-xs text-gray-500 mb-0.5 block">Condition</label>
-                            <select
-                              value={row.condition}
-                              onChange={e => updateDirectItem(i, { condition: e.target.value as DirectItem['condition'] })}
-                              className="border border-gray-200 rounded px-2 py-2 text-sm bg-white w-full"
+                            <Select
+                              value={String(row.condition ?? '')}
+                              onValueChange={(val) => updateDirectItem(i, { condition: val as DirectItem['condition'] })}
                             >
-                              <option value="good">Good</option>
-                              <option value="damaged">Damaged</option>
-                              <option value="partial">Partial</option>
-                            </select>
+                              <SelectTrigger className="border border-gray-200 rounded px-2 py-2 text-sm bg-white w-full"><SelectValue placeholder="Condition" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="good">Good</SelectItem>
+                                <SelectItem value="damaged">Damaged</SelectItem>
+                                <SelectItem value="partial">Partial</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
                         {row.condition !== 'good' && (

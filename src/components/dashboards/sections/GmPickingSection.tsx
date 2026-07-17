@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Scale, DollarSign, RefreshCw, AlertCircle, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -146,13 +147,16 @@ const PickingRecordsView: React.FC = () => {
         <div className="flex flex-wrap gap-3 items-end">
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">Farm</label>
-            <select value={farmId} onChange={e => setFarmId(e.target.value)} className={inputCls}>
-              <option value="">All farms</option>
-              {farmList.map((f: any) => {
-                const fid = f.id ?? f.farm_id;
-                return <option key={fid} value={fid}>{f.name}</option>;
-              })}
-            </select>
+            <Select value={farmId ? String(farmId) : '__all__'} onValueChange={(val) => setFarmId(val === '__all__' ? '' : val)}>
+              <SelectTrigger className={inputCls}><SelectValue placeholder="All farms" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All farms</SelectItem>
+                {farmList.map((f: any) => {
+                  const fid = f.id ?? f.farm_id;
+                  return <SelectItem key={fid} value={String(fid)}>{f.name}</SelectItem>;
+                })}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <label className="block text-xs font-medium text-muted-foreground mb-1">From</label>
@@ -308,17 +312,18 @@ const PickingPricesView: React.FC = () => {
           <div className="space-y-4 pt-2">
             <div>
               <Label>Farm *</Label>
-              <select
-                value={priceForm.farm_id}
-                onChange={e => setPriceForm(p => ({ ...p, farm_id: e.target.value }))}
-                className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background"
+              <Select
+                value={priceForm.farm_id ? String(priceForm.farm_id) : ''}
+                onValueChange={(val) => setPriceForm(p => ({ ...p, farm_id: val }))}
               >
-                <option value="">Select farm</option>
-                {farmList.map((f: any) => {
-                  const fid = f.id ?? f.farm_id;
-                  return <option key={fid} value={fid}>{f.name}</option>;
-                })}
-              </select>
+                <SelectTrigger className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background"><SelectValue placeholder="Select farm" /></SelectTrigger>
+                <SelectContent>
+                  {farmList.map((f: any) => {
+                    const fid = f.id ?? f.farm_id;
+                    return <SelectItem key={fid} value={String(fid)}>{f.name}</SelectItem>;
+                  })}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>Price per kg (TZS) *</Label>

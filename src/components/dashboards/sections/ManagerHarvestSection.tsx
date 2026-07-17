@@ -6,6 +6,7 @@ import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { Leaf, Plus, CheckCircle, Calendar } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '../../ui/sonner';
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -103,25 +104,22 @@ export const ManagerHarvestSection: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <select
-            value={selectedFarmId ?? ''}
-            onChange={e => setSelectedFarmId(Number(e.target.value))}
-            className="border border-gray-300 rounded-md px-3 py-1.5 text-sm"
-          >
-            <option value="" disabled>Select farm</option>
-            {(farms as any[] ?? []).map((f: any) => (
-              <option key={f.farm_id ?? f.id} value={f.farm_id ?? f.id}>{f.name}</option>
-            ))}
-          </select>
-          <select
-            value={seasonYear}
-            onChange={e => setSeasonYear(Number(e.target.value))}
-            className="border border-gray-300 rounded-md px-3 py-1.5 text-sm"
-          >
-            {[CURRENT_YEAR - 1, CURRENT_YEAR, CURRENT_YEAR + 1].map(y => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
+          <Select value={String(selectedFarmId ?? '')} onValueChange={(val) => setSelectedFarmId(Number(val))}>
+            <SelectTrigger className="border border-gray-300 rounded-md px-3 py-1.5 text-sm"><SelectValue placeholder="Select farm" /></SelectTrigger>
+            <SelectContent>
+              {(farms as any[] ?? []).map((f: any) => (
+                <SelectItem key={f.farm_id ?? f.id} value={String(f.farm_id ?? f.id)}>{f.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={String(seasonYear)} onValueChange={(val) => setSeasonYear(Number(val))}>
+            <SelectTrigger className="border border-gray-300 rounded-md px-3 py-1.5 text-sm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {[CURRENT_YEAR - 1, CURRENT_YEAR, CURRENT_YEAR + 1].map(y => (
+                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <button
           onClick={() => { setForm(emptyForm()); setShowModal(true); }}
@@ -256,10 +254,13 @@ export const ManagerHarvestSection: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Pickers Type</label>
-                <select value={form.pickers_type} onChange={e => setForm(f => ({ ...f, pickers_type: e.target.value as any }))} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
-                  <option value="contracted">Contracted</option>
-                  <option value="permanent">Permanent</option>
-                </select>
+                <Select value={String(form.pickers_type ?? '')} onValueChange={(val) => setForm(f => ({ ...f, pickers_type: val as any }))}>
+                  <SelectTrigger className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"><SelectValue placeholder="Select type" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="contracted">Contracted</SelectItem>
+                    <SelectItem value="permanent">Permanent</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-4">

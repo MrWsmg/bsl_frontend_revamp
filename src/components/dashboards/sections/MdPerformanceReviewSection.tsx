@@ -7,6 +7,7 @@ import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Users, RefreshCw, AlertCircle, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 export const MdPerformanceReviewSection: React.FC = () => {
@@ -76,30 +77,34 @@ export const MdPerformanceReviewSection: React.FC = () => {
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Role</label>
-              <select
-                value={roleFilter}
-                onChange={e => setRoleFilter(e.target.value)}
-                className={inputCls}
+              <Select
+                value={roleFilter ? String(roleFilter) : '__all__'}
+                onValueChange={(val) => setRoleFilter(val === '__all__' ? '' : val)}
               >
-                <option value="">All roles</option>
-                <option value="manager">Manager</option>
-                <option value="supervisor">Supervisor</option>
-                <option value="sub_supervisor">Sub-Supervisor</option>
-                <option value="farm_clerk">Farm Clerk</option>
-              </select>
+                <SelectTrigger className={inputCls}><SelectValue placeholder="All roles" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All roles</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="supervisor">Supervisor</SelectItem>
+                  <SelectItem value="sub_supervisor">Sub-Supervisor</SelectItem>
+                  <SelectItem value="farm_clerk">Farm Clerk</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Farm</label>
-              <select
-                value={farmId}
-                onChange={e => setFarmId(e.target.value)}
-                className={inputCls}
+              <Select
+                value={farmId ? String(farmId) : '__all__'}
+                onValueChange={(val) => setFarmId(val === '__all__' ? '' : val)}
               >
-                <option value="">All farms</option>
-                {farmList.map((f: any) => (
-                  <option key={f.id ?? f.farm_id} value={f.id ?? f.farm_id}>{f.name}</option>
-                ))}
-              </select>
+                <SelectTrigger className={inputCls}><SelectValue placeholder="All farms" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All farms</SelectItem>
+                  {farmList.map((f: any) => (
+                    <SelectItem key={f.id ?? f.farm_id} value={String(f.id ?? f.farm_id)}>{f.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <Button size="sm" onClick={() => refetch()}>
               <RefreshCw className="w-3.5 h-3.5 mr-1" /> Refresh

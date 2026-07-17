@@ -19,6 +19,7 @@ import {
   Sheet,
   SheetContent,
 } from '@/components/ui/sheet';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 
 // ─── Linked-mode item ────────────────────────────────────────────────────────
@@ -681,16 +682,20 @@ export const ProcurementGrnSection: React.FC = () => {
                           <div className="flex gap-2 items-center">
                             <div className="flex-1">
                               <label className="text-xs text-gray-500 mb-0.5 block">Condition</label>
-                              <select
+                              <Select
                                 value={row.condition}
-                                onChange={e => updateDirectItem(i, { condition: e.target.value as DirectItem['condition'] })}
-                                className="border border-gray-200 rounded px-2 py-1.5 text-xs bg-white w-full"
+                                onValueChange={(val) => updateDirectItem(i, { condition: val as DirectItem['condition'] })}
                               >
-                                <option value="good">Good</option>
-                                <option value="damaged">Damaged</option>
-                                <option value="wrong_item">Wrong item</option>
-                                <option value="expired">Expired</option>
-                              </select>
+                                <SelectTrigger className="border border-gray-200 rounded px-2 py-1.5 text-xs bg-white w-full">
+                                  <SelectValue placeholder="Condition" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="good">Good</SelectItem>
+                                  <SelectItem value="damaged">Damaged</SelectItem>
+                                  <SelectItem value="wrong_item">Wrong item</SelectItem>
+                                  <SelectItem value="expired">Expired</SelectItem>
+                                </SelectContent>
+                              </Select>
                             </div>
                             {directItems.length > 1 && (
                               <button
@@ -732,15 +737,19 @@ export const ProcurementGrnSection: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Inspection Status</label>
-                    <select
+                    <Select
                       value={inspectionStatus}
-                      onChange={e => setInspectionStatus(e.target.value as any)}
-                      className="border border-gray-200 rounded-md px-3 py-2 text-sm bg-white w-full"
+                      onValueChange={(val) => setInspectionStatus(val as any)}
                     >
-                      <option value="pending">Pending</option>
-                      <option value="passed">Passed</option>
-                      <option value="failed">Failed</option>
-                    </select>
+                      <SelectTrigger className="border border-gray-200 rounded-md px-3 py-2 text-sm bg-white w-full">
+                        <SelectValue placeholder="Inspection Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="passed">Passed</SelectItem>
+                        <SelectItem value="failed">Failed</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Quality Rating <span className="text-gray-400 font-normal">(1–5)</span></label>
@@ -819,16 +828,20 @@ export const ProcurementGrnSection: React.FC = () => {
                           <Input type="number" value={row.lpo_item_id} onChange={e => updateItem(i, { lpo_item_id: e.target.value })} placeholder="Links to LPO line item" className="text-sm" />
                         </div>
                         <div className="flex gap-2 items-center">
-                          <select
+                          <Select
                             value={row.condition}
-                            onChange={e => updateItem(i, { condition: e.target.value as GrnItem['condition'] })}
-                            className="border border-gray-200 rounded px-2 py-1.5 text-xs bg-white"
+                            onValueChange={(val) => updateItem(i, { condition: val as GrnItem['condition'] })}
                           >
-                            <option value="good">Good condition</option>
-                            <option value="damaged">Damaged</option>
-                            <option value="wrong_item">Wrong item</option>
-                            <option value="expired">Expired</option>
-                          </select>
+                            <SelectTrigger className="border border-gray-200 rounded px-2 py-1.5 text-xs bg-white">
+                              <SelectValue placeholder="Condition" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="good">Good condition</SelectItem>
+                              <SelectItem value="damaged">Damaged</SelectItem>
+                              <SelectItem value="wrong_item">Wrong item</SelectItem>
+                              <SelectItem value="expired">Expired</SelectItem>
+                            </SelectContent>
+                          </Select>
                           {row.condition !== 'good' && (
                             <Input
                               value={row.rejection_reason}

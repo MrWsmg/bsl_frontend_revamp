@@ -6,6 +6,7 @@ import { Users, TrendingUp, BarChart3, Warehouse } from 'lucide-react';
 import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export const AnalyticsSection: React.FC = () => {
   const [analyticsData, setAnalyticsData] = useState<any>(null);
@@ -45,28 +46,32 @@ export const AnalyticsSection: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Time Period</label>
-              <select
-                value={analyticsFilters.period}
-                onChange={(e) => setAnalyticsFilters({...analyticsFilters, period: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
+              <Select
+                value={String(analyticsFilters.period ?? '')}
+                onValueChange={(val) => setAnalyticsFilters({...analyticsFilters, period: val})}
               >
-                <option value="7">Last 7 days</option>
-                <option value="30">Last 30 days</option>
-                <option value="90">Last 90 days</option>
-              </select>
+                <SelectTrigger className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"><SelectValue placeholder="Select period" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7">Last 7 days</SelectItem>
+                  <SelectItem value="30">Last 30 days</SelectItem>
+                  <SelectItem value="90">Last 90 days</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Farm (Optional)</label>
-              <select
-                value={analyticsFilters.farm_id}
-                onChange={(e) => setAnalyticsFilters({...analyticsFilters, farm_id: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
+              <Select
+                value={analyticsFilters.farm_id ? String(analyticsFilters.farm_id) : '__all__'}
+                onValueChange={(val) => setAnalyticsFilters({...analyticsFilters, farm_id: val === '__all__' ? '' : val})}
               >
-                <option key="all-farms" value="">All Farms</option>
-                {farms?.map((farm: any, index: number) => (
-                  <option key={farm.id ?? `farm-${index}`} value={farm.id}>{farm.name}</option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"><SelectValue placeholder="All Farms" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All Farms</SelectItem>
+                  {farms?.map((farm: any, index: number) => (
+                    <SelectItem key={farm.id ?? `farm-${index}`} value={String(farm.id)}>{farm.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-end sm:col-span-2 lg:col-span-1">
               <button

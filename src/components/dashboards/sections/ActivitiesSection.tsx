@@ -6,6 +6,7 @@ import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { ActivityTypeBadge } from '../../common/ActivityTypeBadge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export const ActivitiesSection: React.FC = () => {
   const [activityFilters, setActivityFilters] = useState({
@@ -40,30 +41,34 @@ export const ActivitiesSection: React.FC = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Farm</label>
-              <select
-                value={activityFilters.farm_id}
-                onChange={(e) => setActivityFilters({...activityFilters, farm_id: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
+              <Select
+                value={activityFilters.farm_id ? String(activityFilters.farm_id) : '__all__'}
+                onValueChange={(val) => setActivityFilters({...activityFilters, farm_id: val === '__all__' ? '' : val})}
               >
-                <option value="">All Farms</option>
-                {farms?.map((farm: any) => {
-                  const fid = farm.id ?? farm.farm_id;
-                  return <option key={fid} value={fid}>{farm.name}</option>;
-                })}
-              </select>
+                <SelectTrigger className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"><SelectValue placeholder="All Farms" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All Farms</SelectItem>
+                  {farms?.map((farm: any) => {
+                    const fid = farm.id ?? farm.farm_id;
+                    return <SelectItem key={fid} value={String(fid)}>{farm.name}</SelectItem>;
+                  })}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Activity Type</label>
-              <select
-                value={activityFilters.activity_type}
-                onChange={(e) => setActivityFilters({...activityFilters, activity_type: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
+              <Select
+                value={activityFilters.activity_type ? String(activityFilters.activity_type) : '__all__'}
+                onValueChange={(val) => setActivityFilters({...activityFilters, activity_type: val === '__all__' ? '' : val})}
               >
-                <option value="">All Types</option>
-                <option value="payroll">Payroll</option>
-                <option value="stock">Stock</option>
-                <option value="expense">Expenses</option>
-              </select>
+                <SelectTrigger className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"><SelectValue placeholder="All Types" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All Types</SelectItem>
+                  <SelectItem value="payroll">Payroll</SelectItem>
+                  <SelectItem value="stock">Stock</SelectItem>
+                  <SelectItem value="expense">Expenses</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>

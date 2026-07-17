@@ -6,6 +6,7 @@ import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { FileText, AlertTriangle, AlertOctagon, TrendingUp, DollarSign, Plus } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '../../ui/sonner';
 
 export const ManagerReportsSection: React.FC = () => {
@@ -405,27 +406,28 @@ export const ManagerReportsSection: React.FC = () => {
             {/* Farm select — shared by all */}
             <div className="mb-3">
               <label className="block text-sm font-medium text-gray-700 mb-1">Farm <span className="text-red-500">*</span></label>
-              <select
-                value={
-                  activeTab === 'inspections' ? inspectionForm.farm_id :
+              <Select
+                value={String(
+                  (activeTab === 'inspections' ? inspectionForm.farm_id :
                   activeTab === 'emergencies' ? emergencyForm.farm_id :
                   activeTab === 'incidents'   ? incidentForm.farm_id :
-                  forecastForm.farm_id
-                }
-                onChange={e => {
-                  const v = e.target.value;
+                  forecastForm.farm_id) ?? ''
+                )}
+                onValueChange={(val) => {
+                  const v = val;
                   if (activeTab === 'inspections') setInspectionForm(f => ({ ...f, farm_id: v }));
                   else if (activeTab === 'emergencies') setEmergencyForm(f => ({ ...f, farm_id: v }));
                   else if (activeTab === 'incidents')   setIncidentForm(f => ({ ...f, farm_id: v }));
                   else setForecastForm(f => ({ ...f, farm_id: v }));
                 }}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
               >
-                <option value="">Select farm...</option>
-                {farms.map((farm: any) => (
-                  <option key={farm.id} value={farm.id}>{farm.name}</option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"><SelectValue placeholder="Select farm..." /></SelectTrigger>
+                <SelectContent>
+                  {farms.map((farm: any) => (
+                    <SelectItem key={farm.id} value={String(farm.id)}>{farm.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Inspection fields */}

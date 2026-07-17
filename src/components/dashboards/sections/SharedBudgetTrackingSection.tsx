@@ -4,6 +4,7 @@ import React, { useState, useCallback } from 'react';
 import { useApi } from '../../../hooks';
 import apiService from '../../../services/api';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TrendingUp, AlertCircle, Users, Package, ShoppingCart, Receipt, RefreshCw } from 'lucide-react';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -82,11 +83,13 @@ export const SharedBudgetTrackingSection: React.FC<Props> = ({ userRole }) => {
         </div>
 
         {/* Farm filter */}
-        <select value={farmId} onChange={e => setFarmId(e.target.value)}
-          className="border border-gray-200 rounded-md px-3 py-2 text-sm bg-white">
-          <option value="">All farms</option>
-          {farms.map(f => <option key={f.id} value={String(f.id)}>{f.name}</option>)}
-        </select>
+        <Select value={farmId ? String(farmId) : '__all__'} onValueChange={(val) => setFarmId(val === '__all__' ? '' : val)}>
+          <SelectTrigger className="border border-gray-200 rounded-md px-3 py-2 text-sm bg-white"><SelectValue placeholder="All farms" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All farms</SelectItem>
+            {farms.map(f => <SelectItem key={f.id} value={String(f.id)}>{f.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
 
         <button onClick={() => refetch()} disabled={loading}
           className="p-2 border border-gray-200 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-50 disabled:opacity-40">

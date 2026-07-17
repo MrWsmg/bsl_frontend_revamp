@@ -13,6 +13,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Target, Plus, RefreshCw, AlertCircle, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -232,23 +233,29 @@ export const GmKpiSection: React.FC = () => {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Farm</Label>
-                <select value={form.farm_id} onChange={e => setForm(p => ({ ...p, farm_id: e.target.value }))} className={`w-full ${inputCls}`}>
-                  <option value="">All farms</option>
-                  {farmList.map((f: any) => {
-                    const fid = f.id ?? f.farm_id;
-                    return <option key={fid} value={fid}>{f.name}</option>;
-                  })}
-                </select>
+                <Select value={form.farm_id ? String(form.farm_id) : '__all__'} onValueChange={(val) => setForm(p => ({ ...p, farm_id: val === '__all__' ? '' : val }))}>
+                  <SelectTrigger className={`w-full ${inputCls}`}><SelectValue placeholder="All farms" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">All farms</SelectItem>
+                    {farmList.map((f: any) => {
+                      const fid = f.id ?? f.farm_id;
+                      return <SelectItem key={fid} value={String(fid)}>{f.name}</SelectItem>;
+                    })}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label>Period</Label>
-                <select value={form.period} onChange={e => setForm(p => ({ ...p, period: e.target.value }))} className={`w-full ${inputCls}`}>
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                  <option value="quarterly">Quarterly</option>
-                  <option value="yearly">Yearly</option>
-                </select>
+                <Select value={String(form.period ?? '')} onValueChange={(val) => setForm(p => ({ ...p, period: val }))}>
+                  <SelectTrigger className={`w-full ${inputCls}`}><SelectValue placeholder="Select period" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="quarterly">Quarterly</SelectItem>
+                    <SelectItem value="yearly">Yearly</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">

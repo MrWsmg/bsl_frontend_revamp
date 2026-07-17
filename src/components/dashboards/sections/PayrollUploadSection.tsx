@@ -5,6 +5,7 @@ import { Upload, Download, AlertCircle, CheckCircle, Info, UserPlus } from 'luci
 import { toast } from '../../ui/sonner';
 import { LoadingSpinner } from '../../common/LoadingSpinner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import apiService from '../../../services/api';
 
 interface UploadError {
@@ -153,16 +154,19 @@ export const PayrollUploadSection: React.FC = () => {
                       <LoadingSpinner size="sm" /> Loading farms…
                     </div>
                   ) : (
-                    <select
-                      value={farmId}
-                      onChange={(e) => setFarmId(e.target.value ? Number(e.target.value) : '')}
-                      className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                    <Select
+                      value={farmId ? String(farmId) : ''}
+                      onValueChange={(val) => setFarmId(val ? Number(val) : '')}
                     >
-                      <option value="">— Select farm —</option>
-                      {farms.map((f) => (
-                        <option key={f.id} value={f.id}>{f.name}</option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring">
+                        <SelectValue placeholder="— Select farm —" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {farms.map((f) => (
+                          <SelectItem key={f.id} value={String(f.id)}>{f.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   )}
                 </div>
 

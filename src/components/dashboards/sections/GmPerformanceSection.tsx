@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import {
   TrendingUp, TrendingDown, Minus, Users, RefreshCw, AlertCircle,
 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export const GmPerformanceSection: React.FC = () => {
   const [farmId,       setFarmId]       = useState('');
@@ -74,22 +75,28 @@ export const GmPerformanceSection: React.FC = () => {
           <div className="flex flex-wrap gap-3 items-end">
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">Farm</label>
-              <select value={farmId} onChange={e => setFarmId(e.target.value)} className={inputCls}>
-                <option value="">All farms</option>
-                {farmList.map((f: any) => {
-                  const fid = f.id ?? f.farm_id;
-                  return <option key={fid} value={fid}>{f.name}</option>;
-                })}
-              </select>
+              <Select value={farmId ? String(farmId) : '__all__'} onValueChange={(val) => setFarmId(val === '__all__' ? '' : val)}>
+                <SelectTrigger className={inputCls}><SelectValue placeholder="All farms" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All farms</SelectItem>
+                  {farmList.map((f: any) => {
+                    const fid = f.id ?? f.farm_id;
+                    return <SelectItem key={fid} value={String(fid)}>{f.name}</SelectItem>;
+                  })}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">Role</label>
-              <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className={inputCls}>
-                <option value="">All roles</option>
-                <option value="supervisor">Supervisor</option>
-                <option value="manager">Manager</option>
-                <option value="farm_clerk">Farm Clerk</option>
-              </select>
+              <Select value={roleFilter ? String(roleFilter) : '__all__'} onValueChange={(val) => setRoleFilter(val === '__all__' ? '' : val)}>
+                <SelectTrigger className={inputCls}><SelectValue placeholder="All roles" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All roles</SelectItem>
+                  <SelectItem value="supervisor">Supervisor</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="farm_clerk">Farm Clerk</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">Name</label>

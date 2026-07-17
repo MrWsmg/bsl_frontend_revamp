@@ -5,6 +5,7 @@ import { CheckCircle, XCircle, Clock, Download, FileCheck } from 'lucide-react';
 import apiService from '../../services/api';
 import { PurchaseOrder, Supplier } from '../../types';
 import { PO_STATUS } from '../../constants';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 
 interface PurchaseOrderListProps {
@@ -132,18 +133,17 @@ export const PurchaseOrderList: React.FC<PurchaseOrderListProps> = ({ userRole }
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Status</label>
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            >
-              <option value="">All Statuses</option>
-              <option value={PO_STATUS.PENDING_APPROVAL}>Pending Manager</option>
-              <option value={PO_STATUS.PENDING_ACCOUNT_APPROVAL}>Pending Account Manager</option>
-              <option value={PO_STATUS.PENDING_PAYROLL_MASTER_APPROVAL}>Pending Payroll Master</option>
-              <option value={PO_STATUS.APPROVED}>Approved</option>
-              <option value={PO_STATUS.CONFIRMED}>Confirmed</option>
-            </select>
+            <Select value={selectedStatus ? String(selectedStatus) : '__all__'} onValueChange={(val) => setSelectedStatus(val === '__all__' ? '' : val)}>
+              <SelectTrigger className="w-full px-3 py-2 border border-gray-300 rounded-md"><SelectValue placeholder="All Statuses" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All Statuses</SelectItem>
+                <SelectItem value={PO_STATUS.PENDING_APPROVAL}>Pending Manager</SelectItem>
+                <SelectItem value={PO_STATUS.PENDING_ACCOUNT_APPROVAL}>Pending Account Manager</SelectItem>
+                <SelectItem value={PO_STATUS.PENDING_PAYROLL_MASTER_APPROVAL}>Pending Payroll Master</SelectItem>
+                <SelectItem value={PO_STATUS.APPROVED}>Approved</SelectItem>
+                <SelectItem value={PO_STATUS.CONFIRMED}>Confirmed</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex items-end">

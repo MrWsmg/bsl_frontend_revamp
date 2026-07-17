@@ -21,6 +21,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Truck, RefreshCw, Plus, AlertCircle, ChevronRight, CheckCircle2, XCircle, Send, PenLine } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -321,13 +322,16 @@ export const SharedTransportVoucherSection: React.FC<Props> = ({ userRole }) => 
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle Type</label>
-                  <select value={form.vehicle_type} onChange={e => setForm(f => ({ ...f, vehicle_type: e.target.value }))} className="border border-gray-200 rounded-md px-3 py-2 text-sm bg-white w-full">
-                    <option value="truck">Truck</option>
-                    <option value="pickup">Pickup</option>
-                    <option value="van">Van</option>
-                    <option value="motorcycle">Motorcycle</option>
-                    <option value="other">Other</option>
-                  </select>
+                  <Select value={String(form.vehicle_type ?? '')} onValueChange={(val) => setForm(f => ({ ...f, vehicle_type: val }))}>
+                    <SelectTrigger className="border border-gray-200 rounded-md px-3 py-2 text-sm bg-white w-full"><SelectValue placeholder="Select vehicle type" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="truck">Truck</SelectItem>
+                      <SelectItem value="pickup">Pickup</SelectItem>
+                      <SelectItem value="van">Van</SelectItem>
+                      <SelectItem value="motorcycle">Motorcycle</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle No.</label>
